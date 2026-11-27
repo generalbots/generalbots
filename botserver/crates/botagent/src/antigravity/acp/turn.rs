@@ -20,7 +20,7 @@ use std::collections::{HashMap, HashSet};
 use std::future::Future;
 use std::time::Duration;
 
-use axum::http::StatusCode;
+use botsecurity_core::error_sanitizer::{log_and_sanitize_str, SafeErrorResponse};
 use serde_json::{json, Value};
 
 use crate::codex::app_server::ActionOutcome;
@@ -76,7 +76,7 @@ struct Turn<T> {
 }
 
 fn failed(message: impl Into<String>) -> AcpError {
-    AcpError::Failed(StatusCode::INTERNAL_SERVER_ERROR, message.into())
+    AcpError::Failed(log_and_sanitize_str(&message.into(), "antigravity acp", None))
 }
 
 /// Runs one prompt and returns the answer.
@@ -186,10 +186,10 @@ async fn prompt_loop<H: AcpGate>(
                     cancelled_at = Some(tokio::time::Instant::now());
                 } else if last_heard.elapsed() > QUIET_LIMIT {
                     cancel(client, &mut turn);
-                    return Err(AcpError::Failed(
-                        StatusCode::GATEWAY_TIMEOUT,
-                        "Antigravity stopped answering".to_string(),
-                    ));
+                    return Err(AcpError::Failed(SafeErrorResponse::new(
+                        "timeout",
+                        "Antigravity stopped answering",
+                    )));
                 }
             }
         }
@@ -208,14 +208,13 @@ fn finish<T>(answered: Result<Value, RpcError>, turn: Turn<T>) -> Result<String,
         Ok(result) => match proto::stop_reason(&result).as_str() {
             "refusal" if turn.text.trim().is_empty() => Err(failed("Antigravity refused to answer")),
             "cancelled" if !turn.cancelled && turn.text.trim().is_empty() => Err(AcpError::Failed(
-                StatusCode::REQUEST_TIMEOUT,
-                "Antigravity stopped: a permission request was not answered".to_string(),
+                SafeErrorResponse::new("timeout", "Antigravity stopped: a permission request was not answered"),
             )),
             _ => Ok(turn.text),
         },
         Err(RpcError::Remote { message, .. }) if proto::needs_sign_in(&message) => Err(AcpError::NotSignedIn),
         Err(RpcError::Remote { message, .. }) => match crate::cli_turn::plan_limit("", &message) {
-            Some((code, limit)) => Err(AcpError::Failed(code, limit)),
+            Some(problem) => Err(AcpError::Failed(problem)),
             None => Err(failed(format!("antigravity prompt failed: {message}"))),
         },
         Err(error) => Err(failed(format!("antigravity prompt failed: {error}"))),

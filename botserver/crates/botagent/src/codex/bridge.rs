@@ -17,7 +17,7 @@
 use std::future::Future;
 use std::time::Duration;
 
-use axum::http::StatusCode;
+use botsecurity_core::error_sanitizer::{log_and_sanitize_str, SafeErrorResponse};
 use serde_json::{json, Value};
 
 use crate::duplex::{RpcClient, RpcError};
@@ -60,7 +60,7 @@ pub trait Approvals: Send + Sync {
     fn stopped(&self) -> bool;
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum BridgeError {
     /// The CLI has no signed-in account.
     NotSignedIn,
@@ -68,13 +68,34 @@ pub enum BridgeError {
     Unasked,
     /// The installed CLI failed the approval self-check.
     Unsafe { version: String },
-    /// Any other failure; a spent plan carries `plan_limit::MARKER`.
-    Failed(StatusCode, String),
+    /// Any other failure; a spent plan carries `plan_limit::MARKER` in the
+    /// message of the sanitised envelope.
+    Failed(SafeErrorResponse),
 }
 
+// `SafeErrorResponse` is intentionally not `PartialEq`: equality here is only
+// needed by tests that compare the deliberate variants, so compare the
+// envelope's public fields rather than deriving the trait through it.
+impl PartialEq for BridgeError {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::NotSignedIn, Self::NotSignedIn) | (Self::Unasked, Self::Unasked) => true,
+            (Self::Unsafe { version: a }, Self::Unsafe { version: b }) => a == b,
+            (Self::Failed(a), Self::Failed(b)) => {
+                a.error == b.error && a.message == b.message && a.code == b.code
+            }
+            _ => false,
+        }
+    }
+}
+
+impl Eq for BridgeError {}
+
 impl BridgeError {
+    /// The full detail is logged by [`log_and_sanitize_str`]; clients only
+    /// ever see the fixed, non-leaking message.
     pub(super) fn failed(message: impl Into<String>) -> Self {
-        Self::Failed(StatusCode::INTERNAL_SERVER_ERROR, message.into())
+        Self::Failed(log_and_sanitize_str(&message.into(), "codex bridge", None))
     }
 }
 

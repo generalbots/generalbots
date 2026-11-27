@@ -24,6 +24,7 @@
     var F = A.files = A.files || {};
 
     function t(pt, en) { return A.locale && A.locale.indexOf("pt") === 0 ? pt : en; }
+    function gt(key, en) { return window.gbT ? window.gbT(key, en) : en; }
     F.t = t;
 
     var KINDS = {
@@ -34,11 +35,11 @@
     };
     var TYPES = {
         pdf: ["Documento PDF", "PDF document"], docx: ["Documento de texto (DOCX)", "Text document (DOCX)"],
-        xlsx: ["Planilha (XLSX)", "Spreadsheet (XLSX)"], pptx: ["Apresentação (PPTX)", "Presentation (PPTX)"],
-        odt: ["Documento de texto (ODT)", "Text document (ODT)"], ods: ["Planilha (ODS)", "Spreadsheet (ODS)"],
+        xlsx: [gt("file-kind-spreadsheet-xlsx", "Spreadsheet (XLSX)"), "Spreadsheet (XLSX)"], pptx: [gt("file-kind-presentation-pptx", "Presentation (PPTX)"), "Presentation (PPTX)"],
+        odt: [gt("file-kind-text-document-odt", "Text document (ODT)"), "Text document (ODT)"], ods: [gt("file-kind-spreadsheet-ods", "Spreadsheet (ODS)"), "Spreadsheet (ODS)"],
         odp: ["Apresentação (ODP)", "Presentation (ODP)"], csv: ["Tabela (CSV)", "Table (CSV)"],
         tsv: ["Tabela (TSV)", "Table (TSV)"], md: ["Texto formatado (Markdown)", "Formatted text (Markdown)"],
-        txt: ["Texto", "Text"], json: ["Dados (JSON)", "Data (JSON)"], zip: ["Arquivo compactado", "Archive"]
+        txt: [gt("file-kind-text", "Text"), "Text"], json: [gt("file-kind-data-json", "Data (JSON)"), "Data (JSON)"], zip: [gt("file-kind-archive", "Archive"), "Archive"]
     };
 
     F.ext = function (name) {
@@ -57,7 +58,7 @@
         if (b < 1024) { return b + " B"; }
         var units = ["KB", "MB", "GB"], v = b / 1024, i = 0;
         while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
-        return v.toLocaleString(A.locale || undefined, { maximumFractionDigits: v < 10 ? 1 : 0 }) + " " + units[i];
+        return gbFormatNumber(v, { maximumFractionDigits: v < 10 ? 1 : 0 }, A.locale || undefined) + " " + units[i];
     };
 
     function httpError(status) {

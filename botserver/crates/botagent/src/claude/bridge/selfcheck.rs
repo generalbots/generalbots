@@ -13,7 +13,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
-use axum::http::StatusCode;
+use botsecurity_core::error_sanitizer::SafeErrorResponse;
 
 use crate::duplex::DuplexOptions;
 use crate::AgentService;
@@ -42,14 +42,19 @@ fn checks() -> std::sync::MutexGuard<'static, HashMap<String, (bool, Instant)>> 
         .unwrap_or_else(std::sync::PoisonError::into_inner)
 }
 
-pub(super) fn unsafe_error() -> (StatusCode, String) {
-    (
-        StatusCode::PRECONDITION_FAILED,
+/// A refused turn keeps `agent_unsafe_version` as its machine-readable code
+/// and the marker as the first words of the message (the chat pipeline reads
+/// both). The sanitised envelope has no 412 variant, so the closest client
+/// status is `conflict`.
+pub(super) fn unsafe_error() -> SafeErrorResponse {
+    SafeErrorResponse::new(
+        "conflict",
         format!(
             "{UNSAFE_VERSION_MARKER} Claude Code in this workspace did not ask before running a \
              command, so it is not used."
         ),
     )
+    .with_code("agent_unsafe_version")
 }
 
 #[derive(Default)]
@@ -96,7 +101,7 @@ pub(super) fn check_script(port: u16) -> String {
     session_script(&write_root_file(MODEL_PATH, MODEL_SCRIPT), &env, &before, &claude_invocation("", None))
 }
 
-async fn run_check(state: &AgentService, vm_name: &str) -> Result<bool, (StatusCode, String)> {
+async fn run_check(state: &AgentService, vm_name: &str) -> Result<bool, SafeErrorResponse> {
     let port = 20_000 + u16::try_from(uuid::Uuid::new_v4().as_u128() % 30_000).unwrap_or(0);
     let args = ["sh".to_string(), "-c".to_string(), check_script(port)];
     let options = DuplexOptions { deadline: CHECK_DEADLINE, ..DuplexOptions::default() };
@@ -116,7 +121,7 @@ async fn run_check(state: &AgentService, vm_name: &str) -> Result<bool, (StatusC
 /// Ok when this workspace's Claude Code was seen asking; the check runs
 /// once per workspace and server run (again after [`RETRY_AFTER`] when it
 /// failed).
-pub(super) async fn ensure(state: &AgentService, vm_name: &str) -> Result<(), (StatusCode, String)> {
+pub(super) async fn ensure(state: &AgentService, vm_name: &str) -> Result<(), SafeErrorResponse> {
     if let Some(known) = known_verdict(vm_name) {
         return known;
     }
@@ -136,7 +141,7 @@ pub(super) async fn ensure(state: &AgentService, vm_name: &str) -> Result<(), (S
 
 /// The kept verdict for `vm_name`, None when it must be checked (never, or a
 /// failure older than [`RETRY_AFTER`]).
-fn known_verdict(vm_name: &str) -> Option<Result<(), (StatusCode, String)>> {
+fn known_verdict(vm_name: &str) -> Option<Result<(), SafeErrorResponse>> {
     let (safe, at) = checks().get(vm_name).copied()?;
     if safe {
         Some(Ok(()))
@@ -153,7 +158,7 @@ fn running() -> &'static tokio::sync::Mutex<()> {
 /// Runs the check ahead of the first turn (after a server start or a
 /// sign-in), so that turn finds the verdict kept. Does nothing when this
 /// workspace already has one.
-pub async fn precheck(state: &AgentService, vm_name: &str) -> Result<(), (StatusCode, String)> {
+pub async fn precheck(state: &AgentService, vm_name: &str) -> Result<(), SafeErrorResponse> {
     if checks().contains_key(vm_name) {
         return Ok(());
     }
@@ -186,6 +191,6 @@ mod tests {
         assert!(script.contains("ANTHROPIC_BASE_URL=http://127.0.0.1:23456"));
         assert!(script.contains("{ python3 /usr/local/lib/gb/claude-selfcheck.py 23456 & } && sleep 1 && exec claude -p"));
         assert!(script.len() < 16_384, "the command guard takes trusted scripts up to 16 KiB");
-        assert!(unsafe_error().1.starts_with(UNSAFE_VERSION_MARKER));
+        assert!(unsafe_error().message.starts_with(UNSAFE_VERSION_MARKER));
     }
 }

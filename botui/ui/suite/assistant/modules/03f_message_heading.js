@@ -40,7 +40,7 @@
         if (date && Number.isFinite(date.getTime())) {
             var time = document.createElement("time");
             time.dateTime = date.toISOString();
-            time.textContent = date.toLocaleTimeString(A.locale || undefined, { hour: "2-digit", minute: "2-digit" });
+            time.textContent = gbFormatTime(date, { locale: A.locale || undefined, hour: "2-digit", minute: "2-digit" });
             head.appendChild(time);
         }
         el.prepend(head);

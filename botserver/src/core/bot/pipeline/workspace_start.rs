@@ -294,7 +294,18 @@ fn workspace_refusal(
 /// (restarting, or not answering), which the person can act on.
 fn service_message_key(error: &WorkspaceError) -> Option<&'static str> {
     let status = axum::http::StatusCode::from_u16(error.0).ok()?;
-    match botagent::vm::service_code(&(status, error.1.clone()))? {
+    if status != axum::http::StatusCode::SERVICE_UNAVAILABLE {
+        return None;
+    }
+    let code = [
+        botagent::vm::SERVICE_RESTARTING_CODE,
+        botagent::vm::SERVICE_FAILED_CODE,
+    ]
+    .into_iter()
+    .find(|code| error.1.starts_with(code))?;
+    let envelope = botsecurity_core::error_sanitizer::SafeErrorResponse::new("workspace_error", error.1.clone())
+        .with_code(code);
+    match botagent::vm::service_code(&envelope)? {
         botagent::vm::SERVICE_RESTARTING_CODE => Some("error-workspace-service-restarting"),
         botagent::vm::SERVICE_FAILED_CODE => Some("error-workspace-service-failed"),
         _ => None,

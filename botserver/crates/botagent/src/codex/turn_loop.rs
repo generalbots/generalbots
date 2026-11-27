@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 use std::future::Future;
 use std::time::Duration;
 
-use axum::http::StatusCode;
+use botsecurity_core::error_sanitizer::SafeErrorResponse;
 use serde_json::{json, Value};
 
 use crate::duplex::{Incoming, RpcClient, RpcInbox, ServerRequest};
@@ -322,14 +322,14 @@ fn finish<T>(done: &Value, turn: &mut Turn<T>, stopped: bool) -> Result<String, 
     match done.get("status").and_then(Value::as_str).unwrap_or("") {
         "completed" => Ok(text),
         "interrupted" if stopped || !text.trim().is_empty() => Ok(text),
-        "interrupted" => Err(BridgeError::Failed(
-            StatusCode::REQUEST_TIMEOUT,
-            "Codex stopped: a permission request was not answered".to_string(),
-        )),
+        "interrupted" => Err(BridgeError::Failed(SafeErrorResponse::new(
+            "timeout",
+            "Codex stopped: a permission request was not answered",
+        ))),
         _ => {
             let reason = proto::turn_failure(done, turn.last_error.as_deref());
             match crate::cli_turn::plan_limit("", &reason) {
-                Some((code, message)) => Err(BridgeError::Failed(code, message)),
+                Some(problem) => Err(BridgeError::Failed(problem)),
                 None => Err(BridgeError::failed(format!("codex turn failed: {reason}"))),
             }
         }

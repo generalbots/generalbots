@@ -23,6 +23,7 @@
     }
 
     function say(pt, en) { return A.locale && A.locale.startsWith("pt") ? pt : en; }
+    function gt(key, en) { return window.gbT ? window.gbT(key, en) : en; }
 
     /* ---- Conversation list ---- */
     A.refreshSidebar = function () {
@@ -77,7 +78,7 @@
             if (btn.disabled) { return; }
             btn.disabled = true;
             btn.setAttribute("aria-busy", "true");
-            text.textContent = say("Carregando…", "Loading…");
+            text.textContent = gt("assistant-loading", "Loading…");
             A.loadMoreSessions().then(function () { renderConversationList(); });
         }
         btn.addEventListener("click", more);

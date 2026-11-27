@@ -13,6 +13,7 @@ use uuid::Uuid;
 use crate::models::{ExecBody, SandboxRunRow};
 use crate::schema::sandbox_runs;
 use crate::vm;
+use crate::vm::incus_run::{into_tuple, timeout_error};
 use crate::AgentService;
 
 const ALLOWED_LANGUAGES: &[&str] = &["python", "node", "shell"];
@@ -94,11 +95,11 @@ async fn run_incus(
         .await
         .map_err(|e| internal(format!("incus join: {e}")))?
         .map_err(|failure| match failure {
-            crate::vm::incus_run::RunFailure::TimedOut { orphaned } => crate::vm::incus_run::timeout_error(
+            crate::vm::incus_run::RunFailure::TimedOut { orphaned } => into_tuple(timeout_error(
                 args.first().map(String::as_str).unwrap_or("call"),
                 deadline,
                 orphaned,
-            ),
+            )),
             crate::vm::incus_run::RunFailure::Spawn(e) => internal(format!("incus execution: {e}")),
         })
 }

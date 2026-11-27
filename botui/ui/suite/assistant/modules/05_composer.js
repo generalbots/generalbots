@@ -161,7 +161,7 @@
         if (total > MAX_ATTACH_TOTAL) {
             A.renderError(A.t("attach.too-big-total",
                 "Anexos grandes demais para uma só mensagem (até 70 MB no total; estes somam ") +
-                (total / 1048576).toLocaleString(A.locale || undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " MB).");
+                gbFormatNumber(total / 1048576, { minimumFractionDigits: 1, maximumFractionDigits: 1 }, A.locale || undefined) + " MB).");
             return;
         }
         var empty = files.filter(function (f) { return f.size === 0; });

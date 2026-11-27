@@ -1,13 +1,17 @@
 //! Run one non-interactive Antigravity turn (`agy --print`) inside the VM.
 
-use axum::http::StatusCode;
+use botsecurity_core::error_sanitizer::SafeErrorResponse;
 
 use crate::cli_turn::{cli_model, failure_reason, plan_limit, run_turn, stage_file, TURN_TIMEOUT_SECS};
 use crate::vm;
 use crate::AgentService;
 
 use super::paths::{ANTIGRAVITY_HOME, ANTIGRAVITY_USER, PROMPT_TXT};
-use super::internal;
+
+fn failed(detail: String) -> SafeErrorResponse {
+    tracing::error!("antigravity print turn failed: {detail}");
+    SafeErrorResponse::new("internal_error", "Antigravity account operation failed")
+}
 
 /// The `agy` print-mode invocation run as the `antigravity` user. Plain text
 /// output is the answer; the CLI's own time limit ends the turn a little
@@ -51,9 +55,9 @@ pub async fn run_prompt(
     vm_name: &str,
     prompt: &str,
     model: &str,
-) -> Result<String, (StatusCode, String)> {
+) -> Result<String, SafeErrorResponse> {
     if prompt.trim().is_empty() {
-        return Err((StatusCode::BAD_REQUEST, "Empty prompt".to_string()));
+        return Err(SafeErrorResponse::bad_request("Empty prompt"));
     }
     let pointer = argument_prompt(prompt);
     if pointer.is_some() {
@@ -80,14 +84,14 @@ pub async fn run_prompt(
         if let Some(limit) = plan_limit(&stdout, &stderr) {
             return Err(limit);
         }
-        return Err(internal(format!(
+        return Err(failed(format!(
             "antigravity print failed: {}",
             failure_reason(&stdout, &stderr)
         )));
     }
     let answer = stdout.trim().to_string();
     if answer.is_empty() {
-        return Err(internal("Antigravity returned an empty response".to_string()));
+        return Err(failed("Antigravity returned an empty response".to_string()));
     }
     Ok(answer)
 }

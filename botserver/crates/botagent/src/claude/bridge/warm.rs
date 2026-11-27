@@ -9,7 +9,7 @@
 use std::sync::LazyLock;
 use std::time::{Duration, Instant};
 
-use axum::http::StatusCode;
+use botsecurity_core::error_sanitizer::SafeErrorResponse;
 
 use crate::duplex::{DuplexEvents, DuplexOptions, DuplexSender};
 use crate::warm::observe::TurnClock;
@@ -143,7 +143,7 @@ pub(super) async fn run_fresh(
     resume: Option<&str>,
     prompt: &str,
     gate: &impl BridgeGate,
-) -> Result<DriveReport, (StatusCode, String)> {
+) -> Result<DriveReport, SafeErrorResponse> {
     let clock = TurnClock::start("claude", false);
     let script = command::turn_script(turn.model, resume, turn.conversation);
     let args = ["sh".to_string(), "-c".to_string(), script];

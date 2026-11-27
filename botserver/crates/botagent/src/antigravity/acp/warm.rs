@@ -10,6 +10,8 @@
 use std::sync::LazyLock;
 use std::time::{Duration, Instant};
 
+use botsecurity_core::error_sanitizer::SafeErrorResponse;
+
 use crate::codex::app_server::ActionOutcome;
 use crate::codex::Verdict;
 use crate::duplex::{RpcClient, RpcInbox};
@@ -107,10 +109,10 @@ pub(super) async fn prompt<H: AcpGate>(
     match tokio::time::timeout(BRIDGE_DEADLINE, run).await {
         Ok(end) => end,
         Err(_) => PromptEnd {
-            result: Err(AcpError::Failed(
-                axum::http::StatusCode::GATEWAY_TIMEOUT,
-                "Antigravity passed its time limit".to_string(),
-            )),
+            result: Err(AcpError::Failed(SafeErrorResponse::new(
+                "timeout",
+                "Antigravity passed its time limit",
+            ))),
             heard: true,
             answered: false,
         },

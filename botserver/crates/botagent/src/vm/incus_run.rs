@@ -12,6 +12,7 @@
 
 use axum::http::StatusCode;
 use botlib::security::command_guard::SafeCommand;
+use botsecurity_core::error_sanitizer::SafeErrorResponse;
 use std::future::Future;
 use std::io::{Read, Write};
 use std::process::{Child, Output, Stdio};
@@ -89,7 +90,7 @@ pub async fn within_budget<F: Future>(budget: Duration, future: F) -> Option<F::
 }
 
 /// The error a caller receives when an Incus call ran out of time.
-pub(crate) fn timeout_error(operation: &str, deadline: Duration, orphaned: bool) -> (StatusCode, String) {
+pub(crate) fn timeout_error(operation: &str, deadline: Duration, orphaned: bool) -> SafeErrorResponse {
     let secs = deadline.as_secs().max(1);
     if orphaned {
         tracing::warn!(
@@ -99,15 +100,72 @@ pub(crate) fn timeout_error(operation: &str, deadline: Duration, orphaned: bool)
     } else {
         tracing::warn!("incus {operation} did not answer within {secs}s; the process tree was terminated");
     }
-    (
-        StatusCode::GATEWAY_TIMEOUT,
-        format!("{INCUS_TIMEOUT_CODE}: the agent workspace did not answer within {secs} s"),
+    SafeErrorResponse::new(
+        "timeout",
+        format!("The agent workspace did not answer within {secs} s"),
     )
+    .with_code(INCUS_TIMEOUT_CODE)
 }
 
-/// True for the error built by [`timeout_error`].
-pub fn is_timeout(error: &(StatusCode, String)) -> bool {
-    error.0 == StatusCode::GATEWAY_TIMEOUT && error.1.starts_with(INCUS_TIMEOUT_CODE)
+/// True for the error built by [`timeout_error`]. The stable prefix used to
+/// live in the body text; it is now the envelope's machine-readable `code`.
+pub fn is_timeout(error: &SafeErrorResponse) -> bool {
+    error.error == "timeout" && error.code.as_deref() == Some(INCUS_TIMEOUT_CODE)
+}
+
+/// Status code a sanitized envelope maps to, matching
+/// `IntoResponse for SafeErrorResponse`. Bridges helpers that now return
+/// [`SafeErrorResponse`] into callers that still speak the legacy tuple.
+pub(crate) fn status_of(error: &SafeErrorResponse) -> StatusCode {
+    match error.error.as_str() {
+        "bad_request" | "validation_error" => StatusCode::BAD_REQUEST,
+        "unauthorized" => StatusCode::UNAUTHORIZED,
+        "forbidden" => StatusCode::FORBIDDEN,
+        "not_found" => StatusCode::NOT_FOUND,
+        "method_not_allowed" => StatusCode::METHOD_NOT_ALLOWED,
+        "conflict" => StatusCode::CONFLICT,
+        "gone" => StatusCode::GONE,
+        "payload_too_large" => StatusCode::PAYLOAD_TOO_LARGE,
+        "unsupported_media_type" => StatusCode::UNSUPPORTED_MEDIA_TYPE,
+        "rate_limited" => StatusCode::TOO_MANY_REQUESTS,
+        "timeout" => StatusCode::GATEWAY_TIMEOUT,
+        "service_unavailable" => StatusCode::SERVICE_UNAVAILABLE,
+        _ => StatusCode::INTERNAL_SERVER_ERROR,
+    }
+}
+
+/// Converts a sanitized envelope into the legacy `(StatusCode, String)` at
+/// boundaries where the surrounding function still returns the tuple.
+pub(crate) fn into_tuple(error: SafeErrorResponse) -> (StatusCode, String) {
+    (status_of(&error), error.message)
+}
+
+/// Rebuilds a sanitized envelope from a legacy tuple so the shared predicates
+/// can classify it. In this path a 504 always comes from [`timeout_error`], so
+/// its stable machine-readable code is restored here.
+pub(crate) fn from_tuple(error: (StatusCode, String)) -> SafeErrorResponse {
+    let (status, message) = error;
+    let kind = match status {
+        StatusCode::BAD_REQUEST => "bad_request",
+        StatusCode::UNAUTHORIZED => "unauthorized",
+        StatusCode::FORBIDDEN => "forbidden",
+        StatusCode::NOT_FOUND => "not_found",
+        StatusCode::METHOD_NOT_ALLOWED => "method_not_allowed",
+        StatusCode::CONFLICT => "conflict",
+        StatusCode::GONE => "gone",
+        StatusCode::PAYLOAD_TOO_LARGE => "payload_too_large",
+        StatusCode::UNSUPPORTED_MEDIA_TYPE => "unsupported_media_type",
+        StatusCode::TOO_MANY_REQUESTS => "rate_limited",
+        StatusCode::GATEWAY_TIMEOUT => "timeout",
+        StatusCode::SERVICE_UNAVAILABLE => "service_unavailable",
+        _ => "internal_error",
+    };
+    let response = SafeErrorResponse::new(kind, message);
+    if status == StatusCode::GATEWAY_TIMEOUT {
+        response.with_code(INCUS_TIMEOUT_CODE)
+    } else {
+        response
+    }
 }
 
 #[derive(Debug)]

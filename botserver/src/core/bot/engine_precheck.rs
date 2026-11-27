@@ -101,7 +101,7 @@ async fn run(user_id: Uuid, provider: &str, vm_name: &str) {
             .map_err(|error| format!("{error:?}")),
         CLAUDE_CODE => botagent::claude::bridge::precheck(service, vm_name)
             .await
-            .map_err(|(_, message)| message),
+            .map_err(|problem| problem.message),
         _ => return,
     };
     match outcome {

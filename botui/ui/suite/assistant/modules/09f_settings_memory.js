@@ -9,6 +9,7 @@
     var A = window.GBAssistant;
     var ENDPOINT = "/api/user/memory";
     function tr(pt, en) { return A.settingsText(pt, en); }
+    function gt(key, en) { return window.gbT ? window.gbT(key, en) : en; }
 
     function toast(text, error) {
         var D = window.GBDrive;
@@ -28,7 +29,7 @@
     function when(iso) {
         var d = iso ? new Date(iso) : null;
         if (!d || isNaN(d.getTime())) { return ""; }
-        return d.toLocaleDateString(A.locale, { day: "2-digit", month: "short", year: d.getFullYear() === new Date().getFullYear() ? undefined : "numeric" });
+        return gbFormatDate(d, { locale: A.locale, day: "2-digit", month: "short", year: d.getFullYear() === new Date().getFullYear() ? undefined : "numeric" });
     }
 
     A.renderMemory = async function (panel) {
@@ -68,7 +69,7 @@
                 '<p>' + esc(label) + '</p></div><time class="gb-mem-when" datetime="' + esc(item.updated_at || "") + '">' + esc(when(item.updated_at)) + '</time>' +
                 '<span class="gb-mem-acts"><button type="button" class="gb-mem-act" data-act="edit" aria-label="' + esc(tr("Editar", "Edit") + ": " + short) + '">' +
                 esc(tr("Editar", "Edit")) + '</button><button type="button" class="gb-mem-act gb-mem-del" data-act="delete" aria-label="' +
-                esc(tr("Excluir", "Delete") + ": " + short) + '">' + esc(tr("Excluir", "Delete")) + '</button></span></li>';
+                esc(gt("memory-delete", "Delete") + ": " + short) + '">' + esc(gt("memory-delete", "Delete")) + '</button></span></li>';
         }
         function paint(focusKey) {
             if (!items.length) {
@@ -108,8 +109,8 @@
             var id = "gbMemEdit" + index;
             li.classList.add("gb-mem-editing");
             li.innerHTML = '<form class="gb-mem-edit"><label class="gb-mem-sr" for="' + id + '">' + esc(tr("Editar", "Edit")) + '</label><input class="gb-sp-input" id="' + id +
-                '" maxlength="1000" autocomplete="off"><button type="button" class="gb-sp-btn" data-act="cancel">' + esc(tr("Cancelar", "Cancel")) +
-                '</button><button type="submit" class="gb-sp-btn gb-sp-btn-pri">' + esc(A.t("settings.save", tr("Salvar", "Save"))) + '</button></form>';
+                '" maxlength="1000" autocomplete="off"><button type="button" class="gb-sp-btn" data-act="cancel">' + esc(gt("cancel", "Cancel")) +
+                '</button><button type="submit" class="gb-sp-btn gb-sp-btn-pri">' + esc(A.t("settings.save", gt("save", "Save"))) + '</button></form>';
             var box = li.querySelector("input"), editor = li.querySelector("form");
             box.value = item.value || "";
             box.focus();
@@ -137,7 +138,7 @@
             var foot = body.querySelector(".gb-mem-foot");
             foot.classList.add("gb-mem-confirm");
             foot.innerHTML = '<p class="gb-mem-ask" id="gbMemAsk">' + esc(tr("Apagar todas as memórias? Isso não pode ser desfeito.",
-                "Delete all memories? This cannot be undone.")) + '</p><button type="button" class="gb-sp-btn" data-act="keep">' + esc(tr("Cancelar", "Cancel")) +
+                "Delete all memories? This cannot be undone.")) + '</p><button type="button" class="gb-sp-btn" data-act="keep">' + esc(gt("cancel", "Cancel")) +
                 '</button><button type="button" class="gb-sp-btn gb-sp-btn-danger gb-mem-clear-yes" data-act="clear" aria-describedby="gbMemAsk">' +
                 esc(tr("Apagar tudo", "Delete all")) + '</button>';
             foot.querySelector('[data-act="keep"]').onclick = function () { paint(); body.querySelector("#gbMemClear").focus(); };

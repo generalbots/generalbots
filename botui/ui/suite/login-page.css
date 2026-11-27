@@ -181,7 +181,7 @@ body[data-pending] .gb-login-wordmark, body[data-pending] .gb-titlebar-wordmark 
     padding: 4px 6px;
     border: 0;
     background: none;
-    color: var(--id-accent-text, var(--id-accent, #F28C28));
+    color: var(--id-accent-text);
     font: inherit;
     font-size: var(--text-2xs);
     text-decoration: underline;
@@ -195,13 +195,13 @@ body[data-pending] .gb-login-wordmark, body[data-pending] .gb-titlebar-wordmark 
 .gb-login-recovery-title {
     margin: 0 0 var(--id-space-2, 8px);
     font-weight: 600;
-    color: var(--id-ink, #111827);
+    color: var(--id-ink);
 }
 .gb-login-note {
     margin: 0 0 var(--id-space-4, 16px);
     font-size: var(--text-2xs);
     line-height: 1.5;
-    color: var(--id-muted, #5F6673);
+    color: var(--id-muted);
 }
 .gb-login-reveal {
     display: flex;
@@ -209,7 +209,7 @@ body[data-pending] .gb-login-wordmark, body[data-pending] .gb-titlebar-wordmark 
     gap: 6px;
     margin: 0 0 var(--id-space-3, 12px);
     font-size: var(--text-2xs);
-    color: var(--id-text, #4B5563);
+    color: var(--id-text);
 }
 
 /* == Responsive: small window ======================================= */

@@ -1,12 +1,16 @@
 //! Run one non-interactive Codex turn (`codex exec`) inside the VM.
 
-use axum::http::StatusCode;
+use botsecurity_core::error_sanitizer::SafeErrorResponse;
 
 use crate::cli_turn::{cli_model, failure_reason, plan_limit, run_turn};
 use crate::AgentService;
 
 use super::paths::{CODEX_HOME, CODEX_USER, LAST_MESSAGE, PROMPT_TXT};
-use super::internal;
+
+fn failed(detail: String) -> SafeErrorResponse {
+    tracing::error!("codex print turn failed: {detail}");
+    SafeErrorResponse::new("internal_error", "Codex account operation failed")
+}
 
 /// The `codex exec` invocation run as the `codex` user. The prompt comes from
 /// stdin (`-`), the workspace is not a git checkout, and only the final agent
@@ -30,9 +34,9 @@ pub async fn run_prompt(
     vm_name: &str,
     prompt: &str,
     model: &str,
-) -> Result<String, (StatusCode, String)> {
+) -> Result<String, SafeErrorResponse> {
     if prompt.trim().is_empty() {
-        return Err((StatusCode::BAD_REQUEST, "Empty prompt".to_string()));
+        return Err(SafeErrorResponse::bad_request("Empty prompt"));
     }
     let (ok, stdout, stderr) =
         run_turn(state, vm_name, CODEX_USER, CODEX_HOME, PROMPT_TXT, prompt, &invocation(model)).await?;
@@ -40,14 +44,14 @@ pub async fn run_prompt(
         if let Some(limit) = plan_limit(&stdout, &stderr) {
             return Err(limit);
         }
-        return Err(internal(format!(
+        return Err(failed(format!(
             "codex exec failed: {}",
             failure_reason(&stdout, &stderr)
         )));
     }
     let answer = stdout.trim().to_string();
     if answer.is_empty() {
-        return Err(internal("Codex returned an empty response".to_string()));
+        return Err(failed("Codex returned an empty response".to_string()));
     }
     Ok(answer)
 }

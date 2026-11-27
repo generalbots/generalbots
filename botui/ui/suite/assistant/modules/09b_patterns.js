@@ -12,6 +12,7 @@
     var TEXT_KEYS = { small: "settings-text-small", "default": "settings-text-default", large: "settings-text-large", xlarge: "settings-text-xlarge" };
     var root = document.documentElement;
     var mantis = root.dataset.identity === "mantis";
+    function gt(key, en) { return window.gbT ? window.gbT(key, en) : en; }
 
     var PATTERNS = [
         { id: "none", css: "" },
@@ -26,7 +27,7 @@
     PATTERNS.splice(1, 0, { id: "image", css: "__IMAGE__" });
 
     var MANTIS_PATTERNS = [
-        { id: "none", en: "None", pt: "Nenhum" },
+        { id: "none", en: "None", pt: gt("pattern-none", "None") },
         { id: "dots", en: "Dots", pt: "Pontos" },
         { id: "microdots", en: "Micro", pt: "Micro" },
         { id: "grid", en: "Grid", pt: "Grade" },

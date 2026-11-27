@@ -9,6 +9,7 @@ use std::sync::Arc;
 
 use crate::models::{ConversationSwitchBody, VmExecBody};
 use crate::vm;
+use crate::vm::incus_run::into_tuple;
 use crate::AgentService;
 
 use super::auth::caller_uuid;
@@ -41,7 +42,9 @@ pub async fn user_vm_resources(
     let row = vm::get_user_vm(&state, &user)?
         .ok_or_else(|| (StatusCode::NOT_FOUND, "Workspace unavailable".into()))?;
     Ok(Json(
-        vm::resource_summary(&state, &user, &row.vm_name, &row.status).await?,
+        vm::resource_summary(&state, &user, &row.vm_name, &row.status)
+            .await
+            .map_err(into_tuple)?,
     ))
 }
 

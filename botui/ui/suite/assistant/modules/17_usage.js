@@ -7,6 +7,7 @@
     var opener;
 
     function tr(pt, en) { return (A.locale || "").startsWith("pt") ? pt : en; }
+    function gt(key, en) { return window.gbT ? window.gbT(key, en) : en; }
 
     function syncFast() {
         var available = Boolean(A.productConfig && A.productConfig.fast_available);
@@ -235,7 +236,7 @@
             A.llmLimits(Boolean(opening)).then(function () { refresher.sync(); repaint(); });
         }
         var report = node("div", "gb-quota-report");
-        report.appendChild(node("p", "gb-quota-note", tr("Carregando…", "Loading…")));
+        report.appendChild(node("p", "gb-quota-note", gt("assistant-loading", "Loading…")));
         body.replaceChildren(head, limitsLabel, limits, label(tr("Uso recente · 30 dias", "Recent usage · 30 days")), report);
         var footer = drawer.querySelector(".gb-quota-foot");
         if (!footer) {
@@ -324,7 +325,7 @@
             });
         }
 
-        if (!rows.length) { rows.push(node("p", "gb-quota-note", tr("Nenhum uso nos últimos 30 dias.", "No usage in the last 30 days."))); }
+        if (!rows.length) { rows.push(node("p", "gb-quota-note", gt("quota-no-usage-30-days", "No usage in the last 30 days."))); }
         rows.push(line(tr("Total", "Total"), data.totals || {}, "gb-quota-total"));
         if (!data.pricing_available) {
             rows.push(node("p", "gb-quota-note", tr("Sem preços publicados para estes modelos: o uso aparece em tokens.", "No published prices for these models: usage shows in tokens.")));

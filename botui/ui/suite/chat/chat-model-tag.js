@@ -158,8 +158,8 @@
     if (isNaN(date.getTime())) return "";
     try {
       return t("chat-engine-error-back-at", "It comes back %when.")
-        .replace("%when", date.toLocaleTimeString(document.documentElement.lang || undefined, {
-          hour: "2-digit", minute: "2-digit",
+        .replace("%when", gbFormatTime(date, {
+          locale:document.documentElement.lang||undefined,hour:"2-digit",minute:"2-digit",
         }));
     } catch (e) { return ""; }
   }

@@ -46,7 +46,7 @@ function readText(s, name) {
     var pasted = !s.truncated && A.pastedChars ? A.pastedChars[name + "|" + size] : 0;
     var chars = Number(pasted || s.chars_read) || 0;
     if (!pasted && !s.truncated && chars === READ_COUNT_CAP) { return t("o texto todo", "the whole text"); }
-    return chars.toLocaleString(A.locale || undefined) + " " + t("caracteres", "characters");
+    return gbFormatNumber(chars, {}, A.locale || undefined) + " " + t("caracteres", "characters");
 }
 
 A.blockAttachmentRead = function (ev) {

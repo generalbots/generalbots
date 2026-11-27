@@ -11,7 +11,7 @@ use std::time::Duration as StdDuration;
 use crate::AgentService;
 
 use super::incus::run_incus;
-use super::incus_run::is_timeout;
+use super::incus_run::{from_tuple, is_timeout};
 
 /// Transient Incus failures during a cold start (daemon busy while the image is
 /// unpacked, instance not yet created, a concurrent `start`) are retried with
@@ -96,7 +96,10 @@ pub(super) async fn retry_incus(
             }
             // A call that already waited its whole deadline is not transient:
             // retrying it five times would hold the caller for minutes.
-            Err(error) if error.0 == StatusCode::SERVICE_UNAVAILABLE || is_timeout(&error) => {
+            Err(error)
+                if error.0 == StatusCode::SERVICE_UNAVAILABLE
+                    || is_timeout(&from_tuple(error.clone())) =>
+            {
                 return Err(error)
             }
             Err(error) => {

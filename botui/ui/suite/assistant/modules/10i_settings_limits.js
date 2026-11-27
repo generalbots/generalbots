@@ -18,7 +18,7 @@
     ];
     function tr(pt, en) { return (A.locale || "").startsWith("pt") ? pt : en; }
     function esc(value) { return String(value == null ? "" : value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
-    function counts(value) { return typeof value === "number" ? value.toLocaleString(A.locale) : "—"; }
+    function counts(value) { return typeof value === "number" ? gbFormatNumber(value, {}, A.locale) : "—"; }
     function tone(pct) { return pct >= 85 ? "var(--id-danger-text)" : pct >= 60 ? "var(--id-warn-text)" : "var(--id-ink)"; }
     async function read(path) {
         var response = await A.apiFetch(path);
@@ -77,7 +77,7 @@
             var day = tr("DOM SEG TER QUA QUI SEX SÁB", "SUN MON TUE WED THU FRI SAT").split(" ")[d.getDay()];
             return tr("RENOVA ", "RENEWS ") + day + " " + hhmm(d);
         }
-        return tr("RENOVA ", "RENEWS ") + d.toLocaleDateString(A.locale, { day: "2-digit", month: "2-digit" }) + " " + hhmm(d);
+        return tr("RENOVA ", "RENEWS ") + gbFormatDate(d, { locale: A.locale, day: "2-digit", month: "2-digit" }) + " " + hhmm(d);
     }
     function valueText(w) {
         var lim = typeof w.limit === "number", rem = typeof w.remaining === "number";
@@ -102,7 +102,7 @@
             "agent-turn": tr("ÚLTIMA RESPOSTA DO AGENTE", "AGENT'S LAST ANSWER"), "response-headers": tr("RESPOSTA DO PROVEDOR", "PROVIDER RESPONSE") }[engine && engine.source] || "";
         var d = engine && engine.observed_at ? new Date(engine.observed_at) : null;
         var at = d && !isNaN(d.getTime()) ? tr("VISTO ", "SEEN ") + (d.toDateString() === new Date().toDateString() ? tr("ÀS ", "AT ") + hhmm(d)
-            : d.toLocaleDateString(A.locale, { day: "2-digit", month: "2-digit" }) + " " + hhmm(d)) : "";
+            : gbFormatDate(d, { locale: A.locale, day: "2-digit", month: "2-digit" }) + " " + hhmm(d)) : "";
         return [src, at].filter(Boolean).join(" · ");
     };
     /** The engine entry for the chat's current engine, or null when the server has none. */

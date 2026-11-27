@@ -11,8 +11,8 @@
 //! [`SERVICE_RESTARTING_CODE`]); a daemon that still does not answer is
 //! reported as [`SERVICE_FAILED_CODE`] for a while instead of being hammered.
 
-use axum::http::StatusCode;
 use botlib::security::command_guard::SafeCommand;
+use botsecurity_core::error_sanitizer::{log_and_sanitize_str, SafeErrorResponse};
 use std::process::Output;
 use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
@@ -78,15 +78,16 @@ static GATE: LazyLock<Gate> = LazyLock::new(|| Gate {
 });
 
 /// The guarded Incus command, once the daemon is known to answer.
-pub(super) async fn ready_command(state: &AgentService) -> Result<SafeCommand, (StatusCode, String)> {
-    let command = super::incus::incus_command(state)?;
+pub(super) async fn ready_command(state: &AgentService) -> Result<SafeCommand, SafeErrorResponse> {
+    let command = super::incus::incus_command(state)
+        .map_err(|(_, message)| log_and_sanitize_str(&message, "incus readiness command", None))?;
     if cfg!(windows) {
         wait_ready(state.incus_bin()).await?;
     }
     Ok(command)
 }
 
-async fn wait_ready(bin: &str) -> Result<(), (StatusCode, String)> {
+async fn wait_ready(bin: &str) -> Result<(), SafeErrorResponse> {
     let now = Instant::now();
     let mut start = false;
     GATE.phase.send_if_modified(|phase| {
@@ -147,36 +148,40 @@ pub(super) fn note_timed_out() {
     });
 }
 
-/// The stable code of an error built here, if it is one.
-pub fn service_code(error: &(StatusCode, String)) -> Option<&'static str> {
-    [SERVICE_RESTARTING_CODE, SERVICE_FAILED_CODE]
-        .into_iter()
-        .find(|code| error.0 == StatusCode::SERVICE_UNAVAILABLE && error.1.starts_with(code))
-}
-
-fn failed_error() -> (StatusCode, String) {
-    (
-        StatusCode::SERVICE_UNAVAILABLE,
-        format!(
-            "{SERVICE_FAILED_CODE}: the virtual machine service did not answer; restart the computer or WSL"
-        ),
-    )
-}
-
-fn waiting_error(restarting: bool, wait: Duration) -> (StatusCode, String) {
-    if restarting {
-        return (
-            StatusCode::SERVICE_UNAVAILABLE,
-            format!("{SERVICE_RESTARTING_CODE}: the virtual machine service is restarting"),
-        );
+/// The stable code of an error built here, if it is one. The prefix used to
+/// live in the body text; it is now the envelope's machine-readable `code`.
+pub fn service_code(error: &SafeErrorResponse) -> Option<&'static str> {
+    match error.code.as_deref() {
+        Some(code) if code == SERVICE_FAILED_CODE => Some(SERVICE_FAILED_CODE),
+        Some(code) if code == SERVICE_RESTARTING_CODE => Some(SERVICE_RESTARTING_CODE),
+        _ => None,
     }
-    (
-        StatusCode::GATEWAY_TIMEOUT,
+}
+
+fn failed_error() -> SafeErrorResponse {
+    SafeErrorResponse::new(
+        "service_unavailable",
+        "The virtual machine service did not answer; restart the computer or WSL",
+    )
+    .with_code(SERVICE_FAILED_CODE)
+}
+
+fn waiting_error(restarting: bool, wait: Duration) -> SafeErrorResponse {
+    if restarting {
+        return SafeErrorResponse::new(
+            "service_unavailable",
+            "The virtual machine service is restarting",
+        )
+        .with_code(SERVICE_RESTARTING_CODE);
+    }
+    SafeErrorResponse::new(
+        "timeout",
         format!(
-            "{INCUS_TIMEOUT_CODE}: the agent workspace did not answer within {} s",
+            "The agent workspace did not answer within {} s",
             wait.as_secs().max(1)
         ),
     )
+    .with_code(INCUS_TIMEOUT_CODE)
 }
 
 /// One readiness check, run on a blocking thread outside any caller budget.

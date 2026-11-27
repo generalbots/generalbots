@@ -63,7 +63,7 @@
 }
 /* The title bar already has the sidebar button: a second one under it showed
    through the header when the sidebar was collapsed. */
-body:has(.gb-titlebar-toggle) .gb-expand-sidebar { display: none !important; }
+body:has(.gb-titlebar-toggle) .gb-sidebar.collapsed ~ .gb-main .gb-expand-sidebar { display: none; }
 
 /* ================================================================
    Responsive: sidebar overlay on narrow viewports (< 960px)

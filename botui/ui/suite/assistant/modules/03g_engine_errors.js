@@ -24,18 +24,18 @@
         var at = iso ? new Date(iso) : null;
         if (!at || isNaN(at.getTime()) || at.getTime() <= Date.now()) { return ""; }
         var loc = pt() ? "pt-BR" : "en-US";
-        var time = at.toLocaleTimeString(loc, { hour: pt() ? "2-digit" : "numeric", minute: "2-digit" });
+        var time = gbFormatTime(at, { locale: loc, hour: pt() ? "2-digit" : "numeric", minute: "2-digit" });
         var now = new Date();
         var days = Math.round((new Date(at.getFullYear(), at.getMonth(), at.getDate()) -
             new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 86400000);
         if (days === 0) { return (pt() ? "às " : "at ") + time; }
         if (days === 1) { return (pt() ? "amanhã às " : "tomorrow at ") + time; }
         if (days < 7) {
-            var day = at.toLocaleDateString(loc, { weekday: "long" });
+            var day = gbFormatDate(at, { locale: loc, weekday: "long" });
             if (!pt()) { return "on " + day + " at " + time; }
             return (/^(sábado|domingo)/.test(day) ? "no " : "na ") + day + " às " + time;
         }
-        var date = at.toLocaleDateString(loc, { day: "numeric", month: "long" });
+        var date = gbFormatDate(at, { locale: loc, day: "numeric", month: "long" });
         return (pt() ? "em " : "on ") + date + (pt() ? " às " : " at ") + time;
     }
     A.engineLimitWhen = whenBack;

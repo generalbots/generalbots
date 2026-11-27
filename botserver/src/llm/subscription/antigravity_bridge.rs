@@ -114,8 +114,8 @@ impl AntigravityBridgeProvider {
             ))),
             Err(AcpError::Unsafe { version }) => Err(super::boxed(unsafe_refusal(label, &version))),
             Err(AcpError::Unasked) => Err(super::boxed(unsafe_refusal(label, "unknown"))),
-            Err(AcpError::Failed(code, message)) => {
-                super::plan_limit::settle(Err((code, message)), &self.service, &self.vm_name, ANTIGRAVITY).await
+            Err(AcpError::Failed(problem)) => {
+                super::plan_limit::settle(Err(problem), &self.service, &self.vm_name, ANTIGRAVITY).await
             }
         }
     }

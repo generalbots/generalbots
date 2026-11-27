@@ -72,7 +72,7 @@ fn only_ready_and_failed_settle_a_wait() {
 #[test]
 fn gate_errors_carry_stable_codes() {
     let failed = failed_error();
-    assert_eq!(failed.0, StatusCode::SERVICE_UNAVAILABLE);
+    assert_eq!(failed.error, "service_unavailable");
     assert_eq!(service_code(&failed), Some(SERVICE_FAILED_CODE));
 
     let restarting = waiting_error(true, GATE_WAIT);
@@ -81,11 +81,11 @@ fn gate_errors_carry_stable_codes() {
     let waiting = waiting_error(false, Duration::from_secs(5));
     assert_eq!(service_code(&waiting), None);
     assert!(super::super::incus_run::is_timeout(&waiting));
-    assert!(waiting.1.contains("5 s"));
+    assert!(waiting.message.contains("5 s"));
 }
 
 #[test]
 fn unrelated_errors_have_no_service_code() {
-    let other = (StatusCode::SERVICE_UNAVAILABLE, "Incus is not available on this host".to_string());
+    let other = SafeErrorResponse::new("service_unavailable", "Incus is not available on this host");
     assert_eq!(service_code(&other), None);
 }

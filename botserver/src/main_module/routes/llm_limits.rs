@@ -258,14 +258,22 @@ async fn codex_engine(vm: Option<&(&'static Arc<botagent::AgentService>, String)
                 return entry;
             }
             Ok(None) => log::info!("llm limits: codex service sent no plan windows"),
-            Err((code, message)) => log::warn!("llm limits: codex live read failed ({}): {message}", code.as_u16()),
+            Err(problem) => log::warn!(
+                "llm limits: codex live read failed ({}): {}",
+                problem.code.as_deref().map_or("unknown", |code| code),
+                problem.message
+            ),
         }
         entry["refresh_failed"] = json!(true);
     }
     let logged = match botagent::codex::limits(service, vm_name).await {
         Ok(found) => found,
-        Err((code, message)) => {
-            log::warn!("llm limits: codex session logs unreadable ({}): {message}", code.as_u16());
+        Err(problem) => {
+            log::warn!(
+                "llm limits: codex session logs unreadable ({}): {}",
+                problem.code.as_deref().map_or("unknown", |code| code),
+                problem.message
+            );
             None
         }
     };

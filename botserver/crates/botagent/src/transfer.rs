@@ -10,6 +10,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::vm;
+use crate::vm::incus_run::into_tuple;
 use crate::AgentService;
 
 /// Per-file transfer cap (100 MB, per #1584) and per-turn cap (200 MB).
@@ -141,7 +142,9 @@ pub async fn write_file(
         tmp = shell_quote(&tmp),
         target = shell_quote(&target)
     );
-    let (ok, _, stderr) = vm::exec_in_vm_with_input(state, vm_name, &script, bytes.to_vec(), WRITE_TIMEOUT).await?;
+    let (ok, _, stderr) = vm::exec_in_vm_with_input(state, vm_name, &script, bytes.to_vec(), WRITE_TIMEOUT)
+        .await
+        .map_err(into_tuple)?;
     if !ok {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,

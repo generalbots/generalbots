@@ -15,6 +15,7 @@
     var F = A.files;
     if (!D || !F) { return; }
     var t = F.t;
+    function gt(key, en) { return window.gbT ? window.gbT(key, en) : en; }
     var esc = D.esc;
     var groups = [];
     var request = 0;
@@ -80,7 +81,8 @@
             var src = srcOf(row);
             if (e.target.closest(".gb-drv-conv-dl")) {
                 F.fetchBlob(src).then(function (blob) { return F.saveBlob(blob, src.name); }).catch(function (err) {
-                    D.showToast(t("Erro ao baixar", "Download failed") + (err && err.status ? " (HTTP " + err.status + ")" : ""), "error");
+                    var message = gt("download-failed", "Download failed");
+                    D.showToast(message + (err && err.status ? " (HTTP " + err.status + ")" : ""), "error");
                 });
                 return;
             }

@@ -10,6 +10,8 @@
 
 use std::time::{Duration, Instant};
 
+use botsecurity_core::error_sanitizer::SafeErrorResponse;
+
 use crate::cli_turn::cli_model;
 use crate::duplex::{DuplexOptions, Incoming, RpcClient, RpcInbox, RpcOptions};
 use crate::warm::observe::TurnClock;
@@ -99,9 +101,10 @@ pub async fn run_bridged<H: Approvals>(
     handler: &H,
 ) -> Result<String, BridgeError> {
     if turn.transcript.trim().is_empty() {
-        return Err(BridgeError::Failed(axum::http::StatusCode::BAD_REQUEST, "Empty prompt".to_string()));
+        return Err(BridgeError::Failed(SafeErrorResponse::bad_request("Empty prompt")));
     }
-    let conversation = vm::sanitize_id(turn.conversation).map_err(|(code, message)| BridgeError::Failed(code, message))?;
+    let conversation = vm::sanitize_id(turn.conversation)
+        .map_err(|(_, message)| BridgeError::Failed(SafeErrorResponse::bad_request(message)))?;
     let model = cli_model(turn.model);
     let key = WarmKey::new(vm_name, &conversation);
     let fingerprint = warm::fingerprint(&[&model, turn.instructions.unwrap_or("")]);
@@ -129,7 +132,7 @@ pub async fn run_bridged<H: Approvals>(
         options,
     )
     .await
-    .map_err(|(code, message)| BridgeError::Failed(code, message))?;
+    .map_err(BridgeError::Failed)?;
     let born = Instant::now();
     let (client, inbox) = RpcClient::start(session, RpcOptions::accepting(HANDLED_REQUESTS));
     let mut process = CodexWarm { client, inbox, thread_id: String::new(), version: String::new() };

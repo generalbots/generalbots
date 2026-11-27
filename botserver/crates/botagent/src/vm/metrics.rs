@@ -1,9 +1,11 @@
 use super::incus::run_incus;
-use super::incus_run::{is_timeout, within_budget, INCUS_TIMEOUT_CODE, PROBE_DEADLINE};
+use super::incus_ready::{SERVICE_FAILED_CODE, SERVICE_RESTARTING_CODE};
+use super::incus_run::{within_budget, INCUS_TIMEOUT_CODE, PROBE_DEADLINE};
 use super::lifecycle::start_in_progress;
 use super::STATUS_RUNNING;
 use crate::AgentService;
 use axum::http::StatusCode;
+use botsecurity_core::error_sanitizer::SafeErrorResponse;
 use serde_json::{json, Value};
 use uuid::Uuid;
 
@@ -50,17 +52,21 @@ async fn probe_instance(service: &AgentService, name: &str) -> Result<Value, Wor
     let args = vec!["list".to_string(), name.to_string(), "--format=json".to_string()];
     let output = match within_budget(PROBE_DEADLINE, run_incus(service, args)).await {
         None => return Err(WorkspaceState::Unavailable(INCUS_TIMEOUT_CODE)),
-        Some(Err(error)) if is_timeout(&error) => {
-            return Err(WorkspaceState::Unavailable(INCUS_TIMEOUT_CODE))
-        }
-        Some(Err(error)) if super::service_code(&error).is_some() => {
-            return Err(WorkspaceState::Unavailable(
-                super::service_code(&error).unwrap_or("incus_error"),
-            ))
-        }
         Some(Err((code, detail))) => {
+            // `run_incus` still speaks the legacy tuple; inspect it here so
+            // the probe keeps reporting the same stable codes as the shared
+            // predicates now do for sanitised envelopes.
+            let state = if code == StatusCode::GATEWAY_TIMEOUT && detail.starts_with(INCUS_TIMEOUT_CODE) {
+                WorkspaceState::Unavailable(INCUS_TIMEOUT_CODE)
+            } else if code == StatusCode::SERVICE_UNAVAILABLE && detail.starts_with(SERVICE_RESTARTING_CODE) {
+                WorkspaceState::Unavailable(SERVICE_RESTARTING_CODE)
+            } else if code == StatusCode::SERVICE_UNAVAILABLE && detail.starts_with(SERVICE_FAILED_CODE) {
+                WorkspaceState::Unavailable(SERVICE_FAILED_CODE)
+            } else {
+                WorkspaceState::Unavailable("incus_error")
+            };
             tracing::warn!("workspace probe for {name} failed ({code}): {detail}");
-            return Err(WorkspaceState::Unavailable("incus_error"));
+            return Err(state);
         }
         Some(Ok(output)) => output,
     };
@@ -116,14 +122,14 @@ pub async fn resource_summary(
     user_id: &Uuid,
     name: &str,
     row_status: &str,
-) -> Result<Value, (StatusCode, String)> {
+) -> Result<Value, SafeErrorResponse> {
     if starting_without_probe(user_id, row_status) {
         return Ok(WorkspaceState::Starting.to_json());
     }
     let vm = match probe_instance(service, name).await {
         Ok(vm) => vm,
         Err(WorkspaceState::Unavailable("workspace_missing")) => {
-            return Err((StatusCode::NOT_FOUND, "Workspace unavailable".into()))
+            return Err(SafeErrorResponse::not_found("Workspace"))
         }
         Err(state) if start_in_progress(user_id) => {
             tracing::debug!("workspace {name} probe: {:?} while starting", state);

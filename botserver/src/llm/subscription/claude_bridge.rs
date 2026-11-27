@@ -12,7 +12,6 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex, OnceLock, PoisonError};
 
 use async_trait::async_trait;
-use axum::http::StatusCode;
 use serde_json::Value;
 use tokio::sync::mpsc;
 use uuid::Uuid;
@@ -127,10 +126,10 @@ impl ClaudeBridgeProvider {
                 }
                 Ok(answer.answer)
             }
-            Err((_, message)) if message.starts_with(UNSAFE_VERSION_MARKER) => Err(super::boxed(unsafe_refusal())),
-            Err((StatusCode::UNAUTHORIZED, message)) => {
+            Err(problem) if problem.message.starts_with(UNSAFE_VERSION_MARKER) => Err(super::boxed(unsafe_refusal())),
+            Err(problem) if problem.error == "unauthorized" => {
                 let label = provider_label(CLAUDE_CODE);
-                Err(super::boxed(coded(AGENT_NOT_LINKED, &message, &[("agent", CLAUDE_CODE), ("label", label)])))
+                Err(super::boxed(coded(AGENT_NOT_LINKED, &problem.message, &[("agent", CLAUDE_CODE), ("label", label)])))
             }
             Err(error) => super::plan_limit::settle(Err(error), &self.service, &self.vm_name, CLAUDE_CODE).await,
         }

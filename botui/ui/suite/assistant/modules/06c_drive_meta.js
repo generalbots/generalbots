@@ -15,6 +15,12 @@
     var inboxAll = [];
 
     function portuguese() { return document.documentElement.lang.toLowerCase().startsWith("pt"); }
+    function gt(key, en, params) {
+        if (window.gbT) { return window.gbT(key, en, params); }
+        return String(en).replace(/\{\s*\$?([^{}]+?)\s*\}/g, function (all, name) {
+            return params && Object.prototype.hasOwnProperty.call(params, name) ? String(params[name]) : all;
+        });
+    }
 
     /* Storage keys carry the account folder ("users/<id>/"); crumbs start below it. */
     D.pathPrefix = function (path) {
@@ -48,7 +54,7 @@
         var input = document.getElementById("gbDrvSearchInput");
         var q = D.searching && input ? input.value.trim() : "";
         var title = q ? (pt ? "Nada encontrado" : "Nothing found") : A.t("drive.empty-title", "No files yet");
-        var text = q ? (pt ? "Nenhum arquivo com “" + q + "” no nome." : "No file with “" + q + "” in its name.") :
+        var text = q ? gt("no-file-named", "No file with “{$q}” in its name.", { q: q }) :
             D.inboxMode ? (pt ? "Os arquivos que você anexar numa conversa aparecem aqui." : "Files you attach in a conversation show up here.") :
             (pt ? "Envie arquivos pelo botão acima ou arraste para cá. Depois, use qualquer um deles numa conversa." :
                 "Upload files with the button above or drag them here. Then use any of them in a conversation.");

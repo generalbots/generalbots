@@ -12,8 +12,8 @@ use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
 
-use axum::http::StatusCode;
 use base64::Engine;
+use botsecurity_core::error_sanitizer::SafeErrorResponse;
 use serde_json::Value;
 
 use crate::duplex::{DuplexOptions, Incoming, RpcClient, RpcInbox, RpcOptions};
@@ -128,7 +128,7 @@ async fn run_check(state: &AgentService, vm_name: &str) -> Result<(String, bool)
     let options = DuplexOptions { deadline: PROBE_WAIT + Duration::from_secs(30), ..DuplexOptions::default() };
     let session = vm::exec_in_vm_duplex(state, vm_name, &["sh".into(), "-c".into(), session_script()], options)
         .await
-        .map_err(|(code, message)| BridgeError::Failed(code, message))?;
+        .map_err(BridgeError::Failed)?;
     let (client, mut inbox) = RpcClient::start(session, RpcOptions::accepting(HANDLED_REQUESTS));
     let probed = tokio::time::timeout(PROBE_WAIT, probe(&client, &mut inbox)).await;
     client.close().await;
@@ -144,10 +144,10 @@ async fn run_check(state: &AgentService, vm_name: &str) -> Result<(String, bool)
 
 fn inconclusive(why: &str) -> BridgeError {
     tracing::warn!("codex self-check inconclusive: {why}");
-    BridgeError::Failed(
-        StatusCode::SERVICE_UNAVAILABLE,
-        "Could not verify that Codex asks before acting in the workspace".to_string(),
-    )
+    BridgeError::Failed(SafeErrorResponse::new(
+        "service_unavailable",
+        "Could not verify that Codex asks before acting in the workspace",
+    ))
 }
 
 pub(crate) fn stage_script() -> String {
@@ -172,7 +172,7 @@ async fn stage(state: &AgentService, vm_name: &str) -> Result<(), BridgeError> {
     match vm::exec_in_vm_within(state, vm_name, &["sh".into(), "-c".into(), stage_script()], STAGE_TIMEOUT).await {
         Ok((true, _, _)) => Ok(()),
         Ok(_) => Err(inconclusive("could not stage the check")),
-        Err((code, message)) => Err(BridgeError::Failed(code, message)),
+        Err((_, message)) => Err(BridgeError::failed(message)),
     }
 }
 

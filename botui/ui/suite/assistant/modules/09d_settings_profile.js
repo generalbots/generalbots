@@ -141,7 +141,7 @@
         if (color === accentHex()) { color = ACCENT; }
         var role = roleLabel();
         var admin = (A.userRoles || []).some(function (r) { return /admin/i.test(r); });
-        var now = new Date().toLocaleTimeString(A.locale, { hour: "2-digit", minute: "2-digit" });
+        var now = gbFormatTime(new Date(), { locale: A.locale, hour: "2-digit", minute: "2-digit" });
         panel.innerHTML = A.settingsHeading(tr("Conta", "Account"), tr("Quem está usando.", "Who’s using the assistant.")) +
             '<section class="gb-sp-card"><div class="gb-sp-head"><strong>' + tr("Como você aparece no chat", "How you appear in chat") +
             '</strong></div><div class="gb-sp-grid"><label class="gb-sp-k" for="gbDisplayName">' + tr("Nome de exibição", "Display name") +
@@ -234,7 +234,7 @@
             var commits = person[1];
             var facts = [];
             if (commits > 0) {
-                facts.push(commits.toLocaleString(A.locale) + " " + (commits === 1 ? "commit" : "commits"));
+                facts.push(gbFormatNumber(commits, {}, A.locale) + " " + (commits === 1 ? "commit" : "commits"));
             }
             if (person[2]) { facts.push(tr("Mantenedor", "Maintainer")); }
             return '<li><a class="gb-sp-person" href="https://github.com/' + encodeURIComponent(login) + '" target="_blank" rel="noopener noreferrer">' +
@@ -269,7 +269,7 @@
         var built = known(product.build_date || product.built_at);
         var commit = known(product.commit || product.git_commit).slice(0, 8);
         var version = known(product.version).replace(/^v/i, "");
-        var checked = lastCheck ? tr("Hoje, ", "Today, ") + lastCheck.toLocaleTimeString(A.locale, { hour: "2-digit", minute: "2-digit" }) : "";
+        var checked = lastCheck ? tr("Hoje, ", "Today, ") + gbFormatTime(lastCheck, { locale: A.locale, hour: "2-digit", minute: "2-digit" }) : "";
         var label = state === "checking" ? tr("Procurando…", "Checking…") :
             state === "latest" ? tr("Você está na versão mais recente", "You’re on the latest version") : tr("Procurar atualizações", "Check for updates");
         panel.innerHTML = '<section class="gb-sp-card gb-sp-clip"><div class="gb-sp-about-head"><span class="id-lockup" role="img" aria-label="General Bots Lite">' +

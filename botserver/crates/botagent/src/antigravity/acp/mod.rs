@@ -25,7 +25,7 @@ mod warm_tests;
 
 use std::time::{Duration, Instant};
 
-use axum::http::StatusCode;
+use botsecurity_core::error_sanitizer::{log_and_sanitize_str, SafeErrorResponse};
 
 use crate::cli_turn::cli_model;
 use crate::duplex::{DuplexOptions, Incoming, RpcClient, RpcError, RpcInbox, RpcOptions};
@@ -51,7 +51,7 @@ const SESSION_LINE: &str = "GB-SESSION ";
 /// agent next to its home.
 const CONVERSATIONS: &str = "/opt/vibe/conversations";
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum AcpError {
     /// `agy acp` did not start or did not answer `initialize`.
     NoAcp(String),
@@ -61,9 +61,29 @@ pub enum AcpError {
     Unasked,
     /// This CLI version was refused for acting without asking.
     Unsafe { version: String },
-    /// Any other failure; a spent plan carries the plan-limit marker.
-    Failed(StatusCode, String),
+    /// Any other failure; a spent plan carries the plan-limit marker in the
+    /// message of the sanitised envelope.
+    Failed(SafeErrorResponse),
 }
+
+// `SafeErrorResponse` is intentionally not `PartialEq`: equality here is only
+// needed by tests that compare the deliberate variants, so compare the
+// envelope's public fields rather than deriving the trait through it.
+impl PartialEq for AcpError {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::NoAcp(a), Self::NoAcp(b)) => a == b,
+            (Self::NotSignedIn, Self::NotSignedIn) | (Self::Unasked, Self::Unasked) => true,
+            (Self::Unsafe { version: a }, Self::Unsafe { version: b }) => a == b,
+            (Self::Failed(a), Self::Failed(b)) => {
+                a.error == b.error && a.message == b.message && a.code == b.code
+            }
+            _ => false,
+        }
+    }
+}
+
+impl Eq for AcpError {}
 
 /// What one chat turn sends to Antigravity.
 #[derive(Debug, Clone)]
@@ -126,7 +146,11 @@ async fn store_session(state: &AgentService, vm_name: &str, conversation: &str, 
 fn rpc_failure(step: &str, error: &RpcError) -> AcpError {
     match error {
         RpcError::Remote { message, .. } if proto::needs_sign_in(message) => AcpError::NotSignedIn,
-        _ => AcpError::Failed(StatusCode::INTERNAL_SERVER_ERROR, format!("agy acp {step}: {error}")),
+        _ => AcpError::Failed(log_and_sanitize_str(
+            &format!("agy acp {step}: {error}"),
+            "antigravity acp",
+            None,
+        )),
     }
 }
 
@@ -141,9 +165,10 @@ pub async fn run_acp_turn<H: AcpGate>(
     handler: &H,
 ) -> Result<String, AcpError> {
     if turn.transcript.trim().is_empty() {
-        return Err(AcpError::Failed(StatusCode::BAD_REQUEST, "Empty prompt".to_string()));
+        return Err(AcpError::Failed(SafeErrorResponse::bad_request("Empty prompt")));
     }
-    let conversation = vm::sanitize_id(turn.conversation).map_err(|(code, message)| AcpError::Failed(code, message))?;
+    let conversation = vm::sanitize_id(turn.conversation)
+        .map_err(|(_, message)| AcpError::Failed(SafeErrorResponse::bad_request(message)))?;
     let key = WarmKey::new(vm_name, &conversation);
     if let Some(answer) = warm::run_warm(vm_name, &key, &turn, handler).await {
         return answer;
@@ -152,7 +177,7 @@ pub async fn run_acp_turn<H: AcpGate>(
     let options = DuplexOptions { deadline: warm::LIFETIME, ..DuplexOptions::default() };
     let session = vm::exec_in_vm_duplex(state, vm_name, &["sh".into(), "-c".into(), launch_script(&conversation)], options)
         .await
-        .map_err(|(_, message)| AcpError::NoAcp(message))?;
+        .map_err(|problem| AcpError::NoAcp(problem.message))?;
     let born = Instant::now();
     let (client, mut inbox) = RpcClient::start(session, RpcOptions::accepting(proto::HANDLED_REQUESTS));
     let (session_id, info, new_session) = match open(state, vm_name, &conversation, &turn, &client, &mut inbox).await {
@@ -237,7 +262,10 @@ async fn open_session(
         .await
         .map_err(|error| rpc_failure("session/new", &error))?;
     let id = proto::session_id_of(&result)
-        .ok_or_else(|| AcpError::Failed(StatusCode::INTERNAL_SERVER_ERROR, "session/new returned no session id".to_string()))?;
+        .ok_or_else(|| AcpError::Failed(SafeErrorResponse::new(
+            "internal_error",
+            "session/new returned no session id.",
+        )))?;
     Ok((id, result, true))
 }
 

@@ -6,7 +6,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use axum::http::StatusCode;
 use botlib::security::command_guard::SafeCommand;
 
 use super::app_server::{ActionOutcome, HANDLED_REQUESTS};
@@ -180,7 +179,7 @@ async fn an_unknown_server_request_gets_an_error() {
 async fn a_session_that_ends_mid_approval_withdraws_the_card() {
     let gate = Script::with(&["hang"]);
     match one_turn("vanish", &gate).await {
-        Err(BridgeError::Failed(_, message)) => assert!(message.contains("ended"), "{message}"),
+        Err(BridgeError::Failed(problem)) => assert_eq!(problem.error, "internal_error"),
         other => panic!("expected a failure, got {other:?}"),
     }
     assert!(gate.waiting_dropped.load(Ordering::SeqCst), "the open card's wait was dropped");
@@ -189,9 +188,9 @@ async fn a_session_that_ends_mid_approval_withdraws_the_card() {
 #[tokio::test]
 async fn a_spent_plan_becomes_the_plan_limit_error() {
     match one_turn("limit", &Script::default()).await {
-        Err(BridgeError::Failed(code, message)) => {
-            assert_eq!(code, StatusCode::TOO_MANY_REQUESTS);
-            assert!(message.starts_with(crate::plan_limit::MARKER), "{message}");
+        Err(BridgeError::Failed(problem)) => {
+            assert_eq!(problem.error, "rate_limited");
+            assert!(problem.message.starts_with(crate::plan_limit::MARKER), "{}", problem.message);
         }
         other => panic!("expected the plan limit, got {other:?}"),
     }

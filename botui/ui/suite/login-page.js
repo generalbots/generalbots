@@ -1,10 +1,5 @@
 "use strict";
-/**
- * login-page.js — Sign-in page logic.
- *
- * Bilingual (pt-BR / en), same language rule as the assistant shell.
- * Keeps the existing auth call, token handling and redirect unchanged.
- */
+/** login-page.js — bilingual sign-in page; auth/token/redirect unchanged. */
 (function () {
     /* ---- language ---- */
     var lang = "pt";
@@ -13,6 +8,8 @@
         if (stored) { lang = stored.toLowerCase().startsWith("pt") ? "pt" : "en"; }
         else { lang = (navigator.language || "en").toLowerCase().startsWith("pt") ? "pt" : "en"; }
     } catch (e) { /* fallback pt */ }
+
+    function gt(key, en) { return window.gbT ? window.gbT(key, en) : en; }
 
     var L = {
         pt: {
@@ -83,7 +80,7 @@
     if (/\/(login|signup)(\?|$)/.test(explicitTarget)) { explicitTarget = ""; }
     var target = explicitTarget || "/suite/desktop.html";
 
-    /* ---- accent: restore from localStorage (user choice) or server ---- */
+    /* accent: local choice or server */
     (function loadAccent() {
         var stored = null;
         try { stored = localStorage.getItem("gb-accent"); } catch (e) { /* */ }
@@ -264,7 +261,7 @@
     /* ---- focus: email first ---- */
     if (emailInput) { emailInput.focus(); }
 
-    /* ---- forgot password: desktop app only, reset through the shell ---- */
+    /* forgot password: desktop only */
     var tauri = window.__TAURI__ && window.__TAURI__.core;
     if (!form || !tauri || typeof tauri.invoke !== "function") { return; }
     var R = {
@@ -273,7 +270,9 @@
             note: "Isto troca a senha do administrador deste computador e encerra as outras sessões. Só funciona aqui, no aplicativo.",
             fresh: "Nova senha", again: "Confirme a nova senha",
             hint: "Pelo menos 8 caracteres, com letra maiúscula, letra minúscula, número e símbolo.",
-            save: "Salvar e entrar", saving: "Salvando…", back: "Voltar para entrar",
+            save: gt("login-recovery-save", "Save and sign in"),
+            saving: gt("login-recovery-saving", "Saving…"),
+            back: gt("login-recovery-back", "Back to sign in"),
             mismatch: "As duas senhas não são iguais.",
             password_too_short: "A nova senha precisa ter pelo menos 8 caracteres.",
             password_too_long: "A nova senha pode ter no máximo 128 caracteres.",

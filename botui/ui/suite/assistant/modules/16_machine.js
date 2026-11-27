@@ -11,6 +11,7 @@
     var poll = null, refreshing = null;
     var POLL_MS = 5000, POLL_BACKOFF = 30000;
     var FULL_RATIO = 0.95;
+    function gt(key, en) { return window.gbT ? window.gbT(key, en) : en; }
 
     var T = {
         pt: {
@@ -44,11 +45,11 @@
             of: "de", cores: "núcleos", core: "núcleo", light: "leve", moderate: "moderado", high: "alto",
             cpuLimit: "Limite de CPU", memLimit: "Limite de memória", diskLimit: "Limite de disco",
             changeLimits: "Alterar limites", noLimit: "Sem limite definido",
-            noSnaps: "Nenhum ponto de restauração.", snapsOff: "Pontos indisponíveis.",
+            noSnaps: gt("machine-no-snaps", "No restore points."), snapsOff: gt("machine-snaps-off", "Restore points unavailable."),
             restore: "Restaurar", createSnap: "Criar ponto de restauração", export: "Exportar",
             snapCreated: "Ponto criado", snapRestored: "Ponto restaurado",
-            image: "Imagem", noAccounts: "Nenhum agente por assinatura conectado.", configure: "Configurar agentes",
-            noActivity: "Nenhuma operação nesta sessão.", diskUsed: "Disco usado", snapCount: "Pontos de restauração",
+            image: gt("machine-image", "Image"), noAccounts: gt("machine-no-accounts", "No subscription agent connected."), configure: gt("machine-configure", "Configure agents"),
+            noActivity: gt("machine-no-activity", "No operations in this session."), diskUsed: gt("machine-disk-used", "Disk used"), snapCount: gt("machine-snap-count", "Restore points"),
             cleanTemp: "Limpar temporários", erase: "Apagar a máquina virtual", stateLabel: "Estado"
         },
         en: {
@@ -100,7 +101,7 @@
         if (typeof value !== "number" || value < 0) return "—";
         var units = ["B", "KB", "MB", "GB", "TB"], i = 0;
         while (value >= 1024 && i < units.length - 1) { value /= 1024; i++; }
-        return value.toLocaleString(A.locale, {maximumFractionDigits: i > 1 ? 1 : 0}) + " " + units[i];
+        return gbFormatNumber(value, {maximumFractionDigits: i > 1 ? 1 : 0}, A.locale) + " " + units[i];
     };
     M.parseSize = function (text) {
         var match = /^\s*([\d.]+)\s*([kmgtp]?)(i?)b?\s*$/i.exec(String(text == null ? "" : text));

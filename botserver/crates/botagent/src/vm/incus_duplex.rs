@@ -1,15 +1,14 @@
 //! `incus exec -T` with stdin, stdout and stderr all held open: the
 //! transport for agent CLIs that talk to the server over their own stdio.
 
-use axum::http::StatusCode;
 use botlib::security::command_guard::{CommandGuardError, SafeCommand};
+use botsecurity_core::error_sanitizer::{log_and_sanitize_str, SafeErrorResponse};
 
 use crate::duplex::{DuplexError, DuplexOptions, DuplexSession};
 use crate::AgentService;
 
 use super::incus::incus_command;
 use super::incus_errors::incus_setup_error;
-use super::internal;
 
 /// Environment variable that marks every process of one session inside the
 /// container (it survives `su <user>` without `-`).
@@ -31,10 +30,11 @@ pub async fn exec_in_vm_duplex(
     vm_name: &str,
     cmd_args: &[String],
     options: DuplexOptions,
-) -> Result<DuplexSession, (StatusCode, String)> {
+) -> Result<DuplexSession, SafeErrorResponse> {
     open_duplex(
         super::incus_ready::ready_command(state).await?,
-        incus_command(state)?,
+        incus_command(state)
+            .map_err(|(_, message)| log_and_sanitize_str(&message, "incus duplex command", None))?,
         vm_name,
         cmd_args,
         options,
@@ -49,16 +49,20 @@ pub(crate) fn open_duplex(
     vm_name: &str,
     cmd_args: &[String],
     options: DuplexOptions,
-) -> Result<DuplexSession, (StatusCode, String)> {
+) -> Result<DuplexSession, SafeErrorResponse> {
     let tag = uuid::Uuid::new_v4().simple().to_string();
     let cmd = duplex_exec_command(exec, vm_name, &tag, cmd_args)
-        .map_err(|error| internal(format!("incus duplex arg: {error}")))?;
+        .map_err(|error| log_and_sanitize_str(&format!("incus duplex arg: {error}"), "incus duplex", None))?;
     let cleanup = reap_command(reaper, vm_name, &tag)
-        .map_err(|error| internal(format!("incus duplex cleanup: {error}")))?;
+        .map_err(|error| log_and_sanitize_str(&format!("incus duplex cleanup: {error}"), "incus duplex", None))?;
     DuplexSession::spawn_with_cleanup(&cmd, options, cleanup).map_err(|error| match error {
-        DuplexError::Spawn(detail) => incus_setup_error(&detail)
-            .unwrap_or_else(|| internal(format!("incus duplex spawn: {detail}"))),
-        other => internal(format!("incus duplex: {other}")),
+        DuplexError::Spawn(detail) => match incus_setup_error(&detail) {
+            // The remediation text is fixed and free of host detail, so it is
+            // safe to hand to the caller; other spawn failures are logged only.
+            Some((_, message)) => SafeErrorResponse::new("service_unavailable", message),
+            None => log_and_sanitize_str(&format!("incus duplex spawn: {detail}"), "incus duplex", None),
+        },
+        other => log_and_sanitize_str(&format!("incus duplex: {other}"), "incus duplex", None),
     })
 }
 

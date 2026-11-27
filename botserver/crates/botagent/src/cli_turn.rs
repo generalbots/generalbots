@@ -8,7 +8,7 @@
 /// Upper bound for one turn inside the VM, in seconds.
 pub const TURN_TIMEOUT_SECS: u64 = 300;
 
-use axum::http::StatusCode;
+use botsecurity_core::error_sanitizer::{log_and_sanitize_str, SafeErrorResponse};
 
 use crate::vm;
 use crate::AgentService;
@@ -49,15 +49,16 @@ pub async fn stage_file(
     user: &str,
     path: &str,
     bytes: Vec<u8>,
-) -> Result<(), (StatusCode, String)> {
+) -> Result<(), SafeErrorResponse> {
     let (ok, stdout, stderr) =
         vm::exec_in_vm_with_input(state, vm_name, &stage_script(user, path), bytes, STAGE_TIMEOUT).await?;
     if ok {
         Ok(())
     } else {
-        Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("could not hand the prompt to the agent: {}", failure_reason(&stdout, &stderr)),
+        Err(log_and_sanitize_str(
+            failure_reason(&stdout, &stderr),
+            "cli turn: could not hand the prompt to the agent",
+            None,
         ))
     }
 }
@@ -68,7 +69,7 @@ async fn stage_prompt(
     user: &str,
     prompt_path: &str,
     prompt: &str,
-) -> Result<(), (StatusCode, String)> {
+) -> Result<(), SafeErrorResponse> {
     stage_file(state, vm_name, user, prompt_path, prompt.as_bytes().to_vec()).await
 }
 
@@ -94,10 +95,13 @@ pub async fn run_turn(
     prompt_path: &str,
     prompt: &str,
     invocation: &str,
-) -> Result<(bool, String, String), (StatusCode, String)> {
+) -> Result<(bool, String, String), SafeErrorResponse> {
     stage_prompt(state, vm_name, user, prompt_path, prompt).await?;
     let script = turn_script(user, home, prompt_path, invocation);
-    vm::exec_in_vm_within(state, vm_name, &["sh".into(), "-c".into(), script], turn_host_timeout()).await
+    match vm::exec_in_vm_within(state, vm_name, &["sh".into(), "-c".into(), script], turn_host_timeout()).await {
+        Ok(outcome) => Ok(outcome),
+        Err((_, message)) => Err(log_and_sanitize_str(&message, "cli turn: VM exec", None)),
+    }
 }
 
 /// Host-side limit of one turn: the in-VM `timeout` plus a minute for the
@@ -109,10 +113,13 @@ fn turn_host_timeout() -> std::time::Duration {
 /// A limit the CLI reported. A spent plan carries
 /// [`crate::plan_limit::MARKER`] so the chat ends the turn with its own card
 /// instead of retrying; a short-lived rate limit stays an ordinary 429.
-pub fn plan_limit(stdout: &str, stderr: &str) -> Option<(StatusCode, String)> {
+pub fn plan_limit(stdout: &str, stderr: &str) -> Option<SafeErrorResponse> {
     if let Some(line) = crate::plan_limit::spent_line(stdout, stderr) {
         tracing::warn!("subscription plan limit: {line}");
-        return Some((StatusCode::TOO_MANY_REQUESTS, format!("{} {line}", crate::plan_limit::MARKER)));
+        return Some(SafeErrorResponse::new(
+            "rate_limited",
+            format!("{} {line}", crate::plan_limit::MARKER),
+        ));
     }
     let line = stderr
         .lines()
@@ -123,14 +130,17 @@ pub fn plan_limit(stdout: &str, stderr: &str) -> Option<(StatusCode, String)> {
             lower.contains("rate limit") || lower.contains("too many requests")
         })?;
     tracing::warn!("subscription rate limit: {line}");
-    Some((StatusCode::TOO_MANY_REQUESTS, format!("429 rate limit: {line}")))
+    Some(SafeErrorResponse::new("rate_limited", format!("429 rate limit: {line}")))
 }
 
 /// A clean exit whose whole answer is the CLI's spent-plan line.
-pub fn spent_answer(answer: &str) -> Option<(StatusCode, String)> {
+pub fn spent_answer(answer: &str) -> Option<SafeErrorResponse> {
     let line = crate::plan_limit::spent_answer(answer)?;
     tracing::warn!("subscription plan limit: {line}");
-    Some((StatusCode::TOO_MANY_REQUESTS, format!("{} {line}", crate::plan_limit::MARKER)))
+    Some(SafeErrorResponse::new(
+        "rate_limited",
+        format!("{} {line}", crate::plan_limit::MARKER),
+    ))
 }
 
 /// The reason to log when a turn fails: stderr when there is any, else stdout.
@@ -145,7 +155,7 @@ pub fn failure_reason<'a>(stdout: &'a str, stderr: &'a str) -> &'a str {
 #[cfg(test)]
 mod tests {
     use super::{cli_model, turn_script};
-    use axum::http::StatusCode;
+    use botsecurity_core::error_sanitizer::SafeErrorResponse;
 
     #[test]
     fn placeholder_models_fall_back_to_the_cli_default() {
@@ -185,24 +195,26 @@ mod tests {
     fn a_spent_plan_carries_the_marker() {
         let out = "OpenAI Codex v0.170.0
 ERROR: You've hit your usage limit. Try again at Nov 22nd.";
-        let (code, msg) = super::plan_limit(out, "").unwrap_or((StatusCode::OK, String::new()));
-        assert_eq!(code, StatusCode::TOO_MANY_REQUESTS);
-        assert_eq!(msg, "subscription plan limit: You've hit your usage limit. Try again at Nov 22nd.");
+        let problem = super::plan_limit(out, "")
+            .unwrap_or_else(|| SafeErrorResponse::new("ok", String::new()));
+        assert_eq!(problem.error, "rate_limited");
+        assert_eq!(problem.message, "subscription plan limit: You've hit your usage limit. Try again at Nov 22nd.");
         assert!(super::plan_limit("all fine", "").is_none());
     }
 
     #[test]
     fn a_short_lived_rate_limit_stays_a_plain_429() {
         let err = "API Error: 429 rate limit exceeded, retry in 20s";
-        let (code, msg) = super::plan_limit("", err).unwrap_or((StatusCode::OK, String::new()));
-        assert_eq!(code, StatusCode::TOO_MANY_REQUESTS);
-        assert!(msg.starts_with("429 rate limit: "));
+        let problem = super::plan_limit("", err)
+            .unwrap_or_else(|| SafeErrorResponse::new("ok", String::new()));
+        assert_eq!(problem.error, "rate_limited");
+        assert!(problem.message.starts_with("429 rate limit: "));
     }
 
     #[test]
     fn a_clean_exit_with_only_the_limit_line_is_a_spent_plan() {
         let answer = "Claude AI usage limit reached|1795400000";
-        let msg = super::spent_answer(answer).map(|(_, m)| m).unwrap_or_default();
+        let msg = super::spent_answer(answer).map(|problem| problem.message).unwrap_or_default();
         assert_eq!(msg, "subscription plan limit: Claude AI usage limit reached|1795400000");
         assert!(super::spent_answer("Here is your summary.").is_none());
     }

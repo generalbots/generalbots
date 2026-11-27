@@ -36,7 +36,7 @@
         if (text != null) node.textContent = text;
         return node;
     }
-    function date(value) { return value ? new Date(value).toLocaleString(A.locale, {dateStyle: "short", timeStyle: "short"}) : null; }
+    function date(value) { return value ? gbFormatDateTime(new Date(value), {locale: A.locale, dateStyle: "short", timeStyle: "short"}) : null; }
     function button(parent, text, handler, opts) {
         opts = opts || {};
         var btn = el("button", "gb-btn" + (opts.cls ? " " + opts.cls : ""), text);
@@ -127,7 +127,7 @@
             var grid = el("div", "gb-machine-meters");
             var cores = M.cores(metrics.cpu_limit);
             var cpuRatio = model.cpu == null ? null : model.cpu / 100;
-            var cpuText = model.cpu == null ? null : (cpuRatio * cores).toLocaleString(A.locale, {maximumFractionDigits: 1}) +
+            var cpuText = model.cpu == null ? null : gbFormatNumber(cpuRatio * cores, {maximumFractionDigits: 1}, A.locale) +
                 " " + t("of") + " " + cores + " " + (cores === 1 ? t("core") : t("cores"));
             meter(grid, t("cpu"), cpuRatio, cpuText);
             var memLimit = M.parseSize(metrics.memory_limit);
@@ -161,7 +161,7 @@
             var bar = buttons(panel);
             if (vm.session_id) button(bar, t("createSnap"), function () {
                 M.operate(t("snapCreated"), "/api/agent/sessions/" + encodeURIComponent(vm.session_id) + "/snapshots",
-                    {label: new Date().toLocaleString(A.locale)});
+                    {label: gbFormatDateTime(new Date(), {locale: A.locale})});
             });
             soon(bar, t("export"));
         },
@@ -174,7 +174,7 @@
         },
         activity: function (panel, model, vm) {
             row(panel, t("lastActive"), date(vm.last_active_at));
-            M.activity.forEach(function (entry) { row(panel, entry.label, new Date(entry.time).toLocaleTimeString(A.locale)); });
+            M.activity.forEach(function (entry) { row(panel, entry.label, gbFormatTime(new Date(entry.time), {locale: A.locale})); });
             if (!M.activity.length) panel.appendChild(el("p", "", t("noActivity")));
         },
         care: function (panel, model, vm, metrics, snaps) {

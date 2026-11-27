@@ -26,7 +26,7 @@ mod selfcheck;
 mod sessions;
 mod warm;
 
-use axum::http::StatusCode;
+use botsecurity_core::error_sanitizer::SafeErrorResponse;
 
 use crate::cli_turn::{plan_limit, spent_answer};
 use crate::AgentService;
@@ -75,9 +75,9 @@ produced reliably, say so and offer the closest alternative you can verify.";
 const NOT_SIGNED_IN: &str = "Claude Code is not signed in in your workspace. Connect it again in \
 Settings, AI accounts.";
 
-fn failed(detail: &str) -> (StatusCode, String) {
+fn failed(detail: &str) -> SafeErrorResponse {
     tracing::error!("Claude Code bridged turn failed: {}", detail.chars().take(300).collect::<String>());
-    (StatusCode::INTERNAL_SERVER_ERROR, "Claude Code failed to answer.".to_string())
+    SafeErrorResponse::new("internal_error", "Claude Code failed to answer.")
 }
 
 fn is_missing_session(report: &DriveReport) -> bool {
@@ -94,7 +94,7 @@ fn is_missing_session(report: &DriveReport) -> bool {
 }
 
 /// The turn's verdict from what the session did.
-pub fn interpret(report: DriveReport) -> Result<BridgedAnswer, (StatusCode, String)> {
+pub fn interpret(report: DriveReport) -> Result<BridgedAnswer, SafeErrorResponse> {
     let stderr = report.end.as_ref().map(|e| e.stderr_tail.clone()).unwrap_or_else(|| {
         tracing::debug!("Claude session ended without a stderr tail");
         String::new()
@@ -120,7 +120,7 @@ pub fn interpret(report: DriveReport) -> Result<BridgedAnswer, (StatusCode, Stri
             return Err(limit);
         }
         if cli.contains("Not logged in") || cli.contains("/login") {
-            return Err((StatusCode::UNAUTHORIZED, NOT_SIGNED_IN.to_string()));
+            return Err(SafeErrorResponse::new("unauthorized", NOT_SIGNED_IN));
         }
     }
     if result.is_error {
@@ -140,9 +140,9 @@ pub async fn run_bridged_turn(
     vm_name: &str,
     turn: BridgedTurn<'_>,
     gate: &impl BridgeGate,
-) -> Result<BridgedAnswer, (StatusCode, String)> {
+) -> Result<BridgedAnswer, SafeErrorResponse> {
     if turn.transcript.trim().is_empty() {
-        return Err((StatusCode::BAD_REQUEST, "Empty prompt".to_string()));
+        return Err(SafeErrorResponse::bad_request("Empty prompt"));
     }
     selfcheck::ensure(state, vm_name).await?;
     let fresh = format!("{DELIVERY_DIRECTIVE}\n\n{}", turn.transcript);

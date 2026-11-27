@@ -103,7 +103,7 @@
     if (date.toDateString() === now.toDateString()) {
       return t("lim-renews-today", "RENEWS AT %s").replace("%s", hhmm(date));
     }
-    return t("lim-renew", "RENEWS %s").replace("%s", date.toLocaleDateString(undefined, { day: "2-digit", month: "2-digit" }) + " " + hhmm(date));
+    return t("lim-renew", "RENEWS %s").replace("%s", gbFormatDate(date, { day: "2-digit", month: "2-digit" }) + " " + hhmm(date));
   }
   function valueText(w) {
     var hasLimit = typeof w.limit === "number";

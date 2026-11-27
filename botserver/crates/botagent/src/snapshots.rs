@@ -15,6 +15,7 @@ use crate::api::authorize_session_access;
 use crate::models::{AgentSessionRow, AgentSnapshotRow, SnapshotCreateBody};
 use crate::schema::{agent_sessions, agent_snapshots};
 use crate::vm;
+use crate::vm::incus_run::{into_tuple, timeout_error};
 use crate::AgentService;
 
 fn internal(msg: String) -> (StatusCode, String) {
@@ -41,11 +42,11 @@ async fn run_incus(
         .await
         .map_err(|e| internal(format!("incus join: {e}")))?
         .map_err(|failure| match failure {
-            crate::vm::incus_run::RunFailure::TimedOut { orphaned } => crate::vm::incus_run::timeout_error(
+            crate::vm::incus_run::RunFailure::TimedOut { orphaned } => into_tuple(timeout_error(
                 args.first().map(String::as_str).unwrap_or("call"),
                 deadline,
                 orphaned,
-            ),
+            )),
             crate::vm::incus_run::RunFailure::Spawn(e) => internal(format!("incus execution: {e}")),
         })
 }

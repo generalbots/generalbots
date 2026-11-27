@@ -17,7 +17,7 @@
 .gb-sp-info > .gb-sp-k { padding: 12px 16px; }
 .gb-sp-info > .gb-sp-v { padding: 11px 16px 11px 0; }
 .gb-sp-input { display: block; width: 100%; max-width: 360px; height: 34px; padding: 0 10px; border: 1px solid var(--id-line); background: var(--id-paper); border-radius: 6px; outline: 0; font: inherit; color: var(--id-ink); }
-.gb-sp-input:focus, .gb-sp-area:focus { border-color: var(--id-accent); box-shadow: none !important; }
+.gb-sp-input:focus, .gb-sp-area:focus { border-color: var(--id-accent); box-shadow: none; }
 .gb-sp-input::placeholder, .gb-sp-area::placeholder { color: var(--id-muted); }
 .gb-sp-swatches { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 16px 10px 0; }
 .gb-sp-swatch { width: 32px; height: 32px; padding: 3px; border: 1px solid transparent; border-radius: 6px; background: none; cursor: pointer; }

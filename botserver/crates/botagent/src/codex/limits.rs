@@ -6,7 +6,7 @@
 //! length, reset time). The newest event is the latest state the CLI saw.
 //! Reading is non-interactive and changes nothing in the workspace.
 
-use axum::http::StatusCode;
+use botsecurity_core::error_sanitizer::{log_and_sanitize_str, SafeErrorResponse};
 use chrono::{DateTime, Duration, TimeZone, Utc};
 use serde::Serialize;
 use serde_json::Value;
@@ -102,7 +102,7 @@ pub fn parse_rate_limits_line(line: &str) -> Option<CodexLimits> {
 pub async fn limits(
     state: &AgentService,
     vm_name: &str,
-) -> Result<Option<CodexLimits>, (StatusCode, String)> {
+) -> Result<Option<CodexLimits>, SafeErrorResponse> {
     let script = format!(
         "find {home}/.codex/sessions -type f -name '*.jsonl' -printf '%T@ %p\\n' 2>/dev/null \
          | sort -rn | head -n 5 | cut -d' ' -f2- | while read -r f; do \
@@ -111,7 +111,12 @@ pub async fn limits(
          done",
         home = CODEX_HOME
     );
-    let (_, stdout, _) = run_script(state, vm_name, &script).await?;
+    let (_, stdout, _) = match run_script(state, vm_name, &script).await {
+        Ok(output) => output,
+        Err((_, message)) => {
+            return Err(log_and_sanitize_str(&message, "codex limits: session logs", None))
+        }
+    };
     Ok(stdout.lines().rev().find_map(parse_rate_limits_line))
 }
 

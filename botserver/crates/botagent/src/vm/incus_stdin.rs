@@ -8,15 +8,14 @@
 
 use std::time::Duration;
 
-use axum::http::StatusCode;
 use botlib::security::command_guard::{CommandGuardError, SafeCommand};
+use botsecurity_core::error_sanitizer::{log_and_sanitize_str, SafeErrorResponse};
 
 use crate::AgentService;
 
 use super::incus_ready::ready_command;
 use super::incus_errors::incus_setup_error;
 use super::incus_run::{capped, output_with_input, timeout_error, RunFailure};
-use super::internal;
 
 /// `<incus> exec <vm> -T -- sh -c <script>`; `-T` keeps the pipe plain, so
 /// the bytes pass unchanged.
@@ -39,22 +38,24 @@ pub async fn exec_in_vm_with_input(
     script: &str,
     input: Vec<u8>,
     limit: Duration,
-) -> Result<(bool, String, String), (StatusCode, String)> {
+) -> Result<(bool, String, String), SafeErrorResponse> {
     let limit = capped(limit);
     let cmd = stdin_command(ready_command(state).await?, vm_name, script)
-        .map_err(|error| internal(format!("incus script: {error}")))?;
+        .map_err(|error| log_and_sanitize_str(&format!("incus script: {error}"), "incus stdin", None))?;
     let finished = tokio::task::spawn_blocking(move || output_with_input(&cmd, input, limit))
         .await
-        .map_err(|error| internal(format!("incus wait join: {error}")))?;
+        .map_err(|error| log_and_sanitize_str(&format!("incus wait join: {error}"), "incus stdin", None))?;
     match finished {
         Ok(output) => Ok((
             output.status.success(),
             String::from_utf8_lossy(&output.stdout).into_owned(),
             String::from_utf8_lossy(&output.stderr).into_owned(),
         )),
-        Err(RunFailure::Spawn(detail)) => {
-            Err(incus_setup_error(&detail).unwrap_or_else(|| internal(format!("incus spawn: {detail}"))))
-        }
+        Err(RunFailure::Spawn(detail)) => Err(match incus_setup_error(&detail) {
+            // Fixed remediation text with no host detail: safe for the client.
+            Some((_, message)) => SafeErrorResponse::new("service_unavailable", message),
+            None => log_and_sanitize_str(&format!("incus spawn: {detail}"), "incus stdin", None),
+        }),
         Err(RunFailure::TimedOut { orphaned }) => Err(timeout_error("exec", limit, orphaned)),
     }
 }

@@ -155,7 +155,15 @@ where
     .await;
     match checked {
         None => Ok(timed_out),
-        Some(Err(error)) if botagent::vm::is_timeout(&error) => Ok(timed_out),
+        Some(Err(error)) if {
+            let envelope = botsecurity_core::error_sanitizer::SafeErrorResponse::new("timeout", error.1.clone())
+                .with_code(if error.0 == StatusCode::GATEWAY_TIMEOUT {
+                    botagent::vm::INCUS_TIMEOUT_CODE
+                } else {
+                    "workspace_error"
+                });
+            botagent::vm::is_timeout(&envelope)
+        } => Ok(timed_out),
         Some(result) => result,
     }
 }

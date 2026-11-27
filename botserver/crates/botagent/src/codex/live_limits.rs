@@ -6,7 +6,7 @@
 
 use std::time::Duration;
 
-use axum::http::StatusCode;
+use botsecurity_core::error_sanitizer::SafeErrorResponse;
 use chrono::{DateTime, Utc};
 use serde_json::{json, Value};
 
@@ -55,7 +55,7 @@ pub fn parse_snapshot(result: &Value, observed_at: DateTime<Utc>) -> Option<Code
 }
 
 /// Asks the Codex app server in `vm_name` for the plan windows now.
-pub async fn live_limits(state: &AgentService, vm_name: &str) -> Result<Option<CodexLimits>, (StatusCode, String)> {
+pub async fn live_limits(state: &AgentService, vm_name: &str) -> Result<Option<CodexLimits>, SafeErrorResponse> {
     let script = format!(
         "exec su {CODEX_USER} -s /bin/sh -c 'cd {CODEX_HOME} && export HOME={CODEX_HOME} && exec codex app-server'"
     );
@@ -67,8 +67,11 @@ pub async fn live_limits(state: &AgentService, vm_name: &str) -> Result<Option<C
     outcome
 }
 
-async fn read(client: &RpcClient) -> Result<Option<CodexLimits>, (StatusCode, String)> {
-    let failed = |step: &str, error: String| (StatusCode::BAD_GATEWAY, format!("codex app-server {step}: {error}"));
+async fn read(client: &RpcClient) -> Result<Option<CodexLimits>, SafeErrorResponse> {
+    let failed = |step: &str, error: String| -> SafeErrorResponse {
+        tracing::error!("codex app-server {step} failed: {error}");
+        SafeErrorResponse::new("service_unavailable", "Codex app server is unavailable.")
+    };
     handshake(client).await.map_err(|e| failed("initialize", format!("{e:?}")))?;
     let result = client
         .request("account/rateLimits/read", json!({}), READ_WAIT)

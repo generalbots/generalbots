@@ -15,6 +15,7 @@ var A = window.GBAssistant;
 var KEY = "gb-external-ok";
 
 function tr(ptT, enT) { return (A.locale || "").startsWith("pt") ? ptT : enT; }
+function gt(key, en) { return window.gbT ? window.gbT(key, en) : en; }
 
 /* The empty state and the conversation each have a composer; only one
    shows. Cards that belong above the composer go above the visible one. */
@@ -56,7 +57,7 @@ function reconcile() {
 }
 
 function accepted() {
-    try { return JSON.parse(localStorage.getItem(KEY) || "[]") || []; } catch (e) { return []; }
+    return typeof gbStoreGet === "function" ? gbStoreGet(KEY, []) : [];
 }
 function accept(host) {
     var list = accepted();
@@ -122,7 +123,7 @@ A.confirmExternal = function (target, anchor, onYes, kind) {
     stay.type = "button";
     stay.className = "gb-block-btn";
     stay.textContent = (A.destination || {}).scope === "machine"
-        ? tr("Ficar no modelo local", "Stay on the local model") : tr("Cancelar", "Cancel");
+        ? gt("stay-on-local-model", "Stay on the local model") : gt("cancel", "Cancel");
     var go = document.createElement("button");
     go.type = "button";
     go.className = "gb-block-btn gb-block-btn--acc";

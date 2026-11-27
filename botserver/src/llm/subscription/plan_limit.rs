@@ -6,10 +6,10 @@
 //! in its session logs; Claude Code and Antigravity only say it in the
 //! sentence itself.
 
-use axum::http::StatusCode;
 use chrono::{DateTime, SecondsFormat, Utc};
 
 use botagent::plan_limit::{reset_at, reset_hint, MARKER};
+use botsecurity_core::error_sanitizer::SafeErrorResponse;
 use botagent::AgentService;
 
 use crate::core::ai_accounts::{provider_label, CODEX_CLI};
@@ -18,14 +18,14 @@ use crate::core::bot::pipeline::llm::agent_limit::AgentLimit;
 /// The turn's result for the LLM trait: a spent plan becomes the encoded
 /// agent limit, every other error passes through unchanged.
 pub(super) async fn settle(
-    result: Result<String, (StatusCode, String)>,
+    result: Result<String, SafeErrorResponse>,
     service: &AgentService,
     vm_name: &str,
     agent: &str,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
     match result {
         Ok(text) => Ok(text),
-        Err((_, error)) => Err(super::boxed(turn_error(service, vm_name, agent, error).await)),
+        Err(problem) => Err(super::boxed(turn_error(service, vm_name, agent, problem.message).await)),
     }
 }
 
@@ -56,8 +56,12 @@ async fn codex_windows(service: &AgentService, vm_name: &str) -> Vec<(f64, Optio
     match botagent::codex::limits(service, vm_name).await {
         Ok(Some(limits)) => limits.windows.iter().map(|w| (w.used_percent, w.resets_at)).collect(),
         Ok(None) => Vec::new(),
-        Err((code, message)) => {
-            log::warn!("agent plan limit: codex session logs unreadable ({}): {message}", code.as_u16());
+        Err(problem) => {
+            log::warn!(
+                "agent plan limit: codex session logs unreadable ({}): {}",
+                problem.code.as_deref().map_or("unknown", |code| code),
+                problem.message
+            );
             Vec::new()
         }
     }

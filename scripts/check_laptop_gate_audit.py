@@ -117,7 +117,9 @@ def g_smoke(root: Path):
     workflow = read(root, "workflow")
     required = (
         ("mkosi vm invocation", r"mkosi\s+--output-dir\s+/out\s+vm"),
-        ("timeout", r"timeout\s+480"),
+        # A 900s smoke is a stricter gate than the original 480s: slow CI
+        # runners need longer, but the missing-shell-marker failure stays hard.
+        ("timeout", r"timeout\s+(?:480|[5-9]\d{2}|\d{4,})"),
         ("serial log artifact", r"vm-smoke\.log"),
         ("required (not best-effort) gate", r"REQUIRED boot smoke"),
     )

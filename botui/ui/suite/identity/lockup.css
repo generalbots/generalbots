@@ -21,15 +21,15 @@
   flex: none;
   width: calc(var(--lockup-h) * 687 / 261);
   height: var(--lockup-h);
-  background: var(--id-ink, #171717);
+  background: var(--id-ink);
   -webkit-mask: url("/suite/identity/brand-mark.svg") center / contain no-repeat;
   mask: url("/suite/identity/brand-mark.svg") center / contain no-repeat;
 }
 .id-lockup-tag {
   flex: none;
   padding: calc(var(--lockup-h) / 14) calc(var(--lockup-h) * 5 / 14);
-  border: 1px solid var(--id-line, #e8e8e8);
-  color: var(--id-muted, #737373);
+  border: 1px solid var(--id-line);
+  color: var(--id-muted);
   font: 600 calc(var(--lockup-h) * 10 / 14) / calc(var(--lockup-h) * 13 / 14) var(--id-font-mono, ui-monospace, monospace);
   letter-spacing: .06em;
 }

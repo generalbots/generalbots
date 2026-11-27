@@ -94,8 +94,8 @@ impl CodexBridgeProvider {
             ))),
             Err(BridgeError::Unsafe { version }) => Err(super::boxed(unsafe_refusal(label, &version))),
             Err(BridgeError::Unasked) => Err(super::boxed(unsafe_refusal(label, "unknown"))),
-            Err(BridgeError::Failed(code, message)) => {
-                super::plan_limit::settle(Err((code, message)), &self.service, &self.vm_name, CODEX_CLI).await
+            Err(BridgeError::Failed(problem)) => {
+                super::plan_limit::settle(Err(problem), &self.service, &self.vm_name, CODEX_CLI).await
             }
         }
     }

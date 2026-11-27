@@ -15,7 +15,9 @@ use crate::AgentService;
 use super::internal;
 use super::incus_errors::{incus_setup_error, INCUS_MISSING_MESSAGE};
 use super::incus_ready::{note_answered, note_timed_out, ready_command};
-use super::incus_run::{capped, deadline_for, output_within, timeout_error, RunFailure, EXEC_DEADLINE};
+use super::incus_run::{
+    capped, deadline_for, into_tuple, output_within, timeout_error, RunFailure, EXEC_DEADLINE,
+};
 use super::retry::{cold_start_timeout_message, retry_incus};
 
 const LAUNCH_WAIT_SECS: u64 = 60;
@@ -50,7 +52,7 @@ pub(super) async fn run_incus(
     state: &AgentService,
     args: Vec<String>,
 ) -> Result<std::process::Output, (StatusCode, String)> {
-    let mut cmd = ready_command(state).await?;
+    let mut cmd = ready_command(state).await.map_err(into_tuple)?;
     for arg in &args {
         cmd = cmd
             .arg(arg)
@@ -63,11 +65,11 @@ pub(super) async fn run_incus(
         .map_err(|failure| match failure {
             RunFailure::TimedOut { orphaned } => {
                 note_timed_out();
-                timeout_error(
+                into_tuple(timeout_error(
                     args.first().map(String::as_str).unwrap_or("call"),
                     deadline,
                     orphaned,
-                )
+                ))
             }
             RunFailure::Spawn(e) => match incus_setup_error(&e) {
                 Some(err) => err,
@@ -249,7 +251,7 @@ pub async fn exec_in_vm_within(
     let limit = capped(limit);
     let outcome = exec_in_vm_streaming(state, vm_name, cmd_args, Some(limit), None, None).await?;
     if outcome.timed_out {
-        return Err(timeout_error("exec", limit, false));
+        return Err(into_tuple(timeout_error("exec", limit, false)));
     }
     Ok((outcome.success, outcome.stdout, outcome.stderr))
 }
@@ -279,7 +281,7 @@ pub async fn exec_in_vm_streaming(
     cancel: Option<Arc<AtomicBool>>,
     events: Option<mpsc::UnboundedSender<ExecEvent>>,
 ) -> Result<ExecOutcome, (StatusCode, String)> {
-    let mut cmd = ready_command(state).await?;
+    let mut cmd = ready_command(state).await.map_err(into_tuple)?;
     cmd = cmd
         .arg("exec")
         .map_err(|error| internal(format!("incus arg: {error}")))?;

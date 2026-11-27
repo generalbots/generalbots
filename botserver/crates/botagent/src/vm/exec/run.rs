@@ -11,7 +11,7 @@ use crate::stream::ExecEvent;
 use crate::AgentService;
 
 use super::super::incus::exec_in_vm_within;
-use super::super::incus_run::is_timeout;
+use super::super::incus_run::{from_tuple, is_timeout};
 
 pub(super) fn exec_channel_not_ready(stderr: &str) -> bool {
     let text = stderr.to_ascii_lowercase();
@@ -43,7 +43,7 @@ pub(super) async fn run_with_timeout(
         )
         .await;
         match result {
-            Err(exec_error) if is_timeout(&exec_error) => {
+            Err(exec_error) if is_timeout(&from_tuple(exec_error.clone())) => {
                 return Ok((false, String::new(), "Execution timed out".to_string()))
             }
             Err(exec_error) => return Err(exec_error),

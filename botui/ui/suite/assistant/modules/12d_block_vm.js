@@ -9,12 +9,13 @@
 var A = window.GBAssistant;
 var B = A._blk;
 var esc = B.esc, t = B.t;
+function gt(key, en) { return window.gbT ? window.gbT(key, en) : en; }
 /* An agent action (vm_consent): exact command / path / URL, how it was
    allowed, and its result. */
 var VM_VERBS = {
-    command: ["Comando", "Command"], file_read: ["Leitura", "Read"], file_write: ["Arquivo", "File"], file_delete: ["Apagar", "Delete"],
+    command: ["Comando", "Command"], file_read: ["Leitura", "Read"], file_write: [gt("vm-verb-file", "File"), "File"], file_delete: ["Apagar", "Delete"],
     browser: ["Endereço", "URL"], network: ["Instalar", "Install"],
-    drive_save: ["Salvar no Drive", "Save to Drive"], external_save: ["Enviar para drive externo", "Send to external drive"],
+    drive_save: [gt("vm-verb-drive-save", "Save to Drive"), "Save to Drive"], external_save: [gt("vm-verb-external-save", "Send to external drive"), "Send to external drive"],
     web_search: ["Pesquisa na web (sem pedido de permissão)", "Web search (no permission asked)"],
     mcp_tool: ["Ferramenta externa (sem pedido de permissão)", "External tool (no permission asked)"]
 };
@@ -48,9 +49,9 @@ var VM_REASON = {
     drive_unavailable: ["Drive indisponível", "Drive unavailable"],
     external_not_connected: ["Conta de armazenamento externo não conectada", "External storage account not connected"],
     external_read_only: ["A conta externa só permite leitura", "The external account only allows reading"],
-    not_found: ["Arquivo não encontrado no Drive", "File not found in Drive"],
+    not_found: [gt("vm-reason-file-not-found", "File not found in Drive"), "File not found in Drive"],
     fetch_failed: ["Não foi possível trazer o arquivo do Drive", "Could not bring the file from Drive"],
-    too_large: ["Arquivo acima do limite de 100 MB", "File over the 100 MB limit"],
+    too_large: [gt("vm-reason-too-large", "File over the 100 MB limit"), "File over the 100 MB limit"],
     vm_off: ["Máquina Virtual desligada nesta conversa", "Virtual Machine is off in this conversation"],
     workspace_unavailable: ["Máquina Virtual indisponível", "Virtual Machine unavailable"],
     budget_exceeded: ["Tempo esgotado", "Time limit reached"],

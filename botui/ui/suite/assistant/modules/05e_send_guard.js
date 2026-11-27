@@ -13,7 +13,7 @@
     var KEY = "gb-external-ok";
 
     function accepted() {
-        try { return JSON.parse(localStorage.getItem(KEY) || "[]") || []; } catch (e) { return []; }
+        return typeof gbStoreGet === "function" ? gbStoreGet(KEY, []) : [];
     }
 
     function isLocal(model) {

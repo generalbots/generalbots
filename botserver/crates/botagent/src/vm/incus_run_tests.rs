@@ -107,9 +107,11 @@ fn the_kill_reaches_the_grandchild() {
 #[test]
 fn the_timeout_error_carries_a_stable_code() {
     let error = timeout_error("list", PROBE_DEADLINE, false);
-    assert_eq!(error.0, StatusCode::GATEWAY_TIMEOUT);
+    assert_eq!(error.error, "timeout");
     assert!(is_timeout(&error));
-    assert!(error.1.contains("5 s"));
-    assert!(!is_timeout(&(StatusCode::GATEWAY_TIMEOUT, "other".to_string())));
-    assert!(!is_timeout(&(StatusCode::SERVICE_UNAVAILABLE, INCUS_TIMEOUT_CODE.to_string())));
+    assert!(error.message.contains("5 s"));
+    assert!(!is_timeout(&SafeErrorResponse::new("timeout", "other")));
+    assert!(!is_timeout(
+        &SafeErrorResponse::new("service_unavailable", INCUS_TIMEOUT_CODE)
+    ));
 }
