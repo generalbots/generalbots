@@ -119,7 +119,6 @@ for the components touched by this cleanup now read as follows:
 | `observability` | Depends on `timeseries_db`, runs `vector` with `{{CONF_PATH}}/monitoring/vector.toml` and checks its `/health` endpoint on 8686. | `installer_regs/register_observability.rs::register_observability` |
 | `host` | Host preparation uses Incus only (the sole supported container layer): `incus admin init`, `incus storage`, `incus profile device`, and a proxy that connects `unix:/var/lib/incus/unix.socket` to `unix:/tmp/incus.sock` inside containers. It shells out to no legacy container daemon and mounts only the Incus socket. | `installer_regs/register_observability.rs::register_host` |
 | `remote_desktop` | The former `remote_terminal` key was renamed to `remote_desktop`. It installs Xvfb, XRDP and XFCE and serves an RDP desktop session on 3389. The registry contains only the new key; there is no compatibility alias. | `installer_regs/register_workspace.rs::register_remote_desktop` |
-| `table_editor` | **Not managed by botserver.** Out of scope and pending deletion (#2582), it is intentionally absent from `PackageManager::all_components`, so it does not appear in `botserver install` or component listings and cannot be started or stopped by the package manager. Provision it outside botserver. The registrar still exists in source but is deliberately not called. | `installer_regs/register_workspace.rs::register_table_editor` (registrar retained, not wired) |
 
 `devtools` was a no-op placeholder and is no longer registered, so it does not
 appear in `botserver install` or component listings.
@@ -207,9 +206,7 @@ contacted.
 The plan installs `vault` and `tables` before their dependents and
 `timeseries_db` before `observability`. `botserver install` also resolves
 missing dependencies itself (`botcore/src/package_manager/facade/install.rs`,
-`install`). `table_editor`, `webmail` and `news` are out of scope and are never
-installed; step 24 asserts that `table_editor` has no registry entry and no
-container.
+`install`). `webmail` and `news` are out of scope and are never installed.
 
 ### Running one action at a time
 
@@ -227,7 +224,6 @@ scripts/uat_install.sh step 20                    # remote_desktop regression
 scripts/uat_install.sh step 21                    # timeseries path regression
 scripts/uat_install.sh step 22                    # Incus-only host regression
 scripts/uat_install.sh step 23                    # devtools absence
-scripts/uat_install.sh step 24                    # table_editor absence
 scripts/uat_install.sh report                     # aggregate recorded evidence
 scripts/uat_install.sh --self-test                # offline verdict-logic self-test (14 assertions)
 ```
@@ -266,7 +262,7 @@ numbers come from each registration's `ports` field and `check_cmd`.
 
 | Exit | Verdict | Meaning |
 |---|---|---|
-| 0 | `PASS` | Every required step has a live PASS row: install, status and health for all components, login, start and all five regressions |
+| 0 | `PASS` | Every required step has a live PASS row: install, status and health for all components, login, start and all four regressions |
 | 1 | `FAIL` | At least one live step recorded a failed assertion |
 | 3 | `UNVERIFIED` | Offline/dev session, missing precondition or missing evidence for at least one required step |
 | 2 | usage error | Unknown step or missing argument |
@@ -288,8 +284,8 @@ source-only review produces no evidence for them: per-component install,
 start and health; login page and authenticated API access; `remote_desktop`
 registered and running with no `remote_terminal` key; generic
 `timeseries` paths with no `influxdb` directories in the installed container;
-Incus-only host preparation; and the absence of `devtools` and `table_editor`
-from the live CLI and container lists. The `--self-test` mode establishes none
+Incus-only host preparation; and the absence of `devtools` from the live CLI
+and container lists. The `--self-test` mode establishes none
 of these: it uses synthetic stub rows and no live target is contacted.
 
 ## See Also

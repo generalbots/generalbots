@@ -3,7 +3,7 @@ use super::*;
 /// Components whose upstream project ships **no Windows build** (#1966).
 ///
 /// Their `3rdparty.toml` entry used to carry a `url_win` that answered 404
-/// (Forgejo, the Forgejo runner, the retired table editor) or fell back to
+/// (Forgejo, the Forgejo runner) or fell back to
 /// the Linux archive (Roundcube). A Windows install must refuse them with a reason instead of
 /// downloading a broken URL or the wrong platform's binary.
 /// `cache` (Valkey): no Windows build exists. The desktop server provides a
@@ -11,7 +11,7 @@ use super::*;
 /// the external binary is never needed. Without this guard the installer
 /// downloads the Linux tarball and waits forever for a process that cannot
 /// start.
-const NO_WINDOWS_BUILD: &[&str] = &["alm", "alm_ci", "cache", "table_editor", "webmail"];
+const NO_WINDOWS_BUILD: &[&str] = &["alm", "alm_ci", "cache", "webmail"];
 
 pub(super) fn get_thirdparty_config() -> &'static ThirdPartyConfig {
     THIRDPARTY_CONFIG.get_or_init(|| {

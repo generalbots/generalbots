@@ -57,9 +57,6 @@ impl PackageManager {
         installer_regs::register_alm_ci(&mut components);
         installer_regs::register_dns(&mut components);
         installer_regs::register_meeting(&mut components);
-        // #2582 — table_editor is out of scope for botserver (pending deletion):
-        // it must not be installed or managed here. The registrar in
-        // `installer_regs::register_workspace` is intentionally left uncalled.
         installer_regs::register_remote_desktop(&mut components);
         installer_regs::register_vector_db(&mut components);
         installer_regs::register_timeseries_db(&mut components);
@@ -77,10 +74,10 @@ mod tests {
     use std::collections::HashSet;
 
     /// #2582 — keys botserver must never register or manage.
-    /// `table_editor` is pending deletion, `devtools` was a no-op placeholder
-    /// and `remote_terminal` was renamed to `remote_desktop`. Their absence
-    /// from the registry is what keeps them off the CLI/install surface.
-    const EXCLUDED_KEYS: &[&str] = &["table_editor", "devtools", "remote_terminal"];
+    /// `devtools` was a no-op placeholder and `remote_terminal` was renamed to
+    /// `remote_desktop`. Their absence from the registry is what keeps them off
+    /// the CLI/install surface.
+    const EXCLUDED_KEYS: &[&str] = &["devtools", "remote_terminal"];
 
     /// #2582 — keys that must be present in the botserver registry.
     const REQUIRED_KEYS: &[&str] = &["remote_desktop", "timeseries_db", "observability"];

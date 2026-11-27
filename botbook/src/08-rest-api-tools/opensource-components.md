@@ -18,7 +18,7 @@ Valkey serves as the in-memory caching system, providing Redis-compatible functi
 
 ### Drive (S3-Compatible Storage)
 
-For file management and object storage, GeneralBots integrates OtterIO from [min.io](https://min.io). This S3-compatible storage solution enables seamless file operations and is licensed under AGPLv3.
+Drive uses [OtterIO](https://github.com/soulteary/otterio), an S3-compatible object store licensed under Apache-2.0.
 
 ### Qdrant (Vector Database)
 

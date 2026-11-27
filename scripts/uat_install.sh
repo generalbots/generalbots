@@ -27,7 +27,6 @@ step_file() {
         21|timeseries-paths) printf '%s\n' "$tests_dir/step_21_timeseries_paths.sh" ;;
         22|host-incus) printf '%s\n' "$tests_dir/step_22_host_incus.sh" ;;
         23|devtools-absent) printf '%s\n' "$tests_dir/step_23_devtools_absent.sh" ;;
-        24|table-editor-absent) printf '%s\n' "$tests_dir/step_24_table_editor_absent.sh" ;;
         99|report) printf '%s\n' "$tests_dir/step_99_report.sh" ;;
         *) return 1 ;;
     esac
@@ -68,7 +67,6 @@ list_steps() {
 21 timeseries-paths    generic timeseries paths, no influxdb directories
 22 host-incus          host prep Incus-only (live + registrar source)
 23 devtools-absent     devtools absent from CLI registry/status
-24 table-editor-absent table_editor unmanaged and without a container
 99 report              aggregate results into PASS / FAIL / UNVERIFIED
 EOF
 }
@@ -79,7 +77,7 @@ print_plan() {
 # test>, UAT_LOGIN_USER/UAT_LOGIN_PASSWORD for step 11, UAT_SOURCE_ROOT for
 # step 22. Results go to UAT_RESULTS_DIR (default /tmp/opencode/uat-install).
 # Run ONE command at a time; read its output before choosing the next step.
-# Excluded from installation: table_editor, webmail, news (out of scope #2582).
+# Excluded from installation: webmail, news (out of scope #2582).
 scripts/uat_install.sh preflight
 scripts/uat_install.sh step 01
 scripts/uat_install.sh step 02 vault
@@ -141,7 +139,6 @@ scripts/uat_install.sh step 20
 scripts/uat_install.sh step 21
 scripts/uat_install.sh step 22
 scripts/uat_install.sh step 23
-scripts/uat_install.sh step 24
 scripts/uat_install.sh report
 EOF
 }
