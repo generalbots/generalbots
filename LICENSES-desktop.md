@@ -320,7 +320,6 @@ Kept in the six-column form that `scripts/check_third_party_licenses.py` on
 | `vector_db` | Qdrant Vector Database | 1.20.0 | Apache-2.0 | https://github.com/qdrant/qdrant | `licenses/qdrant-LICENSE.txt`; Edition: not in the installer; switched off; downloaded only if switched on |
 | `directory` | Zitadel Identity Provider | 4.20.1 | AGPL-3.0-only | https://github.com/zitadel/zitadel | `licenses/zitadel-LICENSE.txt`, `zitadel-LICENSING.md`, `zitadel-login-LICENSE.txt`; Edition: not in the installer; switched off; downloaded only if switched on |
 | `caddy` | Caddy Web Server | 2.11.9 | Apache-2.0 | https://github.com/caddyserver/caddy | `licenses/caddy-LICENSE.txt`; Edition: not in the installer; not installed or started |
-| `proxy` | Caddy (same archive as `caddy`) | 2.11.9 | Apache-2.0 | https://github.com/caddyserver/caddy | `licenses/caddy-LICENSE.txt`; Edition: not in the installer; not installed or started |
 | `tables` | PostgreSQL Database (EDB binaries on Windows) | 18.6-1 | PostgreSQL | https://github.com/postgres/postgres | `licenses/postgresql-COPYRIGHT.txt`; inside the zip `pgsql/server_license.txt`; the other parts of the zip: see section 1.1; Edition: shipped (the whole zip is in the installer) |
 | `libpq_win` | PostgreSQL client libraries | 17.4-1 | PostgreSQL | https://github.com/postgres/postgres | `licenses/postgresql-COPYRIGHT.txt`; the other DLLs of the zip: see section 1; Edition: shipped |
 | `llm_win_cpu_x64` | llama.cpp (Windows x64 CPU) | b12483 | MIT | https://github.com/ggml-org/llama.cpp | `licenses/llama.cpp-LICENSE.txt`; Edition: downloaded |
@@ -343,8 +342,14 @@ Kept in the six-column form that `scripts/check_third_party_licenses.py` on
 | `timeseries_db` | InfluxDB | 2.7.10 | MIT | https://github.com/influxdata/influxdb | use by this edition NOT VERIFIED |
 | `observability` | Vector Log Aggregator | 0.61.0 | MPL-2.0 | https://github.com/vectordotdev/vector | use by this edition NOT VERIFIED |
 | `alm` | Forgejo | 17.0.1 | GPL-3.0-or-later (NOT VERIFIED) | https://codeberg.org/forgejo/forgejo | refused on Windows |
+| `alm_10_0_1_cached` | Forgejo 10.0.1 (bundled cache copy) | 10.0.1 | GPL-3.0-or-later | https://codeberg.org/forgejo/forgejo | payload `LICENSE`; Edition: bundled legacy Linux cache copy, not in the Windows installer |
 | `alm_ci` | Forgejo Runner | 13.2.1 | GPL-3.0-or-later (NOT VERIFIED) | https://code.forgejo.org/forgejo/runner | refused on Windows |
-| `table_editor` | NocoDB | unpinned | AGPL-3.0-or-later (NOT VERIFIED) | https://github.com/nocodb/nocodb | refused on Windows |
+| `alm_ci_6_0_0_cached` | Forgejo runner 6.0.0 (bundled cache copy) | 6.0.0 | GPL-3.0-or-later | https://code.forgejo.org/forgejo/runner | payload `LICENSE`; Edition: bundled legacy Linux cache copy, not in the Windows installer |
+| `tables_17_2_0_cached` | PostgreSQL 17.2.0 (bundled cache copy) | 17.2.0 | PostgreSQL | https://github.com/postgres/postgres | payload `COPYRIGHT`; Edition: bundled legacy Linux cache copy |
+| `vector_db_1_12_0_cached` | Qdrant 1.12.0 (bundled cache copy) | 1.12.0 | Apache-2.0 | https://github.com/qdrant/qdrant | payload `LICENSE`; Edition: bundled legacy Linux cache copy |
+| `cache_8_1_5_cached` | Valkey 8.1.5 (bundled cache copy) | 8.1.5 | BSD-3-Clause | https://download.valkey.io/ | payload `COPYING`; Edition: bundled legacy Linux cache copy |
+| `vault_1_18_2_cached` | HashiCorp Vault 1.18.2 (bundled cache copy) | 1.18.2 | BUSL-1.1 | https://github.com/hashicorp/vault | payload `LICENSE`; Edition: bundled legacy Linux cache copy, non-production use only; the shipped secrets server is OpenBao |
+| `clamav` | ClamAV Antivirus Engine | 1.5.5 | GPL-2.0-or-later | https://github.com/Cisco-Talos/clamav | payload `copyright`; Edition: installed by the package manager, not in the Windows MSI |
 
 ## 5. Bundled in the interface and the program
 
