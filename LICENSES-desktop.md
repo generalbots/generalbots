@@ -31,6 +31,11 @@ This record states what the licences say. It is not legal advice. Items marked
 
 ## 1. Shipped inside the installer
 
+Since 2026-11-27 the installer no longer carries the Qdrant, Zitadel and Caddy
+archives: this edition switches those services off and nothing in it starts
+them. Their rows stay below because a service that is switched back on is
+fetched from the pinned URL at that moment.
+
 | Component | Version | Licence (SPDX) | Upstream licence read | Licence file in the shipped archive | SHA-256 (Windows x64) | Obligations |
 |---|---|---|---|---|---|---|
 | OpenBao (`bao.exe`, component `vault`) | 2.7.3 | MPL-2.0 | github.com/openbao/openbao/blob/v2.7.3/LICENSE | `LICENSE` (inside the zip) | 969e4872b21eeee7c9b4cd312e77027e624528ca7bc9dc2361311b97e34e6e90 | Keep the licence. MPL-2.0 §3.2: whoever distributes the executable must tell recipients how to get its source (the upstream tag is enough while it stays online). Unmodified, so no own files to publish |

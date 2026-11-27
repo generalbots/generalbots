@@ -175,9 +175,8 @@ jobs:
             @{ Name = 'minio.exe'; Url = 'https://github.com/generalbots/generalbots/releases/download/drive-bin-v4/minio.exe'; Algo = 'SHA256'; Hash = 'e63f9c4ac8b8697ca679d4864497688c3486aa9ac9370c3569203420c25e5799' },
             @{ Name = 'mc.exe'; Url = 'https://github.com/minio/mc/releases/download/RELEASE.2025-08-13T08-35-41Z/mc.windows-amd64.RELEASE.2025-08-13T08-35-41Z.exe'; Algo = 'SHA256'; Hash = 'c8db13ebeda31497f354c0e950809db0ae9b2a2a69b8afee68c128c37300c157' },
             # Redis removed: Windows uses the built-in RESP cache (no external service).
-            @{ Name = 'qdrant-x86_64-pc-windows-msvc.zip'; Url = 'https://github.com/qdrant/qdrant/releases/download/v1.20.0/qdrant-x86_64-pc-windows-msvc.zip'; Algo = 'SHA256'; Hash = '6d13553584fd0411f00637519e293331ff0aa1fb79bd9e30db45839bb75de2be' },
-            @{ Name = 'zitadel-windows-amd64.tar.gz'; Url = 'https://github.com/zitadel/zitadel/releases/download/v4.20.1/zitadel-windows-amd64.tar.gz'; Algo = 'SHA256'; Hash = 'dd38db24626a3f24f9e22244163f4ba50527378a4237cd19f0f6578b61c39405' },
-            @{ Name = 'caddy_2.11.9_windows_amd64.zip'; Url = 'https://github.com/caddyserver/caddy/releases/download/v2.11.9/caddy_2.11.9_windows_amd64.zip'; Algo = 'SHA512'; Hash = '98753d5d42650383d00619ac70917a217141f9e92314185bf6c1b8b439cfcfdf8393da0ebb4675c8cb3b23d29a19aabe99dc5aca64fa1bfc3a1ba22509b06871' }
+            # Qdrant, Zitadel and Caddy are not bundled: the product file switches
+            # those services off; one that is switched back on is downloaded then.
           )
           foreach ($item in $downloads) {
             $out = Join-Path $payload $item.Name
