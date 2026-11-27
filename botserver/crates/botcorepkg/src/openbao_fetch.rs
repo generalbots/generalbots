@@ -65,6 +65,7 @@ fn place_program(archive: &Path, stack: &Path) -> Result<()> {
         archive,
         &unpack,
         Some(Engine::OpenBao.binary_name()),
+        false,
     )
     .and_then(|()| {
         let name = Engine::OpenBao.file_name();

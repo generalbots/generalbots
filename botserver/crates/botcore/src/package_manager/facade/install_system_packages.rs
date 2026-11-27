@@ -74,6 +74,11 @@ impl PackageManager {
         };
 
         let cache_result = cache.resolve_component_url(component, url);
+        // A file already present in the cache (bundled installers or a
+        // previous download) must never be moved or deleted: the directory
+        // may be read-only (Program Files) and removing it breaks repair
+        // installs.  Only a freshly-downloaded file may be cleaned up.
+        let preserve_source = cache_result.is_cached();
 
         let source_file = match cache_result {
             CacheResult::Cached(cached_path) => {
@@ -122,7 +127,7 @@ impl PackageManager {
         // warns or aborts under GB_REQUIRE_CHECKSUMS.
         botcorepkg::checksum::verify_download(&source_file, &expected, component)?;
 
-        self.handle_downloaded_file(&source_file, &bin_path, binary_name)?;
+        self.handle_downloaded_file(&source_file, &bin_path, binary_name, preserve_source)?;
         Ok(())
     }
     pub async fn download_with_reqwest(
@@ -192,11 +197,17 @@ impl PackageManager {
         let size = metadata.len();
         Ok(size)
     }
+    /// Installs a downloaded or bundled file (binary or archive) into the
+    /// component's `bin_path`.
+    ///
+    /// When `preserve_source` is true the source file is never moved or
+    /// deleted, so a read-only bundled-installers directory stays intact.
     pub fn handle_downloaded_file(
         &self,
         temp_file: &std::path::Path,
         bin_path: &std::path::Path,
         binary_name: Option<&str>,
+        preserve_source: bool,
     ) -> Result<()> {
         let metadata = std::fs::metadata(temp_file)?;
         if metadata.len() == 0 {
@@ -208,18 +219,18 @@ impl PackageManager {
             .unwrap_or("");
         match file_extension {
             "gz" | "tgz" => {
-                self.extract_tar_gz(temp_file, bin_path)?;
+                self.extract_tar_gz(temp_file, bin_path, preserve_source)?;
             }
             "zip" => {
-                self.extract_zip(temp_file, bin_path)?;
+                self.extract_zip(temp_file, bin_path, preserve_source)?;
             }
             _ => {
                 if let Some(name) = binary_name {
-                    self.install_binary(temp_file, bin_path, name)?;
+                    self.install_binary(temp_file, bin_path, name, preserve_source)?;
                 } else {
                     let final_path = bin_path.join(temp_file.file_name().unwrap_or_default());
 
-                    if temp_file.to_string_lossy().contains("botserver-installers") {
+                    if preserve_source {
                         std::fs::copy(temp_file, &final_path)?;
                     } else {
                         std::fs::rename(temp_file, &final_path)?;
@@ -234,6 +245,7 @@ impl PackageManager {
         &self,
         temp_file: &std::path::Path,
         bin_path: &std::path::Path,
+        preserve_source: bool,
     ) -> Result<()> {
         let tar_gz = std::fs::File::open(temp_file)?;
         let tar = flate2::read::GzDecoder::new(tar_gz);
@@ -242,7 +254,7 @@ impl PackageManager {
 
         collapse_single_subdirectory(bin_path)?;
 
-        if !temp_file.to_string_lossy().contains("botserver-installers") {
+        if !preserve_source {
             std::fs::remove_file(temp_file)?;
         }
         Ok(())
@@ -251,6 +263,7 @@ impl PackageManager {
         &self,
         temp_file: &std::path::Path,
         bin_path: &std::path::Path,
+        preserve_source: bool,
     ) -> Result<()> {
         trace!("extract_zip: opening {}", temp_file.display());
         let file = std::fs::File::open(temp_file)
@@ -351,7 +364,7 @@ impl PackageManager {
 
         collapse_single_subdirectory(bin_path)?;
 
-        if !temp_file.to_string_lossy().contains("botserver-installers") {
+        if !preserve_source {
             let _ = std::fs::remove_file(temp_file);
         }
         Ok(())

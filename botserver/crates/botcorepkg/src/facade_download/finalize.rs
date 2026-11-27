@@ -1,6 +1,10 @@
 use super::*;
 
-pub fn install_binary(temp_file: &std::path::Path, bin_path: &std::path::Path, name: &str) -> Result<()> {
+/// Installs a single binary from `temp_file` into `bin_path/name`.
+///
+/// When `preserve_source` is true the source file is copied instead of
+/// moved, so a read-only bundled-installers directory is never modified.
+pub fn install_binary(temp_file: &std::path::Path, bin_path: &std::path::Path, name: &str, preserve_source: bool) -> Result<()> {
     #[cfg(target_os = "windows")]
     let name = if !name.ends_with(".exe") {
         format!("{}.exe", name)
@@ -10,7 +14,7 @@ pub fn install_binary(temp_file: &std::path::Path, bin_path: &std::path::Path, n
     #[cfg(not(target_os = "windows"))]
     let name = name.to_string();
     let final_path = bin_path.join(&name);
-    if temp_file.to_string_lossy().contains("botserver-installers") {
+    if preserve_source {
         std::fs::copy(temp_file, &final_path)?;
     } else {
         std::fs::rename(temp_file, &final_path)?;
