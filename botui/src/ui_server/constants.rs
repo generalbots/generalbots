@@ -24,77 +24,49 @@ pub const SUITE_DIRS: &[&str] = &[
     // Chat-first shell (product shell=assistant). Must be embedded so the
     // hand-off from desktop.html can serve it in release builds.
     "assistant",
-    // Core Apps (feature-gated to match botui Cargo.toml features)
-    #[cfg(feature = "drive")]
+    // Core Apps — always served. RustEmbed embeds the whole `ui/` tree, and
+    // the launcher is JS-driven (APPS_REGISTRY), so feature-gating this list
+    // only made every app whose Cargo feature was off 404 in release builds
+    // while working in dev (ServeDir). Keep every suite dir here.
     "drive",
-    #[cfg(feature = "chat")]
     "chat",
     "mail",
-    #[cfg(feature = "tasks")]
     "tasks",
-    #[cfg(feature = "calendar")]
     "calendar",
-    #[cfg(feature = "meet")]
     "meet",
     // Document Apps
-    #[cfg(feature = "paper")]
     "paper",
-    #[cfg(feature = "sheet")]
     "sheet",
-    #[cfg(feature = "slides")]
     "slides",
-    #[cfg(feature = "docs")]
     "docs",
     // Research & Learning
-    #[cfg(feature = "research")]
     "research",
-    #[cfg(feature = "learn")]
     "learn",
     // Analytics
-    #[cfg(feature = "analytics")]
     "analytics",
-    #[cfg(feature = "dashboards")]
     "dashboards",
-    #[cfg(feature = "monitoring")]
     "monitoring",
-    #[cfg(feature = "monitoring")]
     "governance",
     // Admin & Tools
-    #[cfg(feature = "admin")]
     "admin",
-    #[cfg(feature = "attendant")]
     "attendant",
-    #[cfg(feature = "tools")]
     "tools",
     // Media
-    #[cfg(feature = "video")]
     "video",
-    #[cfg(feature = "player")]
     "player",
-    #[cfg(feature = "canvas")]
     "canvas",
     // Social
-    #[cfg(feature = "social")]
     "social",
-    #[cfg(feature = "people")]
     "people",
-    #[cfg(feature = "people")]
     "crm",
-    #[cfg(feature = "tickets")]
     "tickets",
     // Business
-    #[cfg(feature = "billing")]
     "billing",
-    #[cfg(feature = "products")]
     "products",
     // Development
-    #[cfg(feature = "designer")]
     "designer",
-    #[cfg(feature = "workspace")]
     "workspace",
-    #[cfg(feature = "project")]
     "project",
-    #[cfg(feature = "goals")]
     "goals",
     "vibe",
     // Additional Apps (static HTML - always included)
