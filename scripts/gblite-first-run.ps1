@@ -8,7 +8,7 @@
 # the payload does not carry is a failure: that is the point of the check.
 #
 # Usage (Windows PowerShell 5.1 or PowerShell 7, from the repository root):
-#   scripts\gbgov-first-run.ps1 -Binary target\release\botserver.exe `
+#   scripts\gblite-first-run.ps1 -Binary target\release\botserver.exe `
 #       -Payload botserver\botserver-installers -Stack $env:TEMP\gb-first-run
 #   -ReadOnlyApp     lock the app folder, as a per-machine install is for the
 #                    person who runs the app (Program Files)
@@ -21,7 +21,7 @@
 # One line per check (PASS/FAIL); exit code 1 when any check failed.
 #
 # Where each step comes from (path:line when written):
-#   app folder    botapp/tauri.gbgov.conf.json:13-24 (.product.gbgov, installers/
+#   app folder    botapp/tauri.gblite.conf.json:13-24 (.product.gblite, installers/
 #                 and botserver.exe side by side); the provisioner finds the
 #                 product file beside its own executable, the stack has none
 #                 yet (botserver/crates/botcore/src/product/load.rs:124-178)
@@ -50,7 +50,7 @@ param(
     [string]$Binary = 'target\release\botserver.exe',
     [string]$Payload = 'botserver\botserver-installers',
     [string]$Stack = '',
-    [string]$ProductFile = 'botserver\.product.gbgov',
+    [string]$ProductFile = 'botserver\.product.gblite',
     [string]$Evidence = 'first-run-artifacts',
     [int]$ProvisionTimeoutSec = 600,
     # The wizard waits 300 s, restarts the server once and waits 180 s more
@@ -66,7 +66,7 @@ $ProgressPreference = 'SilentlyContinue'
 function Resolve-Full([string]$Path) { return [IO.Path]::GetFullPath([IO.Path]::Combine((Get-Location).Path, $Path)) }
 if (-not $Stack) {
     $tempRoot = $env:RUNNER_TEMP; if (-not $tempRoot) { $tempRoot = $env:TEMP }
-    $Stack = Join-Path $tempRoot 'gbgov-first-run-stack'
+    $Stack = Join-Path $tempRoot 'gblite-first-run-stack'
 }
 $Stack = (Resolve-Full $Stack).TrimEnd('\')
 $AppDir = "$Stack-app"; $Installers = "$AppDir\installers"; $AppBinary = "$AppDir\botserver.exe"
@@ -110,7 +110,7 @@ $script:checks = New-Object System.Collections.ArrayList
 $script:envBackup = @{}
 $script:owned = $false; $script:locked = $false; $script:staged = $false; $script:provisioned = $false
 $script:bundled = @(); $script:skipPorts = @()
-. (Join-Path $PSScriptRoot 'gbgov-first-run-lib.ps1')
+. (Join-Path $PSScriptRoot 'gblite-first-run-lib.ps1')
 
 function Invoke-Preflight {
     $ok = Test-Path -LiteralPath $Binary -PathType Leaf
@@ -153,14 +153,14 @@ function Invoke-Preflight {
     New-Item -ItemType Directory -Force $Stack, "$Stack\logs", "$Stack\workspace", $Installers | Out-Null
     $script:owned = $true
     Copy-Item -LiteralPath $Binary -Destination $AppBinary
-    if ($ProductFile) { Copy-Item -LiteralPath $ProductFile -Destination "$AppDir\.product.gbgov" }
+    if ($ProductFile) { Copy-Item -LiteralPath $ProductFile -Destination "$AppDir\.product.gblite" }
     foreach ($file in $files) { Copy-Item -LiteralPath $file.FullName -Destination $Installers }
     $script:bundled = @($files | ForEach-Object { $_.Name })
     $absent = @()
     foreach ($dll in $RuntimeDlls) {
         if (Test-Path -LiteralPath "$Installers\$dll") { Copy-Item -LiteralPath "$Installers\$dll" -Destination "$Stack\$dll" } else { $absent += $dll }
     }
-    $detail = "botserver.exe, .product.gbgov, installers\ with $($files.Count) files"
+    $detail = "botserver.exe, .product.gblite, installers\ with $($files.Count) files"
     if ($absent.Count -gt 0) { $detail = "PostgreSQL runtime files missing from the payload: $($absent -join ', ')" }
     Add-Check 'app folder laid out as the installer does, runtime files beside the stack' ($absent.Count -eq 0) $detail
     if ($absent.Count -gt 0) { return }
@@ -319,7 +319,7 @@ function Invoke-Server {
         if (-not $env:GBO_WSL_DISTRO) { Set-ChildEnv 'GBO_WSL_DISTRO' 'GeneralBotsLite' }
         if (-not $env:GBO_AGENT_RUNTIME_MARKER) { Set-ChildEnv 'GBO_AGENT_RUNTIME_MARKER' "$Stack\agent-runtime\ready.json" }
     }
-    if (Test-Path -LiteralPath "$AppDir\.product.gbgov") { Copy-Item -LiteralPath "$AppDir\.product.gbgov" -Destination "$Stack\.product.gbgov" -Force }
+    if (Test-Path -LiteralPath "$AppDir\.product.gblite") { Copy-Item -LiteralPath "$AppDir\.product.gblite" -Destination "$Stack\.product.gblite" -Force }
     $out = "$Evidence\server.out.log"; $err = "$Evidence\server.err.log"
     $started = Get-Date
     $server = Start-Process -FilePath $AppBinary -ArgumentList '--noconsole' -WorkingDirectory $Stack -PassThru `

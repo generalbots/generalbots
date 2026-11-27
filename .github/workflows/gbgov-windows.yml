@@ -92,7 +92,7 @@ jobs:
       # First run of a brand-new install, without the desktop shell: the server
       # built above provisions an EMPTY stack from the offline payload, asked
       # the way the first-run wizard asks, with downloads forbidden, and then
-      # starts once on it (scripts/gbgov-first-run.ps1). The smoke test above
+      # starts once on it (scripts/gblite-first-run.ps1). The smoke test above
       # starts the server on a ready database and never runs the provisioner.
       #
       # The payload is staged here from the Windows pins in
@@ -122,8 +122,8 @@ jobs:
           $services = @(Get-Service -Name 'postgresql*' | Where-Object { $_.Status -eq 'Running' })
           $services | Stop-Service -Force
           try {
-            ./scripts/gbgov-first-run.ps1 -Binary target\debug\botserver.exe -Payload $payload `
-              -Stack (Join-Path $env:RUNNER_TEMP 'gbgov-first-run-stack')
+            ./scripts/gblite-first-run.ps1 -Binary target\debug\botserver.exe -Payload $payload `
+              -Stack (Join-Path $env:RUNNER_TEMP 'gblite-first-run-stack')
             $code = $LASTEXITCODE
           } finally {
             $services | Start-Service

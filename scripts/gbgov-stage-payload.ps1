@@ -1,5 +1,5 @@
 # Stages the offline payload of the government desktop edition outside a
-# release build, for checks that need one (scripts/gbgov-first-run.ps1).
+# release build, for checks that need one (scripts/gblite-first-run.ps1).
 #
 # The files are the ones the release installer carries
 # (.github/workflows/gbgov-release.yml, "Stage the offline payload"): OpenBao,

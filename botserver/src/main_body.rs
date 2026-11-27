@@ -394,7 +394,7 @@ pub(super) async fn main() -> std::io::Result<()> {
     // runtime control, not the legacy launcher.  Set the flag before the
     // first `ensure_llama_servers_running` call so neither the main-body
     // invocation nor the background-services one touches port 8081.
-    #[cfg(all(windows, feature = "gbgov"))]
+    #[cfg(all(windows, feature = "gblite"))]
     crate::llm::local::set_chat_engine_managed_elsewhere(true);
 
     #[cfg(feature = "llm")]
@@ -428,7 +428,7 @@ pub(super) async fn main() -> std::io::Result<()> {
     // window or recurrent state (it re-evaluates everything), so today it
     // costs two seconds of the card after every start and saves nothing.
     // It needs to be an exact prefix of the real prompt before it is turned on.
-    #[cfg(feature = "gbgov")]
+    #[cfg(feature = "gblite")]
     if std::env::var("GB_LLM_CACHE_WARM").is_ok_and(|v| v == "1") {
         let state_for_warm = app_state.clone();
         tokio::spawn(async move {

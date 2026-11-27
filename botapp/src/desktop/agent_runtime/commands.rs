@@ -4,22 +4,22 @@ use serde::Deserialize;
 
 use super::state::RuntimeStatus;
 
-#[cfg(all(target_os = "windows", feature = "gbgov"))]
+#[cfg(all(target_os = "windows", feature = "gblite"))]
 use std::sync::atomic::{AtomicBool, Ordering};
-#[cfg(all(target_os = "windows", feature = "gbgov"))]
+#[cfg(all(target_os = "windows", feature = "gblite"))]
 use std::sync::{Arc, Mutex};
 
 pub(crate) struct AgentRuntimeManager {
-    #[cfg(all(target_os = "windows", feature = "gbgov"))]
+    #[cfg(all(target_os = "windows", feature = "gblite"))]
     cancel: Arc<AtomicBool>,
-    #[cfg(all(target_os = "windows", feature = "gbgov"))]
+    #[cfg(all(target_os = "windows", feature = "gblite"))]
     running: Arc<AtomicBool>,
     /// Current progress snapshot for status polling.
-    #[cfg(all(target_os = "windows", feature = "gbgov"))]
+    #[cfg(all(target_os = "windows", feature = "gblite"))]
     progress: Arc<Mutex<ProgressSnapshot>>,
 }
 
-#[cfg(all(target_os = "windows", feature = "gbgov"))]
+#[cfg(all(target_os = "windows", feature = "gblite"))]
 #[derive(Default, Clone)]
 struct ProgressSnapshot {
     step: Option<String>,
@@ -31,11 +31,11 @@ struct ProgressSnapshot {
 impl AgentRuntimeManager {
     pub(crate) fn new() -> Self {
         Self {
-            #[cfg(all(target_os = "windows", feature = "gbgov"))]
+            #[cfg(all(target_os = "windows", feature = "gblite"))]
             cancel: Arc::new(AtomicBool::new(false)),
-            #[cfg(all(target_os = "windows", feature = "gbgov"))]
+            #[cfg(all(target_os = "windows", feature = "gblite"))]
             running: Arc::new(AtomicBool::new(false)),
-            #[cfg(all(target_os = "windows", feature = "gbgov"))]
+            #[cfg(all(target_os = "windows", feature = "gblite"))]
             progress: Arc::new(Mutex::new(ProgressSnapshot::default())),
         }
     }
@@ -69,7 +69,7 @@ fn unsupported_status() -> RuntimeStatus {
 pub fn agent_runtime_status(
     _mgr: tauri::State<'_, AgentRuntimeManager>,
 ) -> Result<RuntimeStatus, String> {
-    #[cfg(all(target_os = "windows", feature = "gbgov"))]
+    #[cfg(all(target_os = "windows", feature = "gblite"))]
     {
         let host = super::host::SystemHost;
         let stack = crate::desktop::sidecar::Sidecar::stack_path();
@@ -103,7 +103,7 @@ pub fn agent_runtime_status(
         use super::host::RuntimeHost;
         Ok(status)
     }
-    #[cfg(not(all(target_os = "windows", feature = "gbgov")))]
+    #[cfg(not(all(target_os = "windows", feature = "gblite")))]
     {
         Ok(unsupported_status())
     }
@@ -114,7 +114,7 @@ pub fn agent_runtime_install(
     _app: tauri::AppHandle,
     _mgr: tauri::State<'_, AgentRuntimeManager>,
 ) -> Result<(), String> {
-    #[cfg(all(target_os = "windows", feature = "gbgov"))]
+    #[cfg(all(target_os = "windows", feature = "gblite"))]
     {
         if _mgr.running.swap(true, Ordering::SeqCst) {
             return Ok(());
@@ -140,7 +140,7 @@ pub fn agent_runtime_install(
         });
         Ok(())
     }
-    #[cfg(not(all(target_os = "windows", feature = "gbgov")))]
+    #[cfg(not(all(target_os = "windows", feature = "gblite")))]
     {
         let _ = _app;
         Err("unsupported".into())
@@ -151,12 +151,12 @@ pub fn agent_runtime_install(
 pub fn agent_runtime_cancel(
     _mgr: tauri::State<'_, AgentRuntimeManager>,
 ) -> Result<(), String> {
-    #[cfg(all(target_os = "windows", feature = "gbgov"))]
+    #[cfg(all(target_os = "windows", feature = "gblite"))]
     {
         _mgr.cancel.store(true, Ordering::SeqCst);
         Ok(())
     }
-    #[cfg(not(all(target_os = "windows", feature = "gbgov")))]
+    #[cfg(not(all(target_os = "windows", feature = "gblite")))]
     {
         Err("unsupported".into())
     }
@@ -173,7 +173,7 @@ pub fn agent_runtime_remove(
     request: RemoveRequest,
     _mgr: tauri::State<'_, AgentRuntimeManager>,
 ) -> Result<(), String> {
-    #[cfg(all(target_os = "windows", feature = "gbgov"))]
+    #[cfg(all(target_os = "windows", feature = "gblite"))]
     {
         if _mgr.running.load(Ordering::Relaxed) {
             return Err("provisioning in progress".into());
@@ -200,7 +200,7 @@ pub fn agent_runtime_remove(
             }
         }
     }
-    #[cfg(not(all(target_os = "windows", feature = "gbgov")))]
+    #[cfg(not(all(target_os = "windows", feature = "gblite")))]
     {
         let _ = request;
         Err("unsupported".into())
@@ -216,13 +216,13 @@ pub fn agent_runtime_check_update(
 
 // ── Tauri event emitter that also updates the progress snapshot ──────────
 
-#[cfg(all(target_os = "windows", feature = "gbgov"))]
+#[cfg(all(target_os = "windows", feature = "gblite"))]
 struct TauriEvents {
     app: tauri::AppHandle,
     progress: Arc<Mutex<ProgressSnapshot>>,
 }
 
-#[cfg(all(target_os = "windows", feature = "gbgov"))]
+#[cfg(all(target_os = "windows", feature = "gblite"))]
 impl super::provision::ProvisionEvents for TauriEvents {
     fn progress(&self, event: super::state::ProgressEvent) {
         if let Ok(mut snap) = self.progress.lock() {

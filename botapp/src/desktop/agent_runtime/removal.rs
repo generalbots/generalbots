@@ -103,7 +103,7 @@ fn wsl_exe() -> PathBuf {
 pub(crate) const NSIS_HOOK: &str = r#"; Agent runtime cleanup for the NSIS uninstaller.
 ; The hook calls the app binary with a hidden switch that runs the
 ; Rust removal code (BasePath verification, etc.).
-; Include in botapp/tauri.gbgov.conf.json -> bundle.windows.nsis:
+; Include in botapp/tauri.gblite.conf.json -> bundle.windows.nsis:
 ;   "installerHooks": "nsis/agent-runtime-uninstall.nsh"
 
 !macro customUninstall

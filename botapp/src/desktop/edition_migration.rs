@@ -23,7 +23,7 @@ use std::path::Path;
 /// The identifier the edition shared with the platform desktop.
 const OLD_IDENTIFIER: &str = "org.generalbots.botapp";
 
-/// The edition's identifier, as in `tauri.gbgov.conf.json`.
+/// The edition's identifier, as in `tauri.gblite.conf.json`.
 pub const IDENTIFIER: &str = "org.generalbots.lite";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -196,7 +196,7 @@ mod tests {
 
     #[test]
     fn the_identifier_matches_the_bundle_config() {
-        let conf = include_str!("../../tauri.gbgov.conf.json");
+        let conf = include_str!("../../tauri.gblite.conf.json");
         assert!(conf.contains(&format!("\"identifier\": \"{IDENTIFIER}\"")));
         assert_ne!(DATA_FOLDER, LEGACY_FOLDER);
     }

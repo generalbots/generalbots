@@ -2,7 +2,7 @@ use serde_json::{Map, Value};
 use std::error::Error;
 
 /// The edition config the release workflow passes to `cargo tauri build`.
-const GBGOV_CONFIG: &str = "tauri.gbgov.conf.json";
+const GBGOV_CONFIG: &str = "tauri.gblite.conf.json";
 
 /// The keys of the edition config that every build of the edition carries,
 /// with or without the Tauri CLI. The bundle section stays CLI-only: its

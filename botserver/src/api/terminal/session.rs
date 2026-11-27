@@ -159,7 +159,7 @@ impl TerminalSession {
                     // wrapper and botagent use the same default); other
                     // builds keep the platform's `Debian`.
                     .unwrap_or_else(|| {
-                        let name = if cfg!(feature = "gbgov") { "GeneralBotsLite" } else { "Debian" };
+                        let name = if cfg!(feature = "gblite") { "GeneralBotsLite" } else { "Debian" };
                         name.to_string()
                     });
                 let mut command = portable_pty::CommandBuilder::new("wsl.exe");

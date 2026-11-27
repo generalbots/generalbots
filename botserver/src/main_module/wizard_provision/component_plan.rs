@@ -23,7 +23,7 @@ pub(super) fn component_plan() -> Vec<Component> {
             log::debug!("GB_WIZARD_WITH_BOTMODELS is not set ({e}); using an empty value");
             String::new()
         }),
-        cfg!(feature = "gbgov"),
+        cfg!(feature = "gblite"),
         cfg!(target_os = "windows"),
         botcore::product::is_service_off,
         botcorepkg::installer::component_available_here,
