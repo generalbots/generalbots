@@ -406,8 +406,14 @@ if let Ok(stack) = std::env::var("BOTSERVER_STACK_PATH") {
 
     // Prompt-cache warm-up: after any engine (re)start, send a throw-away
     // request so the first real turn does not pay the full prompt evaluation.
+    // Off unless GB_LLM_CACHE_WARM=1: measured on the installed app, the
+    // warm-up prompt shares only the first 61% with a real first turn, and
+    // the engine cannot reuse a partial prefix for models with a sliding
+    // window or recurrent state (it re-evaluates everything), so today it
+    // costs two seconds of the card after every start and saves nothing.
+    // It needs to be an exact prefix of the real prompt before it is turned on.
     #[cfg(feature = "gbgov")]
-    {
+    if std::env::var("GB_LLM_CACHE_WARM").is_ok_and(|v| v == "1") {
         let state_for_warm = app_state.clone();
         tokio::spawn(async move {
             loop {
