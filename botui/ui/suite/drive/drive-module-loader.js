@@ -32,6 +32,10 @@
         '/suite/drive/modules/98_actions_chat.js',
         '/suite/drive/modules/13_sync.js',
         '/suite/drive/modules/14_quick_open.js',
+        // Assistant parity: the shared free-model notice, loaded last so it
+        // can attach to whatever Drive surfaces are present.
+        '/suite/js/free-model-disclosure.js',
+        '/suite/drive/modules/15_free_disclosure.js',
         '/suite/drive/modules/99_init.js',
     ];
     window.DriveAI = window.DriveAI || null;
