@@ -223,13 +223,20 @@ function techDetails() {
 
 /* ---- expose ---- */
 
+function experimentalNote() {
+    return tr(
+        "Instalação experimental nesta prévia: ainda não foi validada em todos os computadores. Seus arquivos e conversas não são afetados.",
+        "Experimental install in this preview: it has not been validated on every computer yet. Your files and conversations are not affected.");
+}
+
 A._artText = {
     tr: tr, esc: esc,
     fmtBytes: fmtBytes,
     chipLabel: chipLabel, chipClass: chipClass,
     stateDesc: stateDesc, errorText: errorText,
     stepName: stepName, policyText: policyText,
-    progressHtml: progressHtml, techDetails: techDetails
+    progressHtml: progressHtml, techDetails: techDetails,
+    experimentalNote: experimentalNote
 };
 
 })();

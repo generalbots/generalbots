@@ -34,12 +34,9 @@ function renderLocalDetail(el) {
 
 /* ---- Engine section ---- */
 var ENGINE_FAIL = {
-  engine_in_use: ["O motor em uso não pôde ser parado para a troca. Feche outros programas que usem o modelo local e tente de novo.",
-    "The engine in use could not be stopped for the swap. Close other programs that use the local model and try again."],
-  engine_download_failed: ["O download do motor novo falhou. O motor anterior continua instalado.",
-    "The download of the new engine failed. The previous engine is still installed."],
-  engine_new_failed: ["O motor novo não conseguiu iniciar o modelo que estava em uso. O motor anterior foi restaurado.",
-    "The new engine could not start the model that was in use. The previous engine was restored."]
+  engine_in_use: ["O motor em uso não pôde ser parado para a troca. Feche outros programas que usem o modelo local e tente de novo.", "The engine in use could not be stopped for the swap. Close other programs that use the local model and try again."],
+  engine_download_failed: ["O download do motor novo falhou. O motor anterior continua instalado.", "The download of the new engine failed. The previous engine is still installed."],
+  engine_new_failed: ["O motor novo não conseguiu iniciar o modelo que estava em uso. O motor anterior foi restaurado.", "The new engine could not start the model that was in use. The previous engine was restored."]
 };
 function engineStageText(job) {
   if (!job || !job.update) return tr("Baixando e instalando o motor...", "Downloading and installing the engine...");
@@ -47,10 +44,7 @@ function engineStageText(job) {
   if (job.stage === "starting") return tr("Iniciando o modelo com o motor novo...", "Starting the model with the new engine...");
   return tr("Baixando o motor novo...", "Downloading the new engine...");
 }
-function engineFailText(job) {
-  var pair = ENGINE_FAIL[job.code] || ["A instalação do motor falhou.", "The engine install failed."];
-  return tr(pair[0], pair[1]);
-}
+function engineFailText(job) { var p = ENGINE_FAIL[job.code] || ["A instalação do motor falhou.", "The engine install failed."]; return tr(p[0], p[1]); }
 
 function engineSection(lr) {
   lr = lr || {};
@@ -109,6 +103,11 @@ function engineNotice(lr) {
     '<div class="gb-of-sec-b gb-of-engine-b">' + e.body + '<div id="gbInstallMsg" class="gb-of-say"></div></div></div>';
 }
 
+function nvidiaNoticeHtml(size) {
+  var sz = size ? " " + tr("Download de cerca de %s.", "Download of about %s.").replace("%s", size) : "";
+  return '<p class="gb-of-hint" style="margin-bottom:8px">' + esc(tr("Para usar a placa NVIDIA, o aplicativo baixa bibliotecas da NVIDIA (CUDA), que são software da NVIDIA sob a licença dela. Ao continuar, você aceita esses termos.", "To use the NVIDIA card, the app downloads NVIDIA libraries (CUDA), which are NVIDIA software under its license. By continuing, you accept those terms.")) + esc(sz) + ' <a href="https://docs.nvidia.com/cuda/eula/index.html" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">' + esc(tr("Ler a licença da NVIDIA", "Read the NVIDIA license")) + '</a></p>';
+}
+
 function startEngineInstall() {
   S().setBusy(true, document.getElementById("gbInstallMsg"), tr("Iniciando...", "Starting..."));
   A.apiFetch("/api/llm/runtime/install", { method: "POST" }).then(function (r) {
@@ -126,15 +125,21 @@ function startEngineInstall() {
 
 function bindEngine(container) {
   var btn = container.querySelector("#gbInstallRuntime");
-  if (btn) {
-    btn.addEventListener("click", function () {
-      if (!btn.getAttribute("data-update")) { startEngineInstall(); return; }
-      S().inlineConfirm(tr(
-          "Baixar cerca de %s de %h e trocar o motor local? O modelo em uso fica parado durante a troca. Se o motor novo não funcionar, o anterior volta sozinho.",
-          "Download about %s from %h and replace the local engine? The model in use stops during the swap. If the new engine does not work, the previous one comes back by itself.")
-          .replace("%s", btn.getAttribute("data-size")).replace("%h", btn.getAttribute("data-host")), startEngineInstall);
-    });
-  }
+  if (btn) { btn.addEventListener("click", function () {
+    var hw = (S().localModels || {}).hardware || {};
+    var cuda = !!(hw.cuda_usable && hw.vram_gb > 0), rt = (S().cfg || {}).local_runtime || {};
+    var dlSize = fmtBytes(rt.install_info && rt.install_info.download_size_bytes);
+    if (!btn.getAttribute("data-update")) {
+      if (cuda) { S().inlineConfirm(nvidiaNoticeHtml(dlSize), startEngineInstall, true); }
+      else { startEngineInstall(); }
+      return;
+    }
+    var msg = tr("Baixar cerca de %s de %h e trocar o motor local? O modelo em uso fica parado durante a troca. Se o motor novo não funcionar, o anterior volta sozinho.",
+        "Download about %s from %h and replace the local engine? The model in use stops during the swap. If the new engine does not work, the previous one comes back by itself.")
+        .replace("%s", btn.getAttribute("data-size")).replace("%h", btn.getAttribute("data-host"));
+    if (cuda) { S().inlineConfirm(esc(msg) + nvidiaNoticeHtml(dlSize), startEngineInstall, true); }
+    else { S().inlineConfirm(msg, startEngineInstall); }
+  }); }
   var jobEl = container.querySelector("#gbEngineJob");
   if (jobEl) { pollEngine(jobEl.getAttribute("data-job")); }
 }

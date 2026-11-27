@@ -108,14 +108,15 @@ function t(key) {
 }
 
 /* ---- In-page confirm: a banner at the top of the detail tray, or a dialog ---- */
-function inlineConfirm(text, onYes) {
+function inlineConfirm(text, onYes, rawHtml) {
   var A2 = window.GBAssistant;
   var yesLabel = A2 && A2.t ? A2.t("assistant.confirm-continue", "Continue") : "OK";
   var noLabel = A2 && A2.t ? A2.t("assistant.cancel", "Cancel") : "Cancel";
+  var rendered = rawHtml ? text : esc(text);
   var slot = document.getElementById("gbOfConfirm");
   if (slot && slot.isConnected) {
-    slot.innerHTML = '<div class="gb-of-confirm" role="alertdialog" aria-label="' + esc(text) + '">' + (A._modelGarage ? A._modelGarage.svg("M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01", 16, 1.8).replace('stroke="currentColor"', 'stroke="var(--id-warn)"') : '') +
-      '<span>' + esc(text) + '</span><div><button type="button" class="gb-of-btn" data-act="no">' + esc(noLabel) + '</button>' +
+    slot.innerHTML = '<div class="gb-of-confirm" role="alertdialog">' + (A._modelGarage ? A._modelGarage.svg("M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01", 16, 1.8).replace('stroke="currentColor"', 'stroke="var(--id-warn)"') : '') +
+      '<span>' + rendered + '</span><div><button type="button" class="gb-of-btn" data-act="no">' + esc(noLabel) + '</button>' +
       '<button type="button" class="gb-of-btn pri" data-act="yes">' + esc(yesLabel) + '</button></div></div>';
     var no = slot.querySelector('[data-act="no"]');
     no.focus({ preventScroll: true });
@@ -129,7 +130,7 @@ function inlineConfirm(text, onYes) {
   overlay.innerHTML =
     '<div class="gb-inline-dialog-backdrop"></div>' +
     '<div class="gb-inline-dialog-box">' +
-      '<div class="gb-inline-dialog-text">' + esc(text) + '</div>' +
+      '<div class="gb-inline-dialog-text">' + rendered + '</div>' +
       '<div class="gb-inline-dialog-actions">' +
         '<button class="gb-set-btn-sm" data-act="no">' + esc(noLabel) + '</button>' +
         '<button class="gb-set-btn-sm gb-set-btn-accent" data-act="yes">' + esc(yesLabel) + '</button>' +

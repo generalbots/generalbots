@@ -165,6 +165,12 @@ function renderCard(panel, status) {
         /* no extra text needed: stateDesc already has the instruction */
     }
 
+    /* Experimental note for install-offering states */
+    if (state === "not_installed" || state === "needs_wsl" || state === "paused" || state === "broken") {
+        html += '<p class="gb-set-hint" style="margin-top:8px">' +
+            esc(T.experimentalNote()) + '</p>';
+    }
+
     /* Actions */
     if (hasTauri()) {
         html += '<div class="gb-art-actions" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">';

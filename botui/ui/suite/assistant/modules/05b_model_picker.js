@@ -311,8 +311,15 @@
             item.innerHTML = '<span class="gb-model-menu-name">' + esc(m.model) + '</span>';
             if (m.disabled) {
                 item.disabled = true;
-                item.title = backendReason || A.t("assistant.agent-backend-off", "Subscription agents unavailable on this computer");
+                var reason = backendReason || A.t("assistant.agent-backend-off", "Subscription agents unavailable on this computer");
+                item.title = reason;
                 item.classList.add("gb-model-menu-disabled");
+                if (runtimeOff) {
+                    var chip = document.createElement("span");
+                    chip.className = "gb-model-menu-meta";
+                    chip.textContent = tr("Requer Modo Agente", "Requires Agent Mode");
+                    item.appendChild(chip);
+                }
             } else {
                 item.addEventListener("click", function () { onPick(m.value); });
             }

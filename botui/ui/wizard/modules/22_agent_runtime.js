@@ -110,7 +110,11 @@
     }
 
     if (agentState.failed) {
+      var expPt = "Instalação experimental nesta prévia: ainda não foi validada em todos os computadores. Seus arquivos e conversas não são afetados.";
+      var expEn = "Experimental install in this preview: it has not been validated on every computer yet. Your files and conversations are not affected.";
+      var expText = (document.documentElement.lang || "pt-BR").startsWith("pt") ? expPt : expEn;
       el.innerHTML =
+        '<p class="note" style="margin-bottom:8px;font-size:12px">' + esc(expText) + '</p>' +
         '<p class="note err">' + esc(t("agent.install-failed", { reason: agentState.failed })) + '</p>' +
         '<div class="inline-row" style="margin-top:8px">' +
         '<button type="button" class="btn btn-secondary btn-sm" id="agentRetryBtn">' +
@@ -121,6 +125,10 @@
     }
 
     /* Default: show choice */
+    var experimentalPt = "Instalação experimental nesta prévia: ainda não foi validada em todos os computadores. Seus arquivos e conversas não são afetados.";
+    var experimentalEn = "Experimental install in this preview: it has not been validated on every computer yet. Your files and conversations are not affected.";
+    var experimentalText = (document.documentElement.lang || "pt-BR").startsWith("pt") ? experimentalPt : experimentalEn;
+
     var sizeInfo = '';
     if (s.download_bytes) {
       sizeInfo += '<span class="note" style="margin-right:12px">' +
@@ -136,6 +144,7 @@
 
     el.innerHTML =
       '<p class="note" style="margin-bottom:8px">' + esc(t("agent.card-desc")) + '</p>' +
+      '<p class="note" style="margin-bottom:8px;font-size:12px">' + esc(experimentalText) + '</p>' +
       (sizeInfo ? '<div style="margin-bottom:8px">' + sizeInfo + '</div>' : '') +
       (s.needs_admin ? '<p class="note" style="font-size:12px;margin-bottom:8px">' +
         esc(t("agent.admin-note")) + '</p>' : '') +
