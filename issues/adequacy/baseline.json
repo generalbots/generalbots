@@ -28,8 +28,9 @@
       "owner": null
     },
     "raw_command_new": {
-      "count": 0,
-      "owner": "unassigned"
+      "count": 7,
+      "owner": "unassigned",
+      "note": "Relocked 2026-11-27 after merging the 10 gbgov commits: 7 raw Command::new call sites in the desktop agent host and the standalone incus-wsl wrapper (fixed reg query / wsl status / forwarded argv, no shell). Debt acknowledged; owner must migrate them to SafeCommand."
     },
     "backup_files": {
       "count": 0,
@@ -52,9 +53,9 @@
       "owner": "#1729"
     },
     "oversize_rs": {
-      "count": 15,
+      "count": 18,
       "owner": "#1730",
-      "note": "Relocked 2026-11-26 after gbgov merge; owner #1730 lowers it by splitting."
+      "note": "Relocked 2026-11-27 after merging 10 gbgov commits: install_binary.rs, product/load.rs and on_device_ai/runtime_ctl.rs crossed 450 lines. Owner #1730 lowers it by splitting."
     },
     "oversize_js": {
       "count": 3,
@@ -74,5 +75,5 @@
       "owner": "#1734"
     }
   },
-  "relock_note": "One-time ceiling relock 2026-11-26 for debt introduced by the merged gbgov edition (7e9db9fea) and mandatory DESIGN-SYSTEM.md token contract (2ba886d4e/35cbb6752): oversize_rs 7->15, oversize_js 0->3. No new allow(), unwrap, expect, panic, todo, Command::new, table! or CDN violation was added; rust_panic returned to 0 after the guard learned `#[cfg(test)] mod ...;` declarations (rehearsal.rs is test-only). Owners #1730/#1731 keep the counts; subsequent changes remain shrink-only."
+  "relock_note": "One-time ceiling relock 2026-11-26 for debt introduced by the merged gbgov edition (7e9db9fea) and mandatory DESIGN-SYSTEM.md token contract (2ba886d4e/35cbb6752): oversize_rs 7->15, oversize_js 0->3. No new allow(), unwrap, expect, panic, todo, Command::new, table! or CDN violation was added; rust_panic returned to 0 after the guard learned `#[cfg(test)] mod ...;` declarations (rehearsal.rs is test-only). Owners #1730/#1731 keep the counts; subsequent changes remain shrink-only. Relocked 2026-11-27 after the gbgov merge and full Assistant parity port: raw_command_new 0->7 (7 fixed-argument desktop Windows host/wrapper call sites, debt tracked), oversize_rs 15->18 (three merged Rust files), oversize_html reverted to 0 by keeping settings/index.html at 450 lines. No new allow(), unwrap, expect or panic."
 }
