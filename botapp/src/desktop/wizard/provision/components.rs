@@ -178,9 +178,19 @@ pub(super) async fn run_components(
     let stderr_buffer = Arc::new(std::sync::Mutex::new(String::new()));
     let stderr_clone = Arc::clone(&stderr_buffer);
     if let Some(stderr) = stderr {
+        let stderr_log = log_path().join("wizard-provision.log");
         tokio::spawn(async move {
             let mut lines = BufReader::new(stderr).lines();
             while let Ok(Some(line)) = lines.next_line().await {
+                // Persist stderr lines (product file, component plan, errors)
+                // to the provisioning log so they survive a successful run.
+                if let Ok(mut file) = std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open(&stderr_log)
+                {
+                    let _ = writeln!(file, "[stderr] {line}");
+                }
                 if let Ok(mut buffer) = stderr_clone.lock() {
                     buffer.push_str(&line);
                     buffer.push('\n');
