@@ -212,6 +212,10 @@ fn main() {
         .manage(WizardState::default());
 
     #[cfg(feature = "desktop-local")]
+    let builder = builder
+        .manage(desktop::agent_runtime::AgentRuntimeManager::default());
+
+    #[cfg(feature = "desktop-local")]
     let builder = builder.invoke_handler(tauri::generate_handler![
         desktop::download::save_download,
         desktop::open_download::open_download,
@@ -270,6 +274,11 @@ fn main() {
         desktop::wizard::wizard_ai_use_chat,
         desktop::wizard::wizard_finish,
         desktop::recovery::local_password_reset,
+        desktop::agent_runtime::commands::agent_runtime_status,
+        desktop::agent_runtime::commands::agent_runtime_install,
+        desktop::agent_runtime::commands::agent_runtime_cancel,
+        desktop::agent_runtime::commands::agent_runtime_remove,
+        desktop::agent_runtime::commands::agent_runtime_check_update,
     ]);
 
     #[cfg(not(feature = "desktop-local"))]

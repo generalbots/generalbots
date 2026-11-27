@@ -1,0 +1,17 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "gbgov-agent-runtime",
+  "description": "Agent runtime commands: status, install, cancel, remove and check-update. Granted to the sidecar origin so the suite page can drive the agent-runtime provisioning flow.",
+  "local": true,
+  "windows": ["main"],
+  "remote": {
+    "urls": ["http://localhost:8080", "http://127.0.0.1:8080"]
+  },
+  "permissions": [
+    "allow-agent-runtime-status",
+    "allow-agent-runtime-install",
+    "allow-agent-runtime-cancel",
+    "allow-agent-runtime-remove",
+    "allow-agent-runtime-check-update"
+  ]
+}

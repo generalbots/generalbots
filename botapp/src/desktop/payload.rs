@@ -182,10 +182,25 @@ pub fn extract_if_present() -> Result<Option<PathBuf>> {
     Ok(Some(stack))
 }
 
+/// Whether the argument list is exactly `[exe, "--agent-runtime-remove-silent"]`.
+/// Pure function so the matching rule is testable without side effects.
+pub(crate) fn is_agent_runtime_remove_silent(args: &[String]) -> bool {
+    args.len() == 2 && args[1] == "--agent-runtime-remove-silent"
+}
+
 /// Handles the offline inspection flags before Tauri starts. Returns the exit
 /// code when one of them was used, `None` for a normal launch.
 pub fn handle_cli() -> Option<i32> {
     let args: Vec<String> = std::env::args().collect();
+
+    // The uninstaller switch must be the exact and only argument so it
+    // cannot combine with --verify or other flags, and nothing else in
+    // the argument list can change what it does.
+    #[cfg(feature = "desktop-local")]
+    if is_agent_runtime_remove_silent(&args) {
+        return Some(handle_agent_runtime_remove_silent());
+    }
+
     if args.iter().any(|arg| arg == "--version") {
         println!("generalbots {}", crate::build_info::version());
         return Some(0);
@@ -224,6 +239,49 @@ pub fn handle_cli() -> Option<i32> {
         });
     }
     None
+}
+
+/// Runs the agent runtime removal silently for the NSIS uninstaller.
+///
+/// No window, no console flash (the exe is a GUI subsystem binary), no
+/// server, no Tauri.  Resolves the stack path the same way the app does.
+/// Returns 0 when there was nothing to remove or the removal worked,
+/// non-zero otherwise.  Times out after 120 seconds.
+#[cfg(feature = "desktop-local")]
+fn handle_agent_runtime_remove_silent() -> i32 {
+    use std::sync::mpsc;
+    use std::time::Duration;
+
+    let (tx, rx) = mpsc::channel();
+    std::thread::spawn(move || {
+        let code = run_agent_runtime_remove();
+        let _ = tx.send(code);
+    });
+
+    match rx.recv_timeout(Duration::from_secs(120)) {
+        Ok(code) => code,
+        Err(_) => 1, // Timed out; let the uninstaller continue.
+    }
+}
+
+#[cfg(feature = "desktop-local")]
+fn run_agent_runtime_remove() -> i32 {
+    let stack = crate::desktop::sidecar::Sidecar::stack_path();
+
+    #[cfg(all(target_os = "windows", feature = "gbgov"))]
+    {
+        let host = crate::desktop::agent_runtime::host::SystemHost;
+        match crate::desktop::agent_runtime::remove_runtime(&host, &stack, false) {
+            crate::desktop::agent_runtime::RemovalResult::Ok
+            | crate::desktop::agent_runtime::RemovalResult::NotRegistered => 0,
+            _ => 1,
+        }
+    }
+    #[cfg(not(all(target_os = "windows", feature = "gbgov")))]
+    {
+        let _ = stack;
+        0 // Nothing to remove on this platform/edition.
+    }
 }
 
 #[cfg(test)]
@@ -351,3 +409,7 @@ mod trailer_tests {
         assert_eq!(hex, hex.to_lowercase());
     }
 }
+
+#[cfg(test)]
+#[path = "payload_cli_tests.rs"]
+mod cli_switch_tests;

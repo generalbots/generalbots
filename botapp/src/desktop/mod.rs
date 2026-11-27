@@ -39,5 +39,11 @@ pub mod webkit_permissions;
 #[cfg(feature = "desktop-local")]
 pub mod wizard;
 
+/// Agent runtime detection, provisioning and removal (gbgov only).
+/// Compiled under desktop-local so the commands register unconditionally;
+/// every entry point returns "unsupported" when the gbgov feature is off.
+#[cfg(feature = "desktop-local")]
+pub mod agent_runtime;
+
 /// Carries the WebKit profile over from the pre-rename identifier (#1870).
 pub mod legacy_data;
