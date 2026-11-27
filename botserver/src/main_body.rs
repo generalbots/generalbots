@@ -404,6 +404,23 @@ if let Ok(stack) = std::env::var("BOTSERVER_STACK_PATH") {
         });
     }
 
+    // Prompt-cache warm-up: after any engine (re)start, send a throw-away
+    // request so the first real turn does not pay the full prompt evaluation.
+    #[cfg(feature = "gbgov")]
+    {
+        let state_for_warm = app_state.clone();
+        tokio::spawn(async move {
+            loop {
+                botsettings::on_device_ai::launch_plan::engine_loaded().await;
+                if let Err(reason) =
+                    crate::core::bot::pipeline::llm::cache_warm::warm(&state_for_warm).await
+                {
+                    log::info!("[cache_warm] skipped: {reason}");
+                }
+            }
+        });
+    }
+
     start_background_services(app_state.clone(), &app_state.conn).await;
 
     crate::main_module::start_automation_service(app_state.clone());

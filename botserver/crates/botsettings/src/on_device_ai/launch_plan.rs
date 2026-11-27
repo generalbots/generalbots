@@ -10,6 +10,21 @@
 
 use std::sync::Mutex;
 
+/// Fires after the engine loads a model and the placement is recorded.
+/// The botserver's cache warm-up task awaits this.
+static ENGINE_LOADED: tokio::sync::Notify = tokio::sync::Notify::const_new();
+
+/// Signal that the engine just loaded a model (called from [`record_after_load`]).
+pub fn signal_engine_loaded() {
+    ENGINE_LOADED.notify_waiters();
+}
+
+/// Wait for the next engine load.  Returns immediately if one has already
+/// been signalled since the last call.
+pub async fn engine_loaded() {
+    ENGINE_LOADED.notified().await;
+}
+
 /// Slots the chat engine opens. The server sends one model call at a time.
 pub const PARALLEL_SLOTS: u32 = 1;
 /// Video memory the engine leaves free when it chooses how many layers fit.
@@ -59,14 +74,25 @@ pub enum Placement {
 }
 
 /// Judge the placement from free video memory before and after the load.
-pub fn placement(before_mib: Option<u64>, after_mib: Option<u64>, fit_target_mib: u64) -> Placement {
+///
+/// When the engine takes at least as much video memory as the model's file
+/// size, all weights (and the KV cache beside them) are on the card.  When
+/// it takes noticeably less, some layers stayed on the processor.  llama.cpp
+/// with `--fit-target` keeps layers on the processor to meet the free-memory
+/// target; the previous heuristic ("enough room left after the load") could
+/// not tell the difference between a fully offloaded model that left headroom
+/// and a split model on a card that is just large enough.
+pub fn placement(before_mib: Option<u64>, after_mib: Option<u64>, model_mib: u64) -> Placement {
     let (Some(before), Some(after)) = (before_mib, after_mib) else { return Placement::Unknown };
-    if before.saturating_sub(after) < FULL_CARD_SLACK_MIB {
+    let engine_vram = before.saturating_sub(after);
+    if engine_vram < FULL_CARD_SLACK_MIB {
         Placement::Cpu
-    } else if after <= fit_target_mib + FULL_CARD_SLACK_MIB {
-        Placement::Split
-    } else {
+    } else if model_mib == 0 || engine_vram >= model_mib {
+        // All weights on the card: the engine uses at least the model size
+        // (plus KV cache and compute buffers).
         Placement::Gpu
+    } else {
+        Placement::Split
     }
 }
 
@@ -135,7 +161,7 @@ pub fn record_after_load(model_file: &str) {
     let Ok(mut slot) = LAST_LAUNCH.lock() else { return };
     let Some(record) = slot.as_mut().filter(|r| model_file.ends_with(r.model_file.as_str())) else { return };
     record.vram_free_after_mib = after;
-    record.placement = placement(record.vram_free_before_mib, after, u64::from(FIT_TARGET_MIB));
+    record.placement = placement(record.vram_free_before_mib, after, record.model_mib);
     let used = record.vram_free_before_mib.zip(after).map(|(b, a)| b.saturating_sub(a));
     log::info!(
         "[launch_plan] loaded model={} engine_vram={} MiB free_vram_after={} MiB placement={:?}",
@@ -146,11 +172,12 @@ pub fn record_after_load(model_file: &str) {
     );
     if record.placement == Placement::Split {
         log::warn!(
-            "[launch_plan] {} does not fit fully on the graphics card ({} MiB free before the load); answers will be slow. Close other programs that use the card or choose a smaller model.",
+            "[launch_plan] {} does not fit fully on the graphics card ({} MiB free before the load); part of the model runs on the processor and answers will be slower. Close other programs that use the graphics card, restart the model, or choose a smaller model.",
             record.model_file,
             record.vram_free_before_mib.unwrap_or(0),
         );
     }
+    signal_engine_loaded();
 }
 
 #[cfg(test)]

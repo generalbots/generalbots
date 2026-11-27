@@ -24,6 +24,8 @@ mod svg_contract;
 mod local_recovery;
 #[cfg(feature = "gbgov")]
 mod free_model_fallback;
+#[cfg(feature = "gbgov")]
+pub(crate) mod cache_warm;
 
 pub use stream::stream_llm_response;
 
