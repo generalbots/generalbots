@@ -1,17 +1,34 @@
 name: gblite release
 
-# Dedicated Windows MSI for the Lite edition, built from the gbgov pipeline:
+# Dedicated Windows MSI for the Lite edition, built from the gblite pipeline:
 # same features (chat, drive, settings, llm, vectordb, consent, agent-vm,
 # web-search, embed-ui + custom-protocol), same Tauri config and product name
-# "General Bots Lite" (botapp/tauri.gbgov.conf.json), same bundle identifier.
+# "General Bots Lite" (botapp/tauri.gblite.conf.json), same bundle identifier.
 #
-# Only the exact tag `gblite-1.0.0` publishes. Manual dispatch builds and tests
-# the same files and keeps them as artifacts; it never creates a release.
+# Any tag matching `gblite-v<major>.<minor>.<patch>` (for example
+# `gblite-v1.0.0`, `gblite-v1.0.1`, `gblite-v2.3.4`) builds and publishes a
+# stable release. Manual dispatch computes the next version from the existing
+# `gblite-v*` tags using the requested `bump`; it builds and tests the same
+# files, keeps them as artifacts and never creates a release.
+#
+# Every release carries a stable download alias:
+# https://github.com/generalbots/generalbots/releases/latest/download/generalbots-gblite-windows-x64.msi
 
 on:
   push:
-    tags: ["gblite-1.0.0"]
+    tags: ["gblite-v*"]
   workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump for a manual build (none, patch, minor, major)"
+        required: true
+        default: patch
+        type: choice
+        options:
+          - none
+          - patch
+          - minor
+          - major
 
 permissions:
   contents: read
@@ -21,9 +38,10 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  GBLITE_FEATURES: gbgov
+  GBLITE_FEATURES: gblite
   TARGET_TRIPLE: x86_64-pc-windows-msvc
-  GBLITE_TAG: gblite-1.0.0
+  # GBLITE_TAG / GBLITE_VERSION are resolved from the tag (or the bump input)
+  # by the "Resolve the edition version" step below.
 
 jobs:
   build:
@@ -32,30 +50,69 @@ jobs:
     timeout-minutes: 240
     env:
       # `secrets` cannot be read in a step condition; this flag can.
-      HAS_WINDOWS_CERT: ${{ secrets.WINDOWS_CERT != '' }}
+      # SignPath approval is still pending: gblite builds are unsigned until a
+      # repository variable GBLITE_SIGN=true is set explicitly.
+      HAS_WINDOWS_CERT: ${{ secrets.WINDOWS_CERT != '' && vars.GBLITE_SIGN == 'true' }}
     steps:
+      # Full history + tags are needed on manual dispatch to compute the next
+      # version from the existing gblite-v* releases.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Resolve the edition version
         shell: pwsh
+        env:
+          BUMP: ${{ inputs.bump }}
         run: |
           $ErrorActionPreference = 'Stop'
           if ($env:GITHUB_REF_TYPE -eq 'tag') {
-            if ($env:GITHUB_REF_NAME -ne $env:GBLITE_TAG) {
-              throw "tag $($env:GITHUB_REF_NAME) is not the Lite release tag ($env:GBLITE_TAG)"
+            $tag = $env:GITHUB_REF_NAME
+            if ($tag -notmatch '^gblite-v\d+\.\d+\.\d+$') {
+              throw "tag '$tag' does not match ^gblite-v\d+\.\d+\.\d+$"
             }
-            $version = $env:GITHUB_REF_NAME.Substring('gblite-'.Length)
-            $label = $env:GITHUB_REF_NAME
+            $version = $tag.Substring('gblite-v'.Length)
+            $label = $tag
           } else {
-            $version = (Get-Content botapp/tauri.conf.json -Raw | ConvertFrom-Json).version
+            # Short inline semver bump: the highest existing gblite-v* tag is
+            # the base, then none/patch/minor/major is applied to it.
+            $bumpCode = @'
+          import re, subprocess, sys
+          pattern = re.compile(r"^gblite-v(\d+)\.(\d+)\.(\d+)$")
+          tags = subprocess.run(
+              ["git", "tag", "--list", "gblite-v*"],
+              capture_output=True, text=True, check=True,
+          ).stdout.splitlines()
+          versions = []
+          for tag in tags:
+              match = pattern.match(tag.strip())
+              if match:
+                  versions.append(tuple(int(part) for part in match.groups()))
+          major, minor, patch = max(versions) if versions else (0, 0, 0)
+          bump = (sys.argv[1] if len(sys.argv) > 1 else "") or "patch"
+          if bump not in ("none", "patch", "minor", "major"):
+              raise SystemExit("unknown bump: " + bump)
+          if bump == "major":
+              major, minor, patch = major + 1, 0, 0
+          elif bump == "minor":
+              minor, patch = minor + 1, 0
+          elif bump == "patch":
+              patch += 1
+          print(f"{major}.{minor}.{patch}")
+          '@
+            $version = python -c $bumpCode $env:BUMP
+            if ($LASTEXITCODE -ne 0) { throw "could not compute the next Lite version" }
+            $tag = "gblite-v$version"
             $label = "gblite-build-$((git rev-parse --short HEAD).Trim())"
           }
-          if ($version -notmatch '^\d+\.\d+\.\d+(-\d+)?$') {
-            throw "version '$version' is not major.minor.patch with an optional numeric pre-release"
+          if ($version -notmatch '^\d+\.\d+\.\d+$') {
+            throw "version '$version' is not major.minor.patch"
           }
           $commit = (git rev-parse --short HEAD).Trim()
           $built = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd')
           "GBLITE_VERSION=$version" >> $env:GITHUB_ENV
+          "GBLITE_TAG=$tag" >> $env:GITHUB_ENV
           "GBLITE_LABEL=$label" >> $env:GITHUB_ENV
           "BOTSERVER_BUILD_VERSION=$version" >> $env:GITHUB_ENV
           "BOTSERVER_COMMIT=$commit" >> $env:GITHUB_ENV
@@ -63,9 +120,9 @@ jobs:
           $versionConf = Join-Path $env:RUNNER_TEMP 'gblite-version.conf.json'
           @{ version = $version } | ConvertTo-Json | Set-Content $versionConf -Encoding utf8
           "GBLITE_VERSION_CONF=$versionConf" >> $env:GITHUB_ENV
-          Write-Host "edition version $version ($label, $commit)"
+          Write-Host "edition version $version ($tag, $label, $commit)"
 
-      # Same pinned client build as gbgov (botserver/3rdparty.toml libpq_win):
+      # Same pinned client build as gblite (botserver/3rdparty.toml libpq_win):
       # the server links libpq and the sidecar stages these DLLs at first run.
       # The EDB archive below also provides a database server for the smoke test.
       - name: PostgreSQL client libraries (pinned) and a server for the smoke test
@@ -116,7 +173,7 @@ jobs:
           psql -U postgres -h 127.0.0.1 -v ON_ERROR_STOP=1 -c "CREATE ROLE gb LOGIN PASSWORD 'gb'"
           psql -U postgres -h 127.0.0.1 -v ON_ERROR_STOP=1 -c "CREATE DATABASE botserver OWNER gb"
 
-      # Proves the release server starts with the gbgov feature set and serves
+      # Proves the release server starts with the gblite feature set and serves
       # the Chat + Drive product profile, with no network egress in the smoke.
       - name: Smoke test the release server (isolated stack, local mock model)
         shell: pwsh
@@ -125,7 +182,7 @@ jobs:
           DATABASE_URL: postgres://gb:gb@127.0.0.1:5432/botserver
         run: |
           $ErrorActionPreference = 'Stop'
-          ./scripts/gbgov-smoke.ps1 -Binary target\release\botserver.exe
+          ./scripts/gblite-smoke.ps1 -Binary target\release\botserver.exe
           $logs = Get-ChildItem 'botserver-smoke.log*' -ErrorAction SilentlyContinue
           $panics = $logs | Select-String -Pattern 'panicked at' -SimpleMatch
           if ($panics) {
@@ -166,7 +223,7 @@ jobs:
               $guard -notmatch 'Ok\("1"\)') {
             throw 'the opt-in-only download guard is missing from the installer'
           }
-          $conf = Get-Content 'botapp/tauri.gbgov.conf.json' -Raw | ConvertFrom-Json
+          $conf = Get-Content 'botapp/tauri.gblite.conf.json' -Raw | ConvertFrom-Json
           if ($conf.productName -ne 'General Bots Lite') { throw "productName is '$($conf.productName)'" }
           if ($conf.identifier -ne 'org.generalbots.botapp') { throw "identifier is '$($conf.identifier)'" }
           $resources = $conf.bundle.resources.PSObject.Properties
@@ -216,7 +273,7 @@ jobs:
         working-directory: botapp
         run: |
           $ErrorActionPreference = 'Stop'
-          $configs = @('--config', 'tauri.gbgov.conf.json', '--config', $env:GBLITE_VERSION_CONF)
+          $configs = @('--config', 'tauri.gblite.conf.json', '--config', $env:GBLITE_VERSION_CONF)
           if ($env:GBLITE_SIGN_CONF) { $configs += @('--config', $env:GBLITE_SIGN_CONF) }
           cargo tauri build --features "$env:GBLITE_FEATURES,custom-protocol" @configs --bundles msi
           if ($LASTEXITCODE -ne 0) { throw "cargo tauri build failed with exit code $LASTEXITCODE" }
@@ -230,10 +287,17 @@ jobs:
           $bundles = @('target\release\bundle', 'botapp\target\release\bundle')
           $msi = Get-ChildItem ($bundles | ForEach-Object { "$_\msi\*.msi" }) -ErrorAction SilentlyContinue | Select-Object -First 1
           if (-not $msi) { throw 'the bundler produced no MSI' }
-          Copy-Item $msi.FullName "dist\generalbots-gblite-$v-windows-x64.msi"
-          $out = Get-Item "dist\generalbots-gblite-$v-windows-x64.msi"
-          if ($out.Length -lt 1MB) { throw "$($out.Name) is suspiciously small ($($out.Length) bytes)" }
-          Write-Host "MSI: $($out.Name) ($([math]::Round($out.Length / 1MB, 1)) MB)"
+          $versioned = "generalbots-gblite-$v-windows-x64.msi"
+          $alias = 'generalbots-gblite-windows-x64.msi'
+          Copy-Item $msi.FullName "dist\$versioned" -Force
+          Copy-Item "dist\$versioned" "dist\$alias" -Force
+          # The alias is the stable /releases/latest/download/ URL; both files
+          # must be real installers, not empty placeholders.
+          foreach ($name in @($versioned, $alias)) {
+            $out = Get-Item "dist\$name"
+            if ($out.Length -lt 1MB) { throw "$($out.Name) is suspiciously small ($($out.Length) bytes)" }
+            Write-Host "MSI: $($out.Name) ($([math]::Round($out.Length / 1MB, 1)) MB)"
+          }
 
       - name: Software bill of materials (CycloneDX)
         shell: pwsh
@@ -283,17 +347,18 @@ jobs:
           if-no-files-found: warn
 
   publish:
-    name: Publish the pre-release
+    name: Publish the stable release
     needs: build
-    if: ${{ github.event_name == 'push' && github.ref_type == 'tag' && github.ref_name == 'gblite-1.0.0' }}
+    if: ${{ github.event_name == 'push' && startsWith(github.ref_name, 'gblite-v') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - name: Require the exact edition tag
         run: |
-          if [ "$GITHUB_REF_TYPE" != "tag" ] || [ "$GITHUB_REF_NAME" != "gblite-1.0.0" ]; then
-            echo "::error::publishing needs the gblite-1.0.0 tag; this run is on $GITHUB_REF_TYPE $GITHUB_REF_NAME"
+          set -euo pipefail
+          if [ "$GITHUB_REF_TYPE" != "tag" ] || ! printf '%s' "$GITHUB_REF_NAME" | grep -Eq '^gblite-v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::publishing needs a gblite-v<major>.<minor>.<patch> tag; this run is on $GITHUB_REF_TYPE $GITHUB_REF_NAME"
             exit 1
           fi
 
@@ -303,25 +368,34 @@ jobs:
           name: gblite-release-${{ github.ref_name }}
           path: dist
 
-      - name: Create or update the GitHub pre-release
+      - name: Create the GitHub release with the stable download alias
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          TAG: ${{ github.ref_name }}
+          GBLITE_TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
           ls -l dist
-          msi=$(find dist -maxdepth 1 -name 'generalbots-gblite-1.0.0-windows-x64.msi' -print -quit)
-          if [ -z "$msi" ]; then
-            echo "::error::the expected Lite MSI is missing"
-            exit 1
-          fi
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" dist/* --clobber
+          version="${GBLITE_TAG#gblite-v}"
+          versioned="dist/generalbots-gblite-$version-windows-x64.msi"
+          alias="dist/generalbots-gblite-windows-x64.msi"
+          sums="dist/SHA256SUMS-gblite-$version-windows.txt"
+          assets=("$versioned" "$alias" "$sums")
+          while IFS= read -r sbom; do
+            assets+=("$sbom")
+          done < <(find dist -maxdepth 1 -name "*-gblite-$version.cdx.json" -print | sort)
+          for file in "${assets[@]}"; do
+            if [ ! -s "$file" ]; then
+              echo "::error::missing or empty release asset: $file"
+              exit 1
+            fi
+          done
+          if gh release view "$GBLITE_TAG" >/dev/null 2>&1; then
+            gh release upload "$GBLITE_TAG" "${assets[@]}" --clobber
           else
-            gh release create "$TAG" dist/* \
-              --title "$TAG" \
-              --prerelease \
+            gh release create "$GBLITE_TAG" "${assets[@]}" \
+              --title "General Bots Lite $version" \
+              --generate-notes \
               --verify-tag \
-              --notes "Windows MSI of General Bots Lite: offline first boot, Chat and Drive. Verify the download with the SHA256SUMS file attached to this release."
+              --latest
           fi
