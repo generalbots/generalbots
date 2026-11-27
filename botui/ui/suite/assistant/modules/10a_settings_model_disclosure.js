@@ -29,6 +29,22 @@ var LEARN_MORE = { "pt-BR": "Saiba mais", en: "Learn more" };
 var TERMS_LABEL = { "pt-BR": "Termos do serviço", en: "Terms of service" };
 var PRIVACY_LABEL = { "pt-BR": "Privacidade", en: "Privacy" };
 
+function gt(key, en) { return typeof window.gbT === "function" ? window.gbT(key, en) : en; }
+var CUDA_RELEASE_URL = "https://github.com/ggml-org/llama.cpp/releases";
+
+/* Acceptance notice before a CUDA runtime download: archives, size, origin
+   and NVIDIA licence. Kept here so 10b stays under the 450-line limit. */
+function cudaNoticeHtml(size, host) {
+  var sz = size ? " " + gt("assistant-cuda-notice-size", "Download of about %s.").replace("%s", size) : "";
+  var origin = gt("assistant-cuda-notice-origin", "Source: %h — %u")
+    .replace("%h", host || "github.com").replace("%u", CUDA_RELEASE_URL);
+  return '<p class="gb-of-hint" style="margin-bottom:8px">' +
+    esc(gt("assistant-cuda-notice", "To use the NVIDIA card, the app downloads NVIDIA CUDA runtime libraries (cudart-llama-bin-win-cuda-12.4-x64.zip or cudart-llama-bin-win-cuda-13.5-x64.zip), which are NVIDIA software under its license. By continuing, you confirm that you have read and accept those terms; if you do not, cancel and nothing will be downloaded.")) +
+    esc(sz) + '<br>' + esc(origin) +
+    ' <a href="https://docs.nvidia.com/cuda/eula/index.html" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">' +
+    esc(gt("assistant-cuda-notice-licence", "Read the NVIDIA license")) + '</a></p>';
+}
+
 function notice() { return pt() ? NOTICE["pt-BR"] : NOTICE.en; }
 function short() { return pt() ? SHORT["pt-BR"] : SHORT.en; }
 
@@ -67,6 +83,7 @@ A._freeDisclosure = {
   shortHtml: shortHtml,
   linksHtml: linksHtml,
   isFreeActive: isFreeActive,
+  cudaNoticeHtml: cudaNoticeHtml,
   TERMS_URL: TERMS_URL,
   PRIVACY_URL: PRIVACY_URL
 };

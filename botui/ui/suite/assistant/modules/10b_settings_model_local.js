@@ -103,11 +103,6 @@ function engineNotice(lr) {
     '<div class="gb-of-sec-b gb-of-engine-b">' + e.body + '<div id="gbInstallMsg" class="gb-of-say"></div></div></div>';
 }
 
-function nvidiaNoticeHtml(size) {
-  var sz = size ? " " + tr("Download de cerca de %s.", "Download of about %s.").replace("%s", size) : "";
-  return '<p class="gb-of-hint" style="margin-bottom:8px">' + esc(tr("Para usar a placa NVIDIA, o aplicativo baixa bibliotecas da NVIDIA (CUDA), que são software da NVIDIA sob a licença dela. Ao continuar, você aceita esses termos.", "To use the NVIDIA card, the app downloads NVIDIA libraries (CUDA), which are NVIDIA software under its license. By continuing, you accept those terms.")) + esc(sz) + ' <a href="https://docs.nvidia.com/cuda/eula/index.html" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">' + esc(tr("Ler a licença da NVIDIA", "Read the NVIDIA license")) + '</a></p>';
-}
-
 function startEngineInstall() {
   S().setBusy(true, document.getElementById("gbInstallMsg"), tr("Iniciando...", "Starting..."));
   A.apiFetch("/api/llm/runtime/install", { method: "POST" }).then(function (r) {
@@ -130,14 +125,14 @@ function bindEngine(container) {
     var cuda = !!(hw.cuda_usable && hw.vram_gb > 0), rt = (S().cfg || {}).local_runtime || {};
     var dlSize = fmtBytes(rt.install_info && rt.install_info.download_size_bytes);
     if (!btn.getAttribute("data-update")) {
-      if (cuda) { S().inlineConfirm(nvidiaNoticeHtml(dlSize), startEngineInstall, true); }
+      if (cuda) { S().inlineConfirm(A._freeDisclosure.cudaNoticeHtml(dlSize, rt.install_info && rt.install_info.download_host), startEngineInstall, true); }
       else { startEngineInstall(); }
       return;
     }
     var msg = tr("Baixar cerca de %s de %h e trocar o motor local? O modelo em uso fica parado durante a troca. Se o motor novo não funcionar, o anterior volta sozinho.",
         "Download about %s from %h and replace the local engine? The model in use stops during the swap. If the new engine does not work, the previous one comes back by itself.")
         .replace("%s", btn.getAttribute("data-size")).replace("%h", btn.getAttribute("data-host"));
-    if (cuda) { S().inlineConfirm(esc(msg) + nvidiaNoticeHtml(dlSize), startEngineInstall, true); }
+    if (cuda) { S().inlineConfirm(esc(msg) + A._freeDisclosure.cudaNoticeHtml(dlSize, rt.install_info && rt.install_info.download_host), startEngineInstall, true); }
     else { S().inlineConfirm(msg, startEngineInstall); }
   }); }
   var jobEl = container.querySelector("#gbEngineJob");
