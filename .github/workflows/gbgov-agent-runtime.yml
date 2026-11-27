@@ -134,7 +134,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Keep the root filesystem
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: agent-runtime-rootfs
           path: dist/*.tar.gz
@@ -143,7 +143,7 @@ jobs:
           if-no-files-found: error
 
       - name: Keep the manifest fragment
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: agent-runtime-meta-rootfs
           path: meta/*.asset.json
@@ -255,7 +255,7 @@ jobs:
           exit 0
 
       - name: Keep the workspace image
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: agent-runtime-workspace
           path: dist/*.tar.xz
@@ -264,7 +264,7 @@ jobs:
           if-no-files-found: error
 
       - name: Keep the manifest fragment
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: agent-runtime-meta-workspace
           path: meta/*.asset.json
@@ -311,7 +311,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Keep the manifest
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: agent-runtime-manifest
           path: |
