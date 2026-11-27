@@ -400,12 +400,21 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Require a signed build
+      # A final version (gbgov-v1.2.3) is published only when the installers
+      # are signed. A numbered preview (gbgov-v1.2.3-4) may go out unsigned:
+      # it is published as a pre-release, never as the latest release, with
+      # the title and the notes saying so.
+      - name: Require a signed build, or a numbered preview
         env:
           SIGNED: ${{ needs.build.outputs.signed }}
+          TAG: ${{ github.ref_name }}
         run: |
-          if [ "$SIGNED" != "true" ]; then
-            echo "::error::the installers are not signed; a public release waits for the code-signing certificate (secrets WINDOWS_CERT and WINDOWS_CERT_PASSWORD)"
+          if [ "$SIGNED" = "true" ]; then
+            echo "installers are signed"
+          elif [[ "$TAG" =~ ^gbgov-v[0-9]+\.[0-9]+\.[0-9]+-[0-9]+$ ]]; then
+            echo "::notice::unsigned preview $TAG: published as a pre-release with a warning in its title and notes"
+          else
+            echo "::error::the installers are not signed; a final release waits for the code-signing certificate (secrets WINDOWS_CERT and WINDOWS_CERT_PASSWORD). An unsigned preview needs a tag like gbgov-v1.0.0-1"
             exit 1
           fi
 
@@ -427,15 +436,42 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           TAG: ${{ github.ref_name }}
+          SIGNED: ${{ needs.build.outputs.signed }}
         run: |
           set -euo pipefail
           ls -l dist
+          version="${TAG#gbgov-v}"
+          title="General Bots Lite $version"
+          {
+            echo "General Bots Lite $version: Windows installers (Chat + Drive)."
+            echo
+            echo "Verify the downloads with the SHA256SUMS file attached to this release."
+          } > notes.md
+          if [ "$SIGNED" != "true" ]; then
+            title="General Bots Lite $version (prévia, sem assinatura digital)"
+            {
+              echo '## Prévia sem assinatura digital'
+              echo
+              echo 'Esta é uma versão prévia para testes. Os instaladores ainda não têm assinatura digital, então o Windows mostra o aviso "O Windows protegeu o computador". Para instalar, clique em **Mais informações** e depois em **Executar assim mesmo**.'
+              echo
+              echo 'Antes de instalar, confira o arquivo baixado com o SHA256SUMS anexado a esta página. No PowerShell: `Get-FileHash <arquivo> -Algorithm SHA256`, e compare com a linha do arquivo.'
+              echo
+              echo 'Não use esta prévia em computadores de órgãos públicos: a versão assinada vem depois.'
+              echo
+              echo '## Unsigned preview'
+              echo
+              echo 'This is a preview build for testing. The installers are not code-signed yet, so Windows shows "Windows protected your PC". To install, choose **More info**, then **Run anyway**.'
+              echo
+              echo 'Check the downloaded file against the attached SHA256SUMS first (PowerShell: `Get-FileHash <file> -Algorithm SHA256`).'
+            } > notes.md
+          fi
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" dist/* --clobber
           else
             gh release create "$TAG" dist/* \
-              --title "General Bots Lite ${TAG#gbgov-v}" \
+              --title "$title" \
               --prerelease \
+              --latest=false \
               --verify-tag \
-              --notes "General Bots Lite ${TAG#gbgov-v}: Windows installers (Chat + Drive). Verify the downloads with the SHA256SUMS file attached to this release."
+              --notes-file notes.md
           fi
