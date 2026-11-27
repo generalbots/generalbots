@@ -1,11 +1,16 @@
 use super::*;
 
 impl PackageManager {
+    /// Installs a single binary from `temp_file` into `bin_path/name`.
+    ///
+    /// When `preserve_source` is true the source file is copied instead of
+    /// moved, so a read-only bundled-installers directory is never modified.
     pub fn install_binary(
         &self,
         temp_file: &std::path::Path,
         bin_path: &std::path::Path,
         name: &str,
+        preserve_source: bool,
     ) -> Result<()> {
         #[cfg(target_os = "windows")]
         let name = if !name.ends_with(".exe") {
@@ -17,7 +22,7 @@ impl PackageManager {
         let name = name.to_string();
         let final_path = bin_path.join(name);
 
-        if temp_file.to_string_lossy().contains("botserver-installers") {
+        if preserve_source {
             std::fs::copy(temp_file, &final_path)?;
         } else {
             std::fs::rename(temp_file, &final_path)?;
@@ -426,5 +431,205 @@ mod unpinned_checksum_tests {
     #[test]
     fn unpinned_checksum_is_acknowledged_when_not_required() {
         assert!(PackageManager::unpinned_checksum_error("demo", false).is_none());
+    }
+}
+
+#[cfg(test)]
+mod preserve_source_tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    /// Helper: construct a minimal `PackageManager` for unit tests.
+    fn test_pm(base: &std::path::Path) -> PackageManager {
+        PackageManager::with_base_path(
+            InstallMode::Local,
+            Some("test".to_string()),
+            base.to_path_buf(),
+        )
+        .expect("test PackageManager")
+    }
+
+    // ---- install_binary ----
+
+    #[test]
+    fn install_binary_preserve_copies_and_keeps_source() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let installers = dir.path().join("installers");
+        let bin = dir.path().join("bin");
+        std::fs::create_dir_all(&installers).unwrap();
+        std::fs::create_dir_all(&bin).unwrap();
+
+        let src = installers.join("minio.exe");
+        std::fs::write(&src, b"MINIO_BINARY").unwrap();
+        let original_len = std::fs::metadata(&src).unwrap().len();
+
+        let pm = test_pm(dir.path());
+        pm.install_binary(&src, &bin, "minio.exe", true).unwrap();
+
+        // Source must still exist with the same size.
+        assert!(src.exists(), "bundled source was deleted");
+        assert_eq!(std::fs::metadata(&src).unwrap().len(), original_len);
+        // Destination must exist.
+        assert!(bin.join("minio.exe").exists(), "binary not installed");
+    }
+
+    #[test]
+    fn install_binary_no_preserve_moves_source() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let downloads = dir.path().join("downloads");
+        let bin = dir.path().join("bin");
+        std::fs::create_dir_all(&downloads).unwrap();
+        std::fs::create_dir_all(&bin).unwrap();
+
+        let src = downloads.join("minio.exe");
+        std::fs::write(&src, b"MINIO_BINARY").unwrap();
+
+        let pm = test_pm(dir.path());
+        pm.install_binary(&src, &bin, "minio.exe", false).unwrap();
+
+        // Source should be gone (moved).
+        assert!(!src.exists(), "downloaded source was not cleaned up");
+        assert!(bin.join("minio.exe").exists(), "binary not installed");
+    }
+
+    // ---- handle_downloaded_file: unrecognised extension, no binary_name ----
+
+    #[test]
+    fn handle_downloaded_file_preserve_copies_unknown_ext() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let installers = dir.path().join("installers");
+        let bin = dir.path().join("bin");
+        std::fs::create_dir_all(&installers).unwrap();
+        std::fs::create_dir_all(&bin).unwrap();
+
+        let src = installers.join("somefile");
+        std::fs::write(&src, b"DATA").unwrap();
+        let original_len = std::fs::metadata(&src).unwrap().len();
+
+        let pm = test_pm(dir.path());
+        pm.handle_downloaded_file(&src, &bin, None, true).unwrap();
+
+        assert!(src.exists(), "bundled source was deleted");
+        assert_eq!(std::fs::metadata(&src).unwrap().len(), original_len);
+    }
+
+    // ---- extract_zip: bundled archive preserved, downloaded archive cleaned ----
+
+    #[test]
+    fn extract_zip_preserve_keeps_archive() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let installers = dir.path().join("installers");
+        let bin = dir.path().join("bin");
+        std::fs::create_dir_all(&installers).unwrap();
+        std::fs::create_dir_all(&bin).unwrap();
+
+        // Create a minimal valid zip in the installers folder.
+        let zip_path = installers.join("component.zip");
+        {
+            let file = std::fs::File::create(&zip_path).unwrap();
+            let mut writer = zip::ZipWriter::new(file);
+            let options = zip::write::SimpleFileOptions::default();
+            writer.start_file("hello.txt", options).unwrap();
+            std::io::Write::write_all(&mut writer, b"hello").unwrap();
+            writer.finish().unwrap();
+        }
+        let original_len = std::fs::metadata(&zip_path).unwrap().len();
+
+        let pm = test_pm(dir.path());
+        pm.extract_zip(&zip_path, &bin, true).unwrap();
+
+        assert!(zip_path.exists(), "bundled zip was deleted");
+        assert_eq!(std::fs::metadata(&zip_path).unwrap().len(), original_len);
+        assert!(bin.join("hello.txt").exists(), "zip not extracted");
+    }
+
+    #[test]
+    fn extract_zip_no_preserve_removes_archive() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let downloads = dir.path().join("downloads");
+        let bin = dir.path().join("bin");
+        std::fs::create_dir_all(&downloads).unwrap();
+        std::fs::create_dir_all(&bin).unwrap();
+
+        let zip_path = downloads.join("component.zip");
+        {
+            let file = std::fs::File::create(&zip_path).unwrap();
+            let mut writer = zip::ZipWriter::new(file);
+            let options = zip::write::SimpleFileOptions::default();
+            writer.start_file("hello.txt", options).unwrap();
+            std::io::Write::write_all(&mut writer, b"hello").unwrap();
+            writer.finish().unwrap();
+        }
+
+        let pm = test_pm(dir.path());
+        pm.extract_zip(&zip_path, &bin, false).unwrap();
+
+        assert!(!zip_path.exists(), "downloaded zip was not cleaned up");
+        assert!(bin.join("hello.txt").exists(), "zip not extracted");
+    }
+
+    // ---- read-only source directory (Windows: read-only attribute on files) ----
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn install_binary_works_when_source_is_read_only() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let installers = dir.path().join("installers");
+        let bin = dir.path().join("bin");
+        std::fs::create_dir_all(&installers).unwrap();
+        std::fs::create_dir_all(&bin).unwrap();
+
+        let src = installers.join("minio.exe");
+        std::fs::write(&src, b"MINIO_BINARY").unwrap();
+
+        // Set read-only attribute on the source file.
+        let mut perms = std::fs::metadata(&src).unwrap().permissions();
+        perms.set_readonly(true);
+        std::fs::set_permissions(&src, perms).unwrap();
+
+        let pm = test_pm(dir.path());
+        let result = pm.install_binary(&src, &bin, "minio.exe", true);
+        assert!(result.is_ok(), "install failed on read-only source: {result:?}");
+        assert!(src.exists(), "read-only source was deleted");
+        assert!(bin.join("minio.exe").exists(), "binary not installed");
+
+        // Clean up: remove read-only so tempdir can be deleted.
+        let mut perms = std::fs::metadata(&src).unwrap().permissions();
+        perms.set_readonly(false);
+        std::fs::set_permissions(&src, perms).unwrap();
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn extract_zip_works_when_source_is_read_only() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let installers = dir.path().join("installers");
+        let bin = dir.path().join("bin");
+        std::fs::create_dir_all(&installers).unwrap();
+        std::fs::create_dir_all(&bin).unwrap();
+
+        let zip_path = installers.join("component.zip");
+        {
+            let file = std::fs::File::create(&zip_path).unwrap();
+            let mut writer = zip::ZipWriter::new(file);
+            let options = zip::write::SimpleFileOptions::default();
+            writer.start_file("data.bin", options).unwrap();
+            std::io::Write::write_all(&mut writer, b"payload").unwrap();
+            writer.finish().unwrap();
+        }
+
+        let mut perms = std::fs::metadata(&zip_path).unwrap().permissions();
+        perms.set_readonly(true);
+        std::fs::set_permissions(&zip_path, perms).unwrap();
+
+        let pm = test_pm(dir.path());
+        let result = pm.extract_zip(&zip_path, &bin, true);
+        assert!(result.is_ok(), "extract failed on read-only source: {result:?}");
+        assert!(zip_path.exists(), "read-only zip was deleted");
+        assert!(bin.join("data.bin").exists(), "zip not extracted");
+
+        let mut perms = std::fs::metadata(&zip_path).unwrap().permissions();
+        perms.set_readonly(false);
+        std::fs::set_permissions(&zip_path, perms).unwrap();
     }
 }

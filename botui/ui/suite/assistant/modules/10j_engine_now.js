@@ -72,7 +72,7 @@ function privacy(info) {
     ? tr("Suas conversas vão ao agente %a (%c), pela sua assinatura. O agente trabalha numa máquina virtual isolada neste computador.",
         "Your conversations go to the %a agent (%c), through your subscription. The agent works in an isolated virtual machine on this computer.")
         .replace("%a", info.agent.name).replace("%c", info.agent.co)
-    : st("privExt", "%h").replace("%h", info.host || st("freeHost", tr("um provedor externo", "an external provider")));
+    : st("privExt", "%h").replace("%h", info.host || st("freeHost", tr("o serviço Kilo (NVIDIA), nos EUA", "the Kilo service (NVIDIA), in the US")));
   return info.kind || info.host ? '<span class="gb-set-external-warn">' + esc(text) + '</span>' : '';
 }
 

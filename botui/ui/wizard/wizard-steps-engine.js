@@ -80,6 +80,10 @@
           '</div>' +
           '<div class="wiz-engine-dbody" id="wizEngineDetail">' +
             '<p>' + esc(t("model.free.detail-text")) + '</p>' +
+            '<p class="wiz-engine-links">' +
+              '<a href="https://kilo.ai/terms" data-open-url="https://kilo.ai/terms">' + esc(t("model.free.terms-link")) + '</a> \xb7 ' +
+              '<a href="https://kilo.ai/privacy" data-open-url="https://kilo.ai/privacy">' + esc(t("model.free.privacy-link")) + '</a>' +
+            '</p>' +
             '<p>' + esc(t("model.free.confirm-first")) + '</p>' +
           '</div>' +
         '</div>' +

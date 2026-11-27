@@ -208,7 +208,7 @@
     function addSwitchEntries(menu, dest) {
         if (dest.scope === "machine" || dest.scope === "network") {
             menuEntry(menu, A.engineName("free", "group"),
-                tr("hospedado fora deste computador", "hosted outside this computer"),
+                tr("serviço Kilo (NVIDIA), nos EUA", "Kilo service (NVIDIA), in the US"),
                 function () { switchTo({ mode: "free" }); });
         }
         A.apiFetch("/api/llm/local/models").then(function (r) { return r.ok ? r.json() : null; }).then(function (data) {
@@ -334,7 +334,7 @@
             });
         }
         if (target.mode === "free" && A.confirmExternal) {
-            A.confirmExternal({ name: tr("Modelo gratuito", "Free model"), host: shared.t ? shared.t("freeHost") : "" },
+            A.confirmExternal({ name: tr("Modelo gratuito", "Free model"), host: shared.t ? shared.t("freeHost") : "", mode: "free" },
                 visible(".gb-motor"), run);
         } else {
             run();

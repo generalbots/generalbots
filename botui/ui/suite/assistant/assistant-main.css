@@ -122,6 +122,30 @@ body:has(.gb-titlebar-toggle) .gb-sidebar.collapsed ~ .gb-main .gb-expand-sideba
 .gb-user-menu-danger:hover { background: var(--id-danger-soft); }
 
 /* ================================================================
+   Free-model disclosure and reminder bar
+   ================================================================ */
+.gb-free-disclosure {
+    margin: 0 0 8px; line-height: 1.55; color: var(--id-ink);
+}
+.gb-free-disclosure-links {
+    margin: 4px 0 0; font-size: 0.92em;
+}
+.gb-free-disclosure-links a {
+    color: var(--id-accent); text-decoration: underline;
+}
+.gb-free-bar {
+    padding: 6px 16px; font-size: 0.85em; line-height: 1.4;
+    color: var(--id-warn-text); background: var(--id-warn-soft, rgba(200,140,0,.08));
+    border-radius: var(--id-radius-sm, 6px);
+    margin-bottom: 6px;
+}
+.gb-free-reminder { display: inline; }
+.gb-free-reminder-link {
+    color: var(--id-accent); text-decoration: underline; cursor: pointer;
+    margin-left: 4px;
+}
+
+/* ================================================================
    Utility: gutter on the sides
    ================================================================ */
 .gb-main { padding: 0 var(--id-space-4); }

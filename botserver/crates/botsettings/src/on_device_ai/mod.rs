@@ -92,9 +92,44 @@ async fn list_models(
         })
         .collect();
     let recommended = catalog::recommended(probe.vram_gb, probe.ram_gb);
+    // When the active model is not in the catalogue (removed entry, or a file
+    // the person placed manually) include it as an "unlisted" entry so the UI
+    // can still show and label it.
+    let bare = vault_store::bare_name(&configured);
+    let active_in_catalog = !bare.is_empty()
+        && catalog::CATALOG.iter().any(|spec| spec.file == bare);
+    let unlisted = if !bare.is_empty() && !active_in_catalog {
+        let path = dir.join(bare);
+        let downloaded = path.exists();
+        Some(json!({
+            "id": "__unlisted__",
+            "name": bare,
+            "params": "",
+            "quant": "",
+            "size_bytes": std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0),
+            "min_vram_gb": 0,
+            "repo": "",
+            "file": bare,
+            "status": catalog::row_status(true, downloaded, false),
+            "progress": null,
+            "job_id": null,
+            "partial_bytes": 0,
+            "active": true,
+            "downloaded": downloaded,
+            "fits": true,
+            "fit_verdict": "comfortable",
+            "checksum_pinned": false,
+            "server_only": false,
+            "licence": "",
+            "source_host": "",
+            "capabilities": ["chat"],
+        }))
+    } else {
+        None
+    };
     Ok(Json(json!({
         "hardware": &probe,
-        "active_model": vault_store::bare_name(&configured),
+        "active_model": bare,
         "recommended": recommended.id,
         "recommended_fits": catalog::fits(recommended, probe.vram_gb, probe.ram_gb),
         "recommended_verdict": catalog::fit_verdict(recommended, probe.vram_gb, probe.ram_gb),
@@ -102,6 +137,7 @@ async fn list_models(
         "free_bytes": hardware::free_bytes_for(&dir),
         "last_launch": launch_plan::last_launch(),
         "tiers": tiers,
+        "unlisted": unlisted,
     })))
 }
 

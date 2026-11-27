@@ -68,11 +68,7 @@
         components: [
           { id: "vault", label: "Local vault", optional: false },
           { id: "tables", label: "Database", optional: false },
-          { id: "cache", label: "Cache", optional: false },
           { id: "drive", label: "Object store", optional: false },
-          { id: "vector_db", label: "Vector store", optional: false },
-          { id: "directory", label: "Identity provider", optional: false },
-          { id: "llm", label: "Local model runtime", optional: true },
           { id: "botserver", label: "Assistant service", optional: false }
         ]
       };

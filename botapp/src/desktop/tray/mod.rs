@@ -12,8 +12,6 @@ use tokio::sync::RwLock;
 mod menu;
 mod service;
 
-pub use menu::quit_requested;
-pub(crate) use menu::quit;
 pub use service::{ServiceMonitor, ServiceStatus};
 
 #[derive(Clone)]

@@ -168,5 +168,8 @@ desktop = []
 uifragments = []
 providers = []
 grpc = []
+[dev-dependencies]
+tempfile = { workspace = true }
+
 [lints]
 workspace = true

@@ -367,7 +367,37 @@ pub async fn run() -> std::io::Result<()> {
     let pm = PackageManager::new(InstallMode::Local, tenant)
         .map_err(|e| std::io::Error::other(format!("package manager: {e}")))?;
 
-    for component in component_plan() {
+    let plan = component_plan();
+
+    // Diagnostic: report which product file is active and which services
+    // were left out before the logger is initialised (the provisioner
+    // returns before logging starts, so info!() calls inside
+    // ProductConfig::load are lost).
+    {
+        let product = botcore::product::PRODUCT_CONFIG
+            .read()
+            .ok();
+        let source = product
+            .as_ref()
+            .and_then(|c| c.source_path.as_deref());
+        let services_off: Vec<String> = product
+            .as_ref()
+            .map(|c| c.get_services_off())
+            .unwrap_or_default();
+        match source {
+            Some(path) => eprintln!("provision: product file loaded: {path}"),
+            None => eprintln!("provision: no product file found, using built-in defaults"),
+        }
+        if services_off.is_empty() {
+            eprintln!("provision: all bundled services enabled");
+        } else {
+            eprintln!("provision: services left out: {}", services_off.join(", "));
+        }
+        let ids: Vec<&str> = plan.iter().map(|c| c.id).collect();
+        eprintln!("provision: component plan: {}", ids.join(", "));
+    }
+
+    for component in plan {
         if let Err(reason) = provision_component(&pm, &component, started).await {
             return Err(std::io::Error::other(reason));
         }

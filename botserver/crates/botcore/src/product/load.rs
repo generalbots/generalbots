@@ -99,6 +99,7 @@ impl Default for ProductConfig {
             shell: None,
             public_base_url: None,
             services_off: HashSet::new(),
+            source_path: None,
         }
     }
 }
@@ -134,7 +135,12 @@ impl ProductConfig {
             if Path::new(path).exists() {
                 let content = fs::read_to_string(path).map_err(ProductConfigError::IoError)?;
                 info!("Loaded product configuration from: {path}");
-                return Self::parse(&content);
+                let mut config = Self::parse(&content)?;
+                config.source_path = std::fs::canonicalize(path)
+                    .map(|p| p.to_string_lossy().into_owned())
+                    .ok()
+                    .or_else(|| Some(path.to_string()));
+                return Ok(config);
             }
         }
 
@@ -155,7 +161,12 @@ impl ProductConfig {
                         "Loaded product configuration from stack: {}",
                         candidate.display()
                     );
-                    return Self::parse(&content);
+                    let mut config = Self::parse(&content)?;
+                    config.source_path = std::fs::canonicalize(&candidate)
+                        .map(|p| p.to_string_lossy().into_owned())
+                        .ok()
+                        .or_else(|| Some(candidate.to_string_lossy().into_owned()));
+                    return Ok(config);
                 }
             }
         }
@@ -177,7 +188,12 @@ impl ProductConfig {
                             "Loaded product configuration from resource dir: {}",
                             candidate.display()
                         );
-                        return Self::parse(&content);
+                        let mut config = Self::parse(&content)?;
+                        config.source_path = std::fs::canonicalize(&candidate)
+                            .map(|p| p.to_string_lossy().into_owned())
+                            .ok()
+                            .or_else(|| Some(candidate.to_string_lossy().into_owned()));
+                        return Ok(config);
                     }
                 }
             }
@@ -195,7 +211,12 @@ impl ProductConfig {
                             "Loaded product configuration beside executable: {}",
                             candidate.display()
                         );
-                        return Self::parse(&content);
+                        let mut config = Self::parse(&content)?;
+                        config.source_path = std::fs::canonicalize(&candidate)
+                            .map(|p| p.to_string_lossy().into_owned())
+                            .ok()
+                            .or_else(|| Some(candidate.to_string_lossy().into_owned()));
+                        return Ok(config);
                     }
                 }
             }

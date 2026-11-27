@@ -77,6 +77,12 @@
       if (App.bindAccentPicker) { App.bindAccentPicker(); }
     }
 
+    if (state.step === 2) {
+      el.body.querySelectorAll("[data-open-url]").forEach(function (a) {
+        a.addEventListener("click", function (e) { e.preventDefault(); B.openUrl(a.getAttribute("data-open-url")); });
+      });
+    }
+
     if (state.step === 3) {
       var path = document.getElementById("workspacePath");
       var size = document.getElementById("workspaceSize");

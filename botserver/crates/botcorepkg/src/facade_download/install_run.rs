@@ -84,6 +84,7 @@ pub async fn download_and_install(base_path: &std::path::Path, url: &str, compon
         }
     };
     let cache_result = cache.resolve_component_url(component, url);
+    let preserve_source = cache_result.is_cached();
     let source_file = match cache_result {
         CacheResult::Cached(cached_path) => {
             info!("Using cached file for {}: {}", component, cached_path.display());
@@ -118,7 +119,7 @@ pub async fn download_and_install(base_path: &std::path::Path, url: &str, compon
     });
     let expected = crate::checksum::pin_or_empty(pin);
     crate::checksum::verify_download(&source_file, &expected, component)?;
-    handle_downloaded_file(&source_file, &bin_path, binary_name)?;
+    handle_downloaded_file(&source_file, &bin_path, binary_name, preserve_source)?;
     Ok(())
 }
 

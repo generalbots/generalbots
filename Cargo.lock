@@ -1907,6 +1907,7 @@ dependencies = [
  "sha2 0.10.9",
  "sysinfo",
  "tar",
+ "tempfile",
  "tokio",
  "toml 0.8.2",
  "tower 0.4.13",

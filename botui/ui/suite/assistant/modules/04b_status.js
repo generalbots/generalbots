@@ -103,5 +103,34 @@
             textEl.textContent = label;
             textEl.className = "gb-status-text";
         }
+
+        /* Short free-model reminder near the composer when the free model is active. */
+        renderFreeReminder();
     };
+
+    function renderFreeReminder() {
+        var D = A._freeDisclosure;
+        var existing = document.querySelectorAll(".gb-free-bar");
+        var show = D && D.isFreeActive();
+        if (!show) {
+            existing.forEach(function (el) { el.remove(); });
+            return;
+        }
+        if (existing.length) { return; }
+        var composers = document.querySelectorAll(".gb-composer-inner, .gb-composer-card");
+        for (var ci = 0; ci < composers.length; ci++) {
+            var bar = document.createElement("div");
+            bar.className = "gb-free-bar";
+            bar.setAttribute("role", "status");
+            bar.innerHTML = D.shortHtml();
+            var link = bar.querySelector("[data-open-model-settings]");
+            if (link) {
+                link.addEventListener("click", function (e) {
+                    e.preventDefault();
+                    if (typeof A.openSettings === "function") { A.openSettings("model"); }
+                });
+            }
+            composers[ci].parentNode.insertBefore(bar, composers[ci]);
+        }
+    }
 })();

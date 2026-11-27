@@ -16,6 +16,15 @@ pub fn shell_mode() -> bool {
 pub mod activity;
 pub mod app;
 pub mod commands;
+#[cfg(feature = "desktop-local")]
+pub(crate) mod exit_decision;
+#[cfg(feature = "desktop-local")]
+pub mod boot_guard;
+#[cfg(feature = "desktop-local")]
+pub mod boot_steps;
+#[cfg(feature = "desktop-local")]
+pub mod boot_supervisor;
+pub mod data_root;
 pub mod download;
 
 /// Port the sidecar listens on. Kept here so the download URL gate can allow

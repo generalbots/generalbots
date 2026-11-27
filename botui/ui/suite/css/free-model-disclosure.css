@@ -1,0 +1,48 @@
+/* Free-model disclosure — shared by Chat, Drive and Settings.
+   Identity tokens only; no ad-hoc colors, fonts, radii or shadows. */
+
+.gb-free-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--id-space-2);
+  margin: var(--id-space-2) var(--id-space-4);
+  padding: var(--id-space-2) var(--id-space-3);
+  border: 1px solid var(--id-border);
+  border-radius: var(--id-radius-control);
+  background: var(--id-surface-alt);
+  color: var(--id-text);
+  font: var(--id-font);
+  font-size: var(--id-text-sm);
+}
+
+.gb-free-reminder-link,
+.gb-free-disclosure-links a {
+  color: var(--id-accent-text);
+  text-decoration: underline;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.gb-free-disclosure-settings {
+  margin: var(--id-space-4) 0;
+  padding: var(--id-space-3) var(--id-space-4);
+  border-left: 3px solid var(--id-accent);
+  border-radius: var(--id-radius-sm);
+  background: var(--id-surface-alt);
+  color: var(--id-text);
+  font: var(--id-font);
+  font-size: var(--id-text-sm);
+}
+
+.gb-free-disclosure,
+.gb-free-disclosure-links {
+  margin: 0 0 var(--id-space-2);
+  line-height: var(--id-line-height, 1.5);
+}
+
+.gb-free-disclosure-links {
+  margin-bottom: 0;
+}

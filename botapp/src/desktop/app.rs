@@ -64,7 +64,9 @@ pub fn run() {
     // #1870 — carry the WebKit profile (localStorage, cache) from the legacy
     // bundle identifier's data folder before any webview opens, so users keep
     // their sessions and settings across the rename.
-    crate::desktop::legacy_data::migrate_legacy_data_dir();
+    let context: tauri::Context<tauri::Wry> = tauri::generate_context!();
+    let running_identifier = context.config().identifier.clone();
+    crate::desktop::legacy_data::migrate_legacy_data_dir(&running_identifier);
 
     let tray_manager = TrayManager::with_mode(RunningMode::Desktop);
     let service_monitor = tokio::sync::Mutex::new(ServiceMonitor::new());

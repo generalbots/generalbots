@@ -15,6 +15,11 @@
 
   /* -- per-component timing ------------------------------------------- */
   var compStartTimes = {};
+  /* Components the provisioner has actually announced via progress events.
+     The static context.components list includes every component the shell
+     knows about, but the provisioner only runs a subset; this tracks which
+     ones really run, in the order they were announced. */
+  var announcedPlan = [];
 
   function formatDuration(ms) {
     if (ms == null || ms <= 0) { return ""; }
@@ -156,16 +161,28 @@
   function renderComponents() {
     var list = document.getElementById("componentList");
     if (!list) { return; }
-    list.innerHTML = plannedComponents().map(componentTemplate).join("");
-    (state.provisioning.components || []).forEach(updateComponent);
+    var planned = plannedComponents();
+    if (planned.length) {
+      list.innerHTML = planned.map(componentTemplate).join("");
+      (state.provisioning.components || []).forEach(updateComponent);
+    } else {
+      list.innerHTML = '<div class="install-step-item current">' +
+        '<span class="install-step-icon"><span class="install-spinner"></span></span>' +
+        '<span class="install-step-name">' + esc(t("install.waiting")) + '</span>' +
+        '<span class="install-step-dur"></span></div>';
+    }
     updateInstallProgress();
     renderLog();
   }
 
   function plannedComponents() {
-    return (state.context.components || []).filter(function (c) {
-      return draft.model.mode === "local" || c.id !== "llm";
-    });
+    if (announcedPlan.length) { return announcedPlan; }
+    if (!state.provisioning.running && !state.provisioning.ready) {
+      return (state.context.components || []).filter(function (c) {
+        return draft.model.mode === "local" || c.id !== "llm";
+      });
+    }
+    return [];
   }
 
   function updateInstallProgress() {
@@ -203,7 +220,6 @@
   }
 
   function updateComponent(event) {
-    var node = document.querySelector('[data-comp="' + event.id + '"]');
     var entry = null;
     for (var i = 0; i < state.provisioning.components.length; i += 1) {
       if (state.provisioning.components[i].id === event.id) { entry = state.provisioning.components[i]; }
@@ -224,6 +240,20 @@
     if (event.state === "starting" && !compStartTimes[event.id]) {
       compStartTimes[event.id] = Date.now();
     }
+    /* Add newly announced components to the plan and DOM dynamically. */
+    if (event.id !== "__done__" && !announcedPlan.some(function (c) { return c.id === event.id; })) {
+      var spec = null;
+      (state.context.components || []).forEach(function (c) { if (c.id === event.id) { spec = c; } });
+      if (!spec) { spec = { id: event.id, label: event.id, optional: false }; }
+      announcedPlan.push(spec);
+      var list = document.getElementById("componentList");
+      if (list) {
+        var placeholder = list.querySelector(".install-step-item:not([data-comp])");
+        if (placeholder) { placeholder.remove(); }
+        list.insertAdjacentHTML("beforeend", componentTemplate(spec));
+      }
+    }
+    var node = document.querySelector('[data-comp="' + event.id + '"]');
     if (!node) { return; }
     var icon = node.querySelector(".install-step-icon");
     var dur = node.querySelector(".install-step-dur");
@@ -265,6 +295,7 @@
       state.provisioning.startedAt = Date.now();
       state.provisioning.components = [];
       compStartTimes = {};
+      announcedPlan = [];
     }
     syncStartButton();
     renderFooter();
@@ -345,7 +376,8 @@
   }
 
   function markAllReady() {
-    (state.context.components || []).forEach(function (c) {
+    var list = announcedPlan.length ? announcedPlan : (state.context.components || []);
+    list.forEach(function (c) {
       updateComponent({ id: c.id, state: "ready", message: t("install.ready"), elapsed_ms: 0 });
     });
     updateInstallProgress();

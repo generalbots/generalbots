@@ -1,6 +1,11 @@
 use super::*;
 
-pub fn handle_downloaded_file(temp_file: &std::path::Path, bin_path: &std::path::Path, binary_name: Option<&str>) -> Result<()> {
+/// Installs a downloaded or bundled file (binary or archive) into the
+/// component's `bin_path`.
+///
+/// When `preserve_source` is true the source file is never moved or
+/// deleted, so a read-only bundled-installers directory stays intact.
+pub fn handle_downloaded_file(temp_file: &std::path::Path, bin_path: &std::path::Path, binary_name: Option<&str>, preserve_source: bool) -> Result<()> {
     let metadata = std::fs::metadata(temp_file)?;
     if metadata.len() == 0 {
         return Err(anyhow::anyhow!("Downloaded file is empty"));
@@ -11,17 +16,17 @@ pub fn handle_downloaded_file(temp_file: &std::path::Path, bin_path: &std::path:
         .unwrap_or("");
     match file_extension {
         "gz" | "tgz" => {
-            extract_tar_gz(temp_file, bin_path)?;
+            extract_tar_gz(temp_file, bin_path, preserve_source)?;
         }
         "zip" => {
-            extract_zip(temp_file, bin_path)?;
+            extract_zip(temp_file, bin_path, preserve_source)?;
         }
         _ => {
             if let Some(name) = binary_name {
-                install_binary(temp_file, bin_path, name)?;
+                install_binary(temp_file, bin_path, name, preserve_source)?;
             } else {
-                let final_path = bin_path.join(temp_file.file_name().unwrap_or_else(|| std::ffi::OsStr::new("")));
-                if temp_file.to_string_lossy().contains("botserver-installers") {
+                let final_path = bin_path.join(temp_file.file_name().unwrap_or_default());
+                if preserve_source || temp_file.to_string_lossy().contains("botserver-installers") {
                     std::fs::copy(temp_file, &final_path)?;
                 } else {
                     std::fs::rename(temp_file, &final_path)?;
@@ -33,7 +38,7 @@ pub fn handle_downloaded_file(temp_file: &std::path::Path, bin_path: &std::path:
     Ok(())
 }
 
-pub fn extract_tar_gz(temp_file: &std::path::Path, bin_path: &std::path::Path) -> Result<()> {
+pub fn extract_tar_gz(temp_file: &std::path::Path, bin_path: &std::path::Path, preserve_source: bool) -> Result<()> {
     let tar_gz = std::fs::File::open(temp_file)?;
     let tar = flate2::read::GzDecoder::new(tar_gz);
     let mut archive = tar::Archive::new(tar);
@@ -41,7 +46,7 @@ pub fn extract_tar_gz(temp_file: &std::path::Path, bin_path: &std::path::Path) -
 
     collapse_single_subdirectory(bin_path)?;
 
-    if !temp_file.to_string_lossy().contains("botserver-installers") {
+    if !preserve_source {
         std::fs::remove_file(temp_file)?;
     }
     Ok(())
@@ -71,7 +76,7 @@ pub(super) fn collapse_single_subdirectory(bin_path: &std::path::Path) -> Result
     Ok(())
 }
 
-pub fn extract_zip(temp_file: &std::path::Path, bin_path: &std::path::Path) -> Result<()> {
+pub fn extract_zip(temp_file: &std::path::Path, bin_path: &std::path::Path, preserve_source: bool) -> Result<()> {
     let file = std::fs::File::open(temp_file)?;
     let mut archive = zip::ZipArchive::new(file)
         .map_err(|e| anyhow::anyhow!("Failed to open zip archive: {}", e))?;
@@ -114,7 +119,7 @@ pub fn extract_zip(temp_file: &std::path::Path, bin_path: &std::path::Path) -> R
 
     collapse_single_subdirectory(bin_path)?;
 
-    if !temp_file.to_string_lossy().contains("botserver-installers") {
+    if !preserve_source {
         std::fs::remove_file(temp_file)?;
     }
     Ok(())
