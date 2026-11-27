@@ -273,174 +273,6 @@
               }
             },
             {
-              "if": {
-                "properties": {
-                  "identifier": {
-                    "anyOf": [
-                      {
-                        "description": "This permission set allows opening `mailto:`, `tel:`, `https://` and `http://` urls using their default application\nas well as reveal file in directories using default file explorer\n#### This default permission set includes:\n\n- `allow-open-url`\n- `allow-reveal-item-in-dir`\n- `allow-default-urls`",
-                        "type": "string",
-                        "const": "opener:default",
-                        "markdownDescription": "This permission set allows opening `mailto:`, `tel:`, `https://` and `http://` urls using their default application\nas well as reveal file in directories using default file explorer\n#### This default permission set includes:\n\n- `allow-open-url`\n- `allow-reveal-item-in-dir`\n- `allow-default-urls`"
-                      },
-                      {
-                        "description": "This enables opening `mailto:`, `tel:`, `https://` and `http://` urls using their default application.",
-                        "type": "string",
-                        "const": "opener:allow-default-urls",
-                        "markdownDescription": "This enables opening `mailto:`, `tel:`, `https://` and `http://` urls using their default application."
-                      },
-                      {
-                        "description": "Enables the open_path command without any pre-configured scope.",
-                        "type": "string",
-                        "const": "opener:allow-open-path",
-                        "markdownDescription": "Enables the open_path command without any pre-configured scope."
-                      },
-                      {
-                        "description": "Enables the open_url command without any pre-configured scope.",
-                        "type": "string",
-                        "const": "opener:allow-open-url",
-                        "markdownDescription": "Enables the open_url command without any pre-configured scope."
-                      },
-                      {
-                        "description": "Enables the reveal_item_in_dir command without any pre-configured scope.",
-                        "type": "string",
-                        "const": "opener:allow-reveal-item-in-dir",
-                        "markdownDescription": "Enables the reveal_item_in_dir command without any pre-configured scope."
-                      },
-                      {
-                        "description": "Denies the open_path command without any pre-configured scope.",
-                        "type": "string",
-                        "const": "opener:deny-open-path",
-                        "markdownDescription": "Denies the open_path command without any pre-configured scope."
-                      },
-                      {
-                        "description": "Denies the open_url command without any pre-configured scope.",
-                        "type": "string",
-                        "const": "opener:deny-open-url",
-                        "markdownDescription": "Denies the open_url command without any pre-configured scope."
-                      },
-                      {
-                        "description": "Denies the reveal_item_in_dir command without any pre-configured scope.",
-                        "type": "string",
-                        "const": "opener:deny-reveal-item-in-dir",
-                        "markdownDescription": "Denies the reveal_item_in_dir command without any pre-configured scope."
-                      }
-                    ]
-                  }
-                }
-              },
-              "then": {
-                "properties": {
-                  "allow": {
-                    "items": {
-                      "title": "OpenerScopeEntry",
-                      "description": "Opener scope entry.",
-                      "anyOf": [
-                        {
-                          "type": "object",
-                          "required": [
-                            "url"
-                          ],
-                          "properties": {
-                            "app": {
-                              "description": "An application to open this url with, for example: firefox.",
-                              "allOf": [
-                                {
-                                  "$ref": "#/definitions/Application"
-                                }
-                              ]
-                            },
-                            "url": {
-                              "description": "A URL that can be opened by the webview when using the Opener APIs.\n\nWildcards can be used following the UNIX glob pattern.\n\nExamples:\n\n- \"https://*\" : allows all HTTPS origin\n\n- \"https://*.github.com/tauri-apps/tauri\": allows any subdomain of \"github.com\" with the \"tauri-apps/api\" path\n\n- \"https://myapi.service.com/users/*\": allows access to any URLs that begins with \"https://myapi.service.com/users/\"",
-                              "type": "string"
-                            }
-                          }
-                        },
-                        {
-                          "type": "object",
-                          "required": [
-                            "path"
-                          ],
-                          "properties": {
-                            "app": {
-                              "description": "An application to open this path with, for example: xdg-open.",
-                              "allOf": [
-                                {
-                                  "$ref": "#/definitions/Application"
-                                }
-                              ]
-                            },
-                            "path": {
-                              "description": "A path that can be opened by the webview when using the Opener APIs.\n\nThe pattern can start with a variable that resolves to a system base directory. The variables are: `$AUDIO`, `$CACHE`, `$CONFIG`, `$DATA`, `$LOCALDATA`, `$DESKTOP`, `$DOCUMENT`, `$DOWNLOAD`, `$EXE`, `$FONT`, `$HOME`, `$PICTURE`, `$PUBLIC`, `$RUNTIME`, `$TEMPLATE`, `$VIDEO`, `$RESOURCE`, `$APP`, `$LOG`, `$TEMP`, `$APPCONFIG`, `$APPDATA`, `$APPLOCALDATA`, `$APPCACHE`, `$APPLOG`.",
-                              "type": "string"
-                            }
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  "deny": {
-                    "items": {
-                      "title": "OpenerScopeEntry",
-                      "description": "Opener scope entry.",
-                      "anyOf": [
-                        {
-                          "type": "object",
-                          "required": [
-                            "url"
-                          ],
-                          "properties": {
-                            "app": {
-                              "description": "An application to open this url with, for example: firefox.",
-                              "allOf": [
-                                {
-                                  "$ref": "#/definitions/Application"
-                                }
-                              ]
-                            },
-                            "url": {
-                              "description": "A URL that can be opened by the webview when using the Opener APIs.\n\nWildcards can be used following the UNIX glob pattern.\n\nExamples:\n\n- \"https://*\" : allows all HTTPS origin\n\n- \"https://*.github.com/tauri-apps/tauri\": allows any subdomain of \"github.com\" with the \"tauri-apps/api\" path\n\n- \"https://myapi.service.com/users/*\": allows access to any URLs that begins with \"https://myapi.service.com/users/\"",
-                              "type": "string"
-                            }
-                          }
-                        },
-                        {
-                          "type": "object",
-                          "required": [
-                            "path"
-                          ],
-                          "properties": {
-                            "app": {
-                              "description": "An application to open this path with, for example: xdg-open.",
-                              "allOf": [
-                                {
-                                  "$ref": "#/definitions/Application"
-                                }
-                              ]
-                            },
-                            "path": {
-                              "description": "A path that can be opened by the webview when using the Opener APIs.\n\nThe pattern can start with a variable that resolves to a system base directory. The variables are: `$AUDIO`, `$CACHE`, `$CONFIG`, `$DATA`, `$LOCALDATA`, `$DESKTOP`, `$DOCUMENT`, `$DOWNLOAD`, `$EXE`, `$FONT`, `$HOME`, `$PICTURE`, `$PUBLIC`, `$RUNTIME`, `$TEMPLATE`, `$VIDEO`, `$RESOURCE`, `$APP`, `$LOG`, `$TEMP`, `$APPCONFIG`, `$APPDATA`, `$APPLOCALDATA`, `$APPCACHE`, `$APPLOG`.",
-                              "type": "string"
-                            }
-                          }
-                        }
-                      ]
-                    }
-                  }
-                }
-              },
-              "properties": {
-                "identifier": {
-                  "description": "Identifier of the permission or permission set.",
-                  "allOf": [
-                    {
-                      "$ref": "#/definitions/Identifier"
-                    }
-                  ]
-                }
-              }
-            },
-            {
               "properties": {
                 "identifier": {
                   "description": "Identifier of the permission or permission set.",
@@ -483,10 +315,10 @@
       "description": "Permission identifier",
       "oneOf": [
         {
-          "description": "Default permissions for app commands (wizard, tray, sync, drive)\n#### This default permission set includes:\n\n- `allow-save-download`\n- `allow-open-download`\n- `allow-list-files`\n- `allow-upload-file`\n- `allow-create-folder`\n- `allow-delete-path`\n- `allow-get-home-dir`\n- `allow-get-sync-status`\n- `allow-start-sync`\n- `allow-stop-sync`\n- `allow-configure-remote`\n- `allow-check-rclone-installed`\n- `allow-list-remotes`\n- `allow-get-sync-folder`\n- `allow-set-sync-folder`\n- `allow-get-tray-status`\n- `allow-start-tray`\n- `allow-stop-tray`\n- `allow-show-notification`\n- `allow-update-tray-status`\n- `allow-set-tray-tooltip`\n- `allow-get-tray-hostname`\n- `allow-set-tray-hostname`\n- `allow-handle-tray-event`\n- `allow-check-services`\n- `allow-add-service`\n- `allow-get-service`\n- `allow-all-services-running`\n- `allow-any-service-running`\n- `allow-get-tray-mode`\n- `allow-get-running-modes`\n- `allow-create-tray-with-mode`\n- `allow-check-release-update`\n- `allow-open-release-url`\n- `allow-wizard-context`\n- `allow-wizard-save-draft`\n- `allow-wizard-load-draft`\n- `allow-wizard-check-workspace`\n- `allow-wizard-pick-folder`\n- `allow-wizard-host-check`\n- `allow-wizard-media-capabilities`\n- `allow-wizard-test-model`\n- `allow-wizard-provision`\n- `allow-wizard-cancel-provision`\n- `allow-wizard-provision-status`\n- `allow-wizard-reset-stack`\n- `allow-wizard-open-folder`\n- `allow-wizard-open-url`\n- `allow-wizard-save-admin`\n- `allow-wizard-ai-accounts`\n- `allow-wizard-ai-connect`\n- `allow-wizard-ai-status`\n- `allow-wizard-ai-disconnect`\n- `allow-wizard-ai-code`\n- `allow-wizard-ai-use-chat`\n- `allow-wizard-finish`\n- `allow-agent-runtime-status`\n- `allow-agent-runtime-install`\n- `allow-agent-runtime-cancel`\n- `allow-agent-runtime-remove`\n- `allow-agent-runtime-check-update`\n- `allow-local-password-reset`",
+          "description": "Default permissions for app commands (wizard, tray, sync, drive)\n#### This default permission set includes:\n\n- `allow-save-download`\n- `allow-open-download`\n- `allow-list-files`\n- `allow-upload-file`\n- `allow-create-folder`\n- `allow-delete-path`\n- `allow-request-destructive-confirmation`\n- `allow-request-reset-stack-confirmation`\n- `allow-get-home-dir`\n- `allow-get-sync-status`\n- `allow-start-sync`\n- `allow-stop-sync`\n- `allow-configure-remote`\n- `allow-check-rclone-installed`\n- `allow-list-remotes`\n- `allow-get-sync-folder`\n- `allow-set-sync-folder`\n- `allow-get-tray-status`\n- `allow-start-tray`\n- `allow-stop-tray`\n- `allow-show-notification`\n- `allow-update-tray-status`\n- `allow-set-tray-tooltip`\n- `allow-get-tray-hostname`\n- `allow-set-tray-hostname`\n- `allow-handle-tray-event`\n- `allow-check-services`\n- `allow-add-service`\n- `allow-get-service`\n- `allow-all-services-running`\n- `allow-any-service-running`\n- `allow-get-tray-mode`\n- `allow-get-running-modes`\n- `allow-create-tray-with-mode`\n- `allow-check-release-update`\n- `allow-open-release-url`\n- `allow-wizard-context`\n- `allow-wizard-save-draft`\n- `allow-wizard-load-draft`\n- `allow-wizard-check-workspace`\n- `allow-wizard-pick-folder`\n- `allow-wizard-host-check`\n- `allow-wizard-media-capabilities`\n- `allow-wizard-test-model`\n- `allow-wizard-provision`\n- `allow-wizard-cancel-provision`\n- `allow-wizard-provision-status`\n- `allow-wizard-reset-stack`\n- `allow-wizard-open-folder`\n- `allow-wizard-open-url`\n- `allow-wizard-save-admin`\n- `allow-wizard-ai-accounts`\n- `allow-wizard-ai-connect`\n- `allow-wizard-ai-status`\n- `allow-wizard-ai-disconnect`\n- `allow-wizard-ai-code`\n- `allow-wizard-ai-use-chat`\n- `allow-wizard-finish`\n- `allow-agent-runtime-status`\n- `allow-agent-runtime-install`\n- `allow-agent-runtime-cancel`\n- `allow-agent-runtime-remove`\n- `allow-agent-runtime-check-update`\n- `allow-local-password-reset`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Default permissions for app commands (wizard, tray, sync, drive)\n#### This default permission set includes:\n\n- `allow-save-download`\n- `allow-open-download`\n- `allow-list-files`\n- `allow-upload-file`\n- `allow-create-folder`\n- `allow-delete-path`\n- `allow-get-home-dir`\n- `allow-get-sync-status`\n- `allow-start-sync`\n- `allow-stop-sync`\n- `allow-configure-remote`\n- `allow-check-rclone-installed`\n- `allow-list-remotes`\n- `allow-get-sync-folder`\n- `allow-set-sync-folder`\n- `allow-get-tray-status`\n- `allow-start-tray`\n- `allow-stop-tray`\n- `allow-show-notification`\n- `allow-update-tray-status`\n- `allow-set-tray-tooltip`\n- `allow-get-tray-hostname`\n- `allow-set-tray-hostname`\n- `allow-handle-tray-event`\n- `allow-check-services`\n- `allow-add-service`\n- `allow-get-service`\n- `allow-all-services-running`\n- `allow-any-service-running`\n- `allow-get-tray-mode`\n- `allow-get-running-modes`\n- `allow-create-tray-with-mode`\n- `allow-check-release-update`\n- `allow-open-release-url`\n- `allow-wizard-context`\n- `allow-wizard-save-draft`\n- `allow-wizard-load-draft`\n- `allow-wizard-check-workspace`\n- `allow-wizard-pick-folder`\n- `allow-wizard-host-check`\n- `allow-wizard-media-capabilities`\n- `allow-wizard-test-model`\n- `allow-wizard-provision`\n- `allow-wizard-cancel-provision`\n- `allow-wizard-provision-status`\n- `allow-wizard-reset-stack`\n- `allow-wizard-open-folder`\n- `allow-wizard-open-url`\n- `allow-wizard-save-admin`\n- `allow-wizard-ai-accounts`\n- `allow-wizard-ai-connect`\n- `allow-wizard-ai-status`\n- `allow-wizard-ai-disconnect`\n- `allow-wizard-ai-code`\n- `allow-wizard-ai-use-chat`\n- `allow-wizard-finish`\n- `allow-agent-runtime-status`\n- `allow-agent-runtime-install`\n- `allow-agent-runtime-cancel`\n- `allow-agent-runtime-remove`\n- `allow-agent-runtime-check-update`\n- `allow-local-password-reset`"
+          "markdownDescription": "Default permissions for app commands (wizard, tray, sync, drive)\n#### This default permission set includes:\n\n- `allow-save-download`\n- `allow-open-download`\n- `allow-list-files`\n- `allow-upload-file`\n- `allow-create-folder`\n- `allow-delete-path`\n- `allow-request-destructive-confirmation`\n- `allow-request-reset-stack-confirmation`\n- `allow-get-home-dir`\n- `allow-get-sync-status`\n- `allow-start-sync`\n- `allow-stop-sync`\n- `allow-configure-remote`\n- `allow-check-rclone-installed`\n- `allow-list-remotes`\n- `allow-get-sync-folder`\n- `allow-set-sync-folder`\n- `allow-get-tray-status`\n- `allow-start-tray`\n- `allow-stop-tray`\n- `allow-show-notification`\n- `allow-update-tray-status`\n- `allow-set-tray-tooltip`\n- `allow-get-tray-hostname`\n- `allow-set-tray-hostname`\n- `allow-handle-tray-event`\n- `allow-check-services`\n- `allow-add-service`\n- `allow-get-service`\n- `allow-all-services-running`\n- `allow-any-service-running`\n- `allow-get-tray-mode`\n- `allow-get-running-modes`\n- `allow-create-tray-with-mode`\n- `allow-check-release-update`\n- `allow-open-release-url`\n- `allow-wizard-context`\n- `allow-wizard-save-draft`\n- `allow-wizard-load-draft`\n- `allow-wizard-check-workspace`\n- `allow-wizard-pick-folder`\n- `allow-wizard-host-check`\n- `allow-wizard-media-capabilities`\n- `allow-wizard-test-model`\n- `allow-wizard-provision`\n- `allow-wizard-cancel-provision`\n- `allow-wizard-provision-status`\n- `allow-wizard-reset-stack`\n- `allow-wizard-open-folder`\n- `allow-wizard-open-url`\n- `allow-wizard-save-admin`\n- `allow-wizard-ai-accounts`\n- `allow-wizard-ai-connect`\n- `allow-wizard-ai-status`\n- `allow-wizard-ai-disconnect`\n- `allow-wizard-ai-code`\n- `allow-wizard-ai-use-chat`\n- `allow-wizard-finish`\n- `allow-agent-runtime-status`\n- `allow-agent-runtime-install`\n- `allow-agent-runtime-cancel`\n- `allow-agent-runtime-remove`\n- `allow-agent-runtime-check-update`\n- `allow-local-password-reset`"
         },
         {
           "description": "Allow the add_service command",
@@ -661,6 +493,18 @@
           "type": "string",
           "const": "allow-open-release-url",
           "markdownDescription": "Allow the open_release_url command"
+        },
+        {
+          "description": "Allow the native confirmation used before delete_path / create_folder (#2497)",
+          "type": "string",
+          "const": "allow-request-destructive-confirmation",
+          "markdownDescription": "Allow the native confirmation used before delete_path / create_folder (#2497)"
+        },
+        {
+          "description": "Allow the native confirmation required before wizard_reset_stack (#2689)",
+          "type": "string",
+          "const": "allow-request-reset-stack-confirmation",
+          "markdownDescription": "Allow the native confirmation required before wizard_reset_stack (#2689)"
         },
         {
           "description": "Allow the save_download command",
@@ -3105,10 +2949,10 @@
           "markdownDescription": "Denies the fetch_send command without any pre-configured scope."
         },
         {
-          "description": "This permission set configures which\nnotification features are by default exposed.\n\n#### Granted Permissions\n\nIt allows all notification related features.\n\n\n#### This default permission set includes:\n\n- `allow-is-permission-granted`\n- `allow-request-permission`\n- `allow-notify`\n- `allow-register-action-types`\n- `allow-register-listener`\n- `allow-cancel`\n- `allow-get-pending`\n- `allow-remove-active`\n- `allow-get-active`\n- `allow-check-permissions`\n- `allow-show`\n- `allow-batch`\n- `allow-list-channels`\n- `allow-delete-channel`\n- `allow-create-channel`\n- `allow-permission-state`",
+          "description": "This permission set configures which\nnotification features are by default exposed.\n\n#### Granted Permissions\n\nIt allows all notification related features.\n\n\n#### This default permission set includes:\n\n- `allow-is-permission-granted`\n- `allow-request-permission`\n- `allow-notify`\n- `allow-register-action-types`\n- `allow-register-listener`\n- `allow-remove-listener`\n- `allow-cancel`\n- `allow-get-pending`\n- `allow-remove-active`\n- `allow-get-active`\n- `allow-check-permissions`\n- `allow-show`\n- `allow-batch`\n- `allow-list-channels`\n- `allow-delete-channel`\n- `allow-create-channel`\n- `allow-permission-state`",
           "type": "string",
           "const": "notification:default",
-          "markdownDescription": "This permission set configures which\nnotification features are by default exposed.\n\n#### Granted Permissions\n\nIt allows all notification related features.\n\n\n#### This default permission set includes:\n\n- `allow-is-permission-granted`\n- `allow-request-permission`\n- `allow-notify`\n- `allow-register-action-types`\n- `allow-register-listener`\n- `allow-cancel`\n- `allow-get-pending`\n- `allow-remove-active`\n- `allow-get-active`\n- `allow-check-permissions`\n- `allow-show`\n- `allow-batch`\n- `allow-list-channels`\n- `allow-delete-channel`\n- `allow-create-channel`\n- `allow-permission-state`"
+          "markdownDescription": "This permission set configures which\nnotification features are by default exposed.\n\n#### Granted Permissions\n\nIt allows all notification related features.\n\n\n#### This default permission set includes:\n\n- `allow-is-permission-granted`\n- `allow-request-permission`\n- `allow-notify`\n- `allow-register-action-types`\n- `allow-register-listener`\n- `allow-remove-listener`\n- `allow-cancel`\n- `allow-get-pending`\n- `allow-remove-active`\n- `allow-get-active`\n- `allow-check-permissions`\n- `allow-show`\n- `allow-batch`\n- `allow-list-channels`\n- `allow-delete-channel`\n- `allow-create-channel`\n- `allow-permission-state`"
         },
         {
           "description": "Enables the batch command without any pre-configured scope.",
@@ -3193,6 +3037,12 @@
           "type": "string",
           "const": "notification:allow-remove-active",
           "markdownDescription": "Enables the remove_active command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the remove_listener command without any pre-configured scope.",
+          "type": "string",
+          "const": "notification:allow-remove-listener",
+          "markdownDescription": "Enables the remove_listener command without any pre-configured scope."
         },
         {
           "description": "Enables the request_permission command without any pre-configured scope.",
@@ -3291,6 +3141,12 @@
           "markdownDescription": "Denies the remove_active command without any pre-configured scope."
         },
         {
+          "description": "Denies the remove_listener command without any pre-configured scope.",
+          "type": "string",
+          "const": "notification:deny-remove-listener",
+          "markdownDescription": "Denies the remove_listener command without any pre-configured scope."
+        },
+        {
           "description": "Denies the request_permission command without any pre-configured scope.",
           "type": "string",
           "const": "notification:deny-request-permission",
@@ -3301,54 +3157,6 @@
           "type": "string",
           "const": "notification:deny-show",
           "markdownDescription": "Denies the show command without any pre-configured scope."
-        },
-        {
-          "description": "This permission set allows opening `mailto:`, `tel:`, `https://` and `http://` urls using their default application\nas well as reveal file in directories using default file explorer\n#### This default permission set includes:\n\n- `allow-open-url`\n- `allow-reveal-item-in-dir`\n- `allow-default-urls`",
-          "type": "string",
-          "const": "opener:default",
-          "markdownDescription": "This permission set allows opening `mailto:`, `tel:`, `https://` and `http://` urls using their default application\nas well as reveal file in directories using default file explorer\n#### This default permission set includes:\n\n- `allow-open-url`\n- `allow-reveal-item-in-dir`\n- `allow-default-urls`"
-        },
-        {
-          "description": "This enables opening `mailto:`, `tel:`, `https://` and `http://` urls using their default application.",
-          "type": "string",
-          "const": "opener:allow-default-urls",
-          "markdownDescription": "This enables opening `mailto:`, `tel:`, `https://` and `http://` urls using their default application."
-        },
-        {
-          "description": "Enables the open_path command without any pre-configured scope.",
-          "type": "string",
-          "const": "opener:allow-open-path",
-          "markdownDescription": "Enables the open_path command without any pre-configured scope."
-        },
-        {
-          "description": "Enables the open_url command without any pre-configured scope.",
-          "type": "string",
-          "const": "opener:allow-open-url",
-          "markdownDescription": "Enables the open_url command without any pre-configured scope."
-        },
-        {
-          "description": "Enables the reveal_item_in_dir command without any pre-configured scope.",
-          "type": "string",
-          "const": "opener:allow-reveal-item-in-dir",
-          "markdownDescription": "Enables the reveal_item_in_dir command without any pre-configured scope."
-        },
-        {
-          "description": "Denies the open_path command without any pre-configured scope.",
-          "type": "string",
-          "const": "opener:deny-open-path",
-          "markdownDescription": "Denies the open_path command without any pre-configured scope."
-        },
-        {
-          "description": "Denies the open_url command without any pre-configured scope.",
-          "type": "string",
-          "const": "opener:deny-open-url",
-          "markdownDescription": "Denies the open_url command without any pre-configured scope."
-        },
-        {
-          "description": "Denies the reveal_item_in_dir command without any pre-configured scope.",
-          "type": "string",
-          "const": "opener:deny-reveal-item-in-dir",
-          "markdownDescription": "Denies the reveal_item_in_dir command without any pre-configured scope."
         }
       ]
     },
@@ -3443,23 +3251,6 @@
           "enum": [
             "iOS"
           ]
-        }
-      ]
-    },
-    "Application": {
-      "description": "Opener scope application.",
-      "anyOf": [
-        {
-          "description": "Open in default application.",
-          "type": "null"
-        },
-        {
-          "description": "If true, allow open with any application.",
-          "type": "boolean"
-        },
-        {
-          "description": "Allow specific application to open with.",
-          "type": "string"
         }
       ]
     }
