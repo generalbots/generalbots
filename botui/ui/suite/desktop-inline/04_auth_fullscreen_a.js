@@ -131,9 +131,22 @@
                 const pathName = pathParts[1] || '';
                 const routeName = pathName === 'sources' ? 'integrations' : pathName;
                 const SUITE_APP_ROUTES = new Set(['chat', 'browser', 'terminal', 'drive', 'docs', 'sheet', 'slides', 'paper', 'notepad', 'notes', 'minutes', 'tasks', 'admin', 'mail', 'calendar', 'meet', 'research', 'learn', 'analytics', 'dashboards', 'monitoring', 'governance', 'people', 'crm', 'tickets', 'billing', 'products', 'video', 'player', 'canvas', 'social', 'project', 'goals', 'workspace', 'designer', 'vibe', 'integrations', 'erp', 'fraud', 'attendant', 'banking', 'biometry', 'brazil', 'campaigns', 'compliance', 'database', 'desktop', 'email', 'handoff', 'hr', 'itsm', 'kyc', 'lists', 'o365', 'plan', 'plugins', 'pos', 'retail', 'sales', 'tax', 'templates', 'templates-app', 'timeclock', 'tools', 'vision', 'sources', 'settings', 'about', 'assistant', 'audit', 'automations', 'calculator', 'clock', 'concierge', 'editor', 'jukebox', 'memory', 'photos', 'recycle', 'snapshot', 'store', 'timer', 'weather', 'widgets']);
+                // The filtered launcher registry withholds preview apps (e.g.
+                // Sheets), so a direct /sheet deep link used to fall back to
+                // `{ id }` with no hxGet -> fetch(undefined) -> the app never
+                // opened. Look in the unfiltered catalog too, then build the
+                // conventional URL for known suite routes.
+                var allApps = (window.__GBWindowManager && window.__GBWindowManager.APPS_REGISTRY) || [];
                 let routeApp = (window.APPS_REGISTRY || []).find(
                     (app) => app.id === routeName,
-                ) || (SUITE_APP_ROUTES.has(routeName) ? { id: routeName } : null);
+                ) || allApps.find((app) => app.id === routeName)
+                  || (SUITE_APP_ROUTES.has(routeName)
+                      ? {
+                          id: routeName,
+                          title: routeName.charAt(0).toUpperCase() + routeName.slice(1),
+                          hxGet: "/suite/" + routeName + "/" + routeName + ".html",
+                        }
+                      : null);
                 // The packaged desktop serves the shell at /suite/desktop.html;
                 // "suite" is a static segment, not a bot. Without this guard the
                 // Drive app took it as the bot name and probed suite.gborg / suite.gbai
