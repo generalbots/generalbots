@@ -31,7 +31,7 @@
 .gb-drv-title {
     margin: 0;
     color: var(--id-ink);
-    font-size: 28px;
+    font-size: var(--text-3xl);
     font-weight: 600;
     line-height: 1.15;
     letter-spacing: -1.1px;
@@ -140,7 +140,7 @@ body[data-screen="drive"] .gb-crumb-meta[data-for="drive"]:not([hidden]) { displ
     gap: 6px;
     flex: 1;
     min-width: 135px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 600;
     letter-spacing: -.2px;
 }
@@ -274,7 +274,7 @@ body[data-screen="drive"] .gb-crumb-meta[data-for="drive"]:not([hidden]) { displ
 .gb-drv-size-cell,
 .gb-drv-date-cell { padding: 0 10px; color: var(--id-text); }
 .gb-drv-size-cell { font: 600 12px/normal var(--id-font-mono); }
-.gb-drv-date-cell { font-size: 12.5px; }
+.gb-drv-date-cell { font-size: var(--text-xs); }
 .gb-drv-file-badge {
     display: flex;
     align-items: center;
@@ -343,7 +343,7 @@ body[data-screen="drive"] .gb-crumb-meta[data-for="drive"]:not([hidden]) { displ
     transition: background .15s, border-color .15s;
 }
 .gb-drv-empty-upload:hover { border-color: var(--id-accent); background: var(--id-accent-soft); }
-.gb-drv-empty-upload strong { font-size: 16px; font-weight: 600; letter-spacing: -.3px; }
+.gb-drv-empty-upload strong { font-size: var(--text-md); font-weight: 600; letter-spacing: -.3px; }
 .gb-drv-empty-icon {
     display: flex;
     align-items: center;
@@ -368,7 +368,7 @@ body[data-screen="drive"] .gb-crumb-meta[data-for="drive"]:not([hidden]) { displ
     gap: 8px;
     margin: 0;
     color: var(--id-text);
-    font-size: 12.5px;
+    font-size: var(--text-xs);
 }
 .gb-drv-privacy svg { flex: none; stroke: var(--id-success-text); }
 .gb-drv-drop-overlay {
@@ -379,7 +379,7 @@ body[data-screen="drive"] .gb-crumb-meta[data-for="drive"]:not([hidden]) { displ
     background: color-mix(in srgb, var(--id-accent) 10%, var(--id-surface-solid));
     place-items: center;
 }
-.gb-drv-drop-text { padding: 0; color: var(--id-ink); font-size: 16px; font-weight: 600; }
+.gb-drv-drop-text { padding: 0; color: var(--id-ink); font-size: var(--text-md); font-weight: 600; }
 @media (prefers-reduced-motion: reduce) {
     .gb-drv-rename-input.gb-drv-input-error { animation: none; }
     .gb-drv-empty-upload { transition: none; }

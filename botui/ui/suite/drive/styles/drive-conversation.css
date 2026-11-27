@@ -11,12 +11,12 @@
     border-radius: 3px;
     background: var(--id-surface-alt);
     color: var(--id-muted);
-    font-size: 9px;
+    font-size: var(--text-2xs);
     font-weight: 700;
     line-height: 1;
     letter-spacing: 0.02em;
 }
-.drive-file-badge-dir { background: transparent; color: var(--id-accent); font-size: 12px; }
+.drive-file-badge-dir { background: transparent; color: var(--id-accent); font-size: var(--text-2xs); }
 .drive-file-badge-danger { color: var(--id-danger); background: var(--id-danger-soft); }
 .drive-file-badge-image { color: var(--id-success); background: var(--id-success-soft); }
 .drive-file-badge-ink { color: var(--id-accent); background: var(--id-accent-soft); }

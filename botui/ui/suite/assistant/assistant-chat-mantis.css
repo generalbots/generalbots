@@ -202,7 +202,7 @@
     flex: none; display: flex; flex-direction: column; justify-content: center; align-items: flex-end; gap: 2px;
     padding: 6px 14px 6px 0; font: 600 12px/1.2 var(--id-font-mono, monospace); color: var(--id-ink);
 }
-.gb-quota-metrics small { font-size: 10px; color: var(--id-muted); }
+.gb-quota-metrics small { font-size: var(--text-2xs); color: var(--id-muted); }
 .gb-quota-lim { display: flex; align-items: stretch; border-bottom: 1px solid var(--id-line); }
 .gb-quota-lim-in { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; padding: 12px 14px; }
 .gb-quota-lim-top { display: flex; align-items: baseline; gap: 8px; }
@@ -224,9 +224,9 @@
 .gb-quota-group-head .gb-quota-gutter { border-right: 1px solid var(--id-line); }
 .gb-quota-group-title { flex: 1; min-width: 0; align-self: center; padding: 6px 10px 6px 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--id-ink); font-weight: 600; font-size: var(--id-text-sm); }
 .gb-quota-provider .gb-quota-name { padding-left: 24px; }
-.gb-quota-model-row { font-size: 12px; min-height: 36px; }
-.gb-quota-model-row .gb-quota-name { padding-left: 36px; color: var(--id-muted); font-size: 12px; }
-.gb-quota-model-row .gb-quota-metrics { font-size: 11px; }
+.gb-quota-model-row { font-size: var(--text-2xs); min-height: 36px; }
+.gb-quota-model-row .gb-quota-name { padding-left: 36px; color: var(--id-muted); font-size: var(--text-2xs); }
+.gb-quota-model-row .gb-quota-metrics { font-size: var(--text-2xs); }
 .gb-quota-foot {
     flex: none; display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px;
     border: 0; border-top: 1px solid var(--id-line); background: var(--id-surface-solid);

@@ -183,7 +183,7 @@ body[data-pending] .gb-login-wordmark, body[data-pending] .gb-titlebar-wordmark 
     background: none;
     color: var(--id-accent-text, var(--id-accent, #F28C28));
     font: inherit;
-    font-size: var(--id-text-sm, 12px);
+    font-size: var(--text-2xs);
     text-decoration: underline;
     cursor: pointer;
 }
@@ -199,7 +199,7 @@ body[data-pending] .gb-login-wordmark, body[data-pending] .gb-titlebar-wordmark 
 }
 .gb-login-note {
     margin: 0 0 var(--id-space-4, 16px);
-    font-size: var(--id-text-sm, 12px);
+    font-size: var(--text-2xs);
     line-height: 1.5;
     color: var(--id-muted, #5F6673);
 }
@@ -208,7 +208,7 @@ body[data-pending] .gb-login-wordmark, body[data-pending] .gb-titlebar-wordmark 
     align-items: center;
     gap: 6px;
     margin: 0 0 var(--id-space-3, 12px);
-    font-size: var(--id-text-sm, 12px);
+    font-size: var(--text-2xs);
     color: var(--id-text, #4B5563);
 }
 

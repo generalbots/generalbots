@@ -333,7 +333,10 @@ function bindRow(el, a) {
     off.addEventListener("click", function () {
       off.disabled = true;
       delete started[a.id];
-      api("/api/ai-accounts/" + a.id + "/disconnect", {}).catch(function () {}).then(function () { renderAgents(el); refreshPickers(); });
+      api("/api/ai-accounts/" + a.id + "/disconnect", {}).catch(function (e) {
+        // Best-effort disconnect: refresh the list to reflect local state anyway.
+        if (window.gbLogError) { window.gbLogError(e, "agent disconnect"); }
+      }).then(function () { renderAgents(el); refreshPickers(); });
     });
   }
 }

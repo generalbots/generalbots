@@ -10,7 +10,7 @@
 }
 .gb-app .gb-main { flex: 1; min-width: 0; overflow: hidden; display: flex; flex-direction: column; }
 .gb-app .gb-sidebar {
-    position: relative; inset: auto; width: 264px; min-width: 264px; height: 100%; font-size: 13px;
+    position: relative; inset: auto; width: 264px; min-width: 264px; height: 100%; font-size: var(--text-xs);
     background: var(--id-surface-solid); overflow: visible;
 }
 .gb-app .gb-sidebar.collapsed { width: 48px; min-width: 48px; }
@@ -61,9 +61,9 @@ body:not([data-screen="chat"]) .gb-rail-chat, body[data-screen="settings"] .gb-a
 .gb-machine-link .gb-machine-icon { display: grid; place-items: center; width: 26px; height: 26px; flex: none; border: 1px solid var(--id-line); border-radius: var(--id-radius-sm); color: var(--id-text); }
 .gb-machine-link strong { font: 500 13px/normal var(--id-font); color: var(--id-ink); }
 .gb-machine-link .gb-rail-meta { min-height: 14px; }
-.gb-machine-link .gb-rail-meta small { font-size: 10.5px; line-height: 14px; }
+.gb-machine-link .gb-rail-meta small { font-size: var(--text-2xs); line-height: 14px; }
 .gb-machine-link > span { display: grid; gap: 1px; flex: 1; min-width: 0; text-align: start; }
-.gb-machine-link small { font-size: 10px; color: var(--id-muted); }
+.gb-machine-link small { font-size: var(--text-2xs); color: var(--id-muted); }
 .gb-health-mark { margin-inline-start: auto; width: 6px; height: 6px; flex: none; border-radius: 0; background: var(--id-muted); }
 .gb-machine-link[data-state="running"] .gb-health-mark { background: var(--id-success-text); }
 .gb-machine-link .gb-machine-chev { display: inline-flex; flex: none; color: var(--id-muted); }
@@ -140,11 +140,11 @@ body:not([data-screen="chat"]) .gb-export-actions { display: none; }
 .gb-rail-chat .gb-strip::before, .gb-rail-drive .gb-strip::before, .gb-rail-chat .gb-conv-group-label::before {
     content: "//"; margin-inline-end: 5px; letter-spacing: -0.05em;
 }
-.gb-rail-chat .gb-strip { height: 40px; color: var(--id-ink); font-size: 11px; letter-spacing: .04em; }
+.gb-rail-chat .gb-strip { height: 40px; color: var(--id-ink); font-size: var(--text-2xs); letter-spacing: .04em; }
 .gb-rail-chat .gb-strip > span:first-child { margin-bottom: 1px; }
-.gb-rail-drive .gb-strip { height: 36px; font-size: 10.5px; }
+.gb-rail-drive .gb-strip { height: 36px; font-size: var(--text-2xs); }
 .gb-rail-chat .gb-conv-group-label {
-    height: 30px; padding-inline: 13px; border-inline: 1px solid var(--id-line); font-size: 10.5px;
+    height: 30px; padding-inline: 13px; border-inline: 1px solid var(--id-line); font-size: var(--text-2xs);
 }
 .gb-kbd {
     flex: none; margin-inline-start: auto; padding: 0 4px; border: 1px solid var(--id-line); border-radius: 0;
@@ -161,7 +161,7 @@ body:not([data-screen="chat"]) .gb-export-actions { display: none; }
 .gb-rail-chat .gb-new-chat-btn > span { flex: 1; text-align: start; }
 .gb-rail-chat .gb-sidebar-search {
     display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px; border: 1px solid var(--id-line);
-    border-radius: var(--id-radius-sm); background: var(--id-paper); color: var(--id-muted); font-size: 13px;
+    border-radius: var(--id-radius-sm); background: var(--id-paper); color: var(--id-muted); font-size: var(--text-xs);
 }
 .gb-rail-chat .gb-search-icon { position: static; display: inline-flex; transform: none; color: inherit; }
 .gb-rail-chat .gb-search-input {
@@ -215,9 +215,9 @@ body[data-screen="drive"] .gb-app-switch .gb-nav-item { letter-spacing: normal; 
     box-sizing: border-box; flex: none; width: 24px; height: 24px; padding: 4.5px;
     border: 1px solid var(--id-line); border-radius: var(--id-radius-sm);
 }
-#gbDriveNav .gb-drv-tab[data-count]::after { font-size: 10.5px; line-height: normal; }
+#gbDriveNav .gb-drv-tab[data-count]::after { font-size: var(--text-2xs); line-height: normal; }
 body[data-screen="drive"] .gb-breadcrumb { padding-inline-end: 10px; border-radius: 0; }
-body[data-screen="drive"] .gb-breadcrumb .gb-crumb-meta { padding: 0 4px 0 0; font-size: 11px; }
+body[data-screen="drive"] .gb-breadcrumb .gb-crumb-meta { padding: 0 4px 0 0; font-size: var(--text-2xs); }
 #gbDriveNav .gb-drv-rail-folders .gb-strip { border-top: 0; }
 .gb-shell-status .gb-status-usage { display: none; text-transform: uppercase; }
 body[data-screen="drive"] .gb-shell-status .gb-status-usage:not(:empty) { display: inline; }

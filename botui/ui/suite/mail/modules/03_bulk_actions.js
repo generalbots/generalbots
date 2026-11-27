@@ -137,7 +137,7 @@
     if (!nameInput || !nameInput.value.trim()) return;
 
     var name = nameInput.value.trim();
-    var color = colorInput ? colorInput.value : "var(--palette-3b82f6)";
+    var color = colorInput ? colorInput.value : "#3b82f6"; // literal resolves --palette-3b82f6
 
     fetch("/api/email/labels", {
       method: "POST",

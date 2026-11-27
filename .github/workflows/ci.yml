@@ -1622,7 +1622,7 @@ jobs:
       GB_VM_PROFILE: base
       # Free Kilo endpoint, no key. state_builder only falls back to a local
       # LLM for z.ai/openai.com/anthropic.com URLs without a key, so this URL
-      # is used as-is; the terminal proposal itself bypasses the LLM.
+      # is used as-is; the phrase UAT drives the agent through this endpoint.
       LLM_URL: https://api.kilo.ai/api/gateway/chat/completions
       LLM_MODEL: dots-studio/dots-3-note-preview:free
       LLM_KEY: ""
@@ -1714,9 +1714,10 @@ jobs:
           /tmp/gbvenv/bin/python botui/ui/suite/audit/app-404-smoke.py \
             --cdp http://127.0.0.1:9222 --base http://localhost:3000 --bot "$BOT" \
             --wait 1 --report /tmp/opencode/app-404-smoke-report.json
-      # BLOCKING: one chat turn uploads the PDF and proposes a terminal action,
-      # the consent card is approved, and the harness asserts the document was
-      # really created from the uploaded bytes. Any FAIL exits non-zero.
+      # BLOCKING: the user sends the phrase "make me a pdf of brazil in one
+      # paragraph"; the desktop chat agent VM creates the PDF, the consent
+      # card is approved, and the harness asserts the PDF really exists in the
+      # VM workspace and is reported back. Any FAIL exits non-zero.
       - name: Chat VM PDF UAT (blocking, Incus test double)
         run: |
           set -euo pipefail
@@ -1726,7 +1727,6 @@ jobs:
           /tmp/gbvenv/bin/python botui/ui/suite/tests/chat-vm-pdf-uat.py --self-test
           /tmp/gbvenv/bin/python botui/ui/suite/tests/chat-vm-pdf-uat.py \
             --cdp http://127.0.0.1:9222 --base http://localhost:3000 --bot "$BOT" \
-            --pdf botui/ui/suite/tests/fixtures/sample-upload.pdf \
             --report /tmp/opencode/chat-vm-pdf-uat-report.json
       - name: Destroy the throwaway account
         if: always()

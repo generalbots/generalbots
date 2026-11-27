@@ -17,7 +17,7 @@
 }
 #gbSetPanel:not([data-section="model"], [data-section="limits"]) { max-width: 820px; }
 .gb-set-heading { display: flex; flex-direction: column; gap: 6px; margin: 0 0 20px; }
-.gb-set-heading h1 { margin: 0; font-size: 28px; line-height: 1.15; letter-spacing: -1.1px; font-weight: 600; color: var(--id-ink); }
+.gb-set-heading h1 { margin: 0; font-size: var(--text-3xl); line-height: 1.15; letter-spacing: -1.1px; font-weight: 600; color: var(--id-ink); }
 .gb-set-heading p { margin: 0; color: var(--id-text); }
 .gb-set-kicker, .gb-set-meta {
     font: 600 11px/1.4 var(--id-font-mono, monospace);
@@ -82,7 +82,7 @@ body[data-screen="settings"] .gb-breadcrumb > i, body[data-screen="settings"] .g
     margin: 0;
     padding: 8px 16px;
     border-bottom: 1px solid var(--id-line);
-    font-size: 15px;
+    font-size: var(--text-sm);
     font-weight: 600;
     color: var(--id-ink);
 }
@@ -122,9 +122,9 @@ body[data-screen="settings"] .gb-breadcrumb > i, body[data-screen="settings"] .g
 #gbModelModes .gb-set-mode-card:hover:not(:disabled) { background: var(--id-fill); }
 #gbModelModes .gb-set-mode-card[aria-pressed="true"] { background: var(--id-surface-solid); box-shadow: inset 0 1px var(--id-accent); }
 #gbModelModes strong { color: var(--id-ink); font-weight: 650; }
-#gbModelModes button > span { font-size: 12px; }
+#gbModelModes button > span { font-size: var(--text-2xs); }
 .gb-set-table-scroll { overflow-x: auto; }
-.gb-set-usage-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.gb-set-usage-table { width: 100%; border-collapse: collapse; font-size: var(--text-xs); }
 .gb-set-usage-table :is(th, td) { padding: 10px 14px; border-bottom: 1px solid var(--id-line); text-align: start; }
 .gb-set-usage-table :is(thead, tfoot) { background: var(--id-paper); }
 .gb-set-usage-table tfoot td { font-weight: 600; }
@@ -136,7 +136,7 @@ body[data-screen="settings"] .gb-breadcrumb > i, body[data-screen="settings"] .g
 .gb-gar-dashboard h2 { justify-content: space-between; background: var(--id-paper); }
 .gb-gar-running { color: var(--id-success-text); }
 .gb-gar-running::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-inline-end: 6px; background: currentColor; }
-.gb-gar-dashboard .gb-gar-engine { margin: 0 0 6px; font-size: 19px; }
+.gb-gar-dashboard .gb-gar-engine { margin: 0 0 6px; font-size: var(--text-xl); }
 .gb-gar-dashboard .gb-gar-where {
     border-radius: 0;
     padding: 2px 6px;
@@ -172,7 +172,7 @@ body[data-screen="settings"] .gb-breadcrumb > i, body[data-screen="settings"] .g
 }
 .gb-gar-dialog::backdrop { background: var(--id-overlay, #0006); }
 .gb-gar-dialog header { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 14px; border-bottom: 1px solid var(--id-line); background: var(--id-paper); }
-.gb-gar-dialog h2 { font-size: 15px; font-weight: 600; margin: 0; }
+.gb-gar-dialog h2 { font-size: var(--text-sm); font-weight: 600; margin: 0; }
 .gb-gar-dialog .gb-gar-guide { border: 0; margin: 0; padding: 16px; }
 .gb-gar-dialog .gb-gar-guide-head { display: none; }
 .gb-gar-dialog-side { margin-inline-end: 6px; width: min(740px, calc(94vw / var(--gb-zoom, 1))); }

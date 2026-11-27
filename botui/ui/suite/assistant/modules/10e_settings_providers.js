@@ -202,7 +202,10 @@ function renderSetup(root, id) {
         var inp = el.querySelector("#gbProvKey");
         if (inp && !inp.value) { inp.placeholder = g("keyStoredPh").replace("%k", acctKeyHint); }
       }
-    }).catch(function () {});
+    }).catch(function (e) {
+      // Best-effort key hint: the provider form still works without it.
+      if (window.gbLogError) { window.gbLogError(e, "provider key hint"); }
+    });
   }
   var models = p ? p.models.slice() : [];
   if (savedModel && models.indexOf(savedModel) < 0) { models.unshift(savedModel); }

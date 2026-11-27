@@ -59,7 +59,12 @@ A.addMsgToolbar = function (el, content, retryable) {
         cp.className = "gb-msg-toolbar-btn";
         cp.title = t("Copiar", "Copy");
         cp.innerHTML = I("copy", 14);
-        cp.addEventListener("click", function () { navigator.clipboard.writeText(content).catch(function () {}); });
+        cp.addEventListener("click", function () {
+          navigator.clipboard.writeText(content).catch(function (e) {
+            // Clipboard can be blocked by the WebView; copy is best-effort.
+            if (window.gbLogError) { window.gbLogError(e, "copy message"); }
+          });
+        });
         tb.appendChild(cp);
     }
     if (retryable) {

@@ -19,14 +19,14 @@
   min-width: 0;
 }
 .gb-lim-type strong {
-  font-size: 12px;
+  font-size: var(--text-2xs);
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .gb-lim-pct {
-  font-size: 20px;
+  font-size: var(--text-xl);
   font-variant-numeric: tabular-nums;
   color: var(--id-text);
 }
@@ -53,13 +53,13 @@
   flex-wrap: wrap;
 }
 .gb-lim-refresh-at {
-  font-size: 12px;
+  font-size: var(--text-2xs);
   color: var(--id-muted);
 }
 .gb-limits-status {
   min-height: 18px;
   margin: 6px 0;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   color: var(--id-muted);
 }
 .gb-limits-detail {
@@ -80,7 +80,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  font-size: 13px;
+  font-size: var(--text-xs);
 }
 .gb-lim-inf { color: var(--id-success); }
 .gb-lim-bar-top,
@@ -88,7 +88,7 @@
   display: flex;
   justify-content: space-between;
   gap: 10px;
-  font-size: 12px;
+  font-size: var(--text-2xs);
 }
 .gb-lim-bar-foot { color: var(--id-muted); }
 .gb-lim-track {
@@ -105,7 +105,7 @@
 }
 .gb-lim-none {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   color: var(--id-muted);
 }
 @media (max-width: 640px) {
