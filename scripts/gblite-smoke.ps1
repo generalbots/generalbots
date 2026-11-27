@@ -45,6 +45,9 @@ $env:VAULT_ADDR = 'https://vault.smoke.invalid:8200'
 $env:BOTSERVER_DISABLE_TLS = '1'
 $env:BOT_TEMPLATES_REPO = 'https://example.invalid/templates.git'
 $env:GBO_NO_DOTENV = '1'
+# The smoke stack has no Vault, so give the server an ephemeral CSRF secret.
+# Generated per run: never a hardcoded credential in source or logs.
+$env:CSRF_SECRET = [guid]::NewGuid().ToString('N')
 $env:LLM_URL = "$mockBase/v1/chat/completions"
 $env:LLM_API_URL = "$mockBase/v1"
 $env:OPENAI_API_BASE = "$mockBase/v1"
