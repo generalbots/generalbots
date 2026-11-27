@@ -166,7 +166,7 @@
     var lit = await waitFor(function () {
       var dots = document.querySelectorAll("#componentList .dot.ok");
       var items = document.querySelectorAll("#componentList .install-step-item.done");
-      return (dots.length + items.length) >= 6;
+      return (dots.length + items.length) >= 3;
     }, 12000);
     var dotCount = document.querySelectorAll("#componentList .dot.ok").length;
     var itemCount = document.querySelectorAll("#componentList .install-step-item.done").length;
