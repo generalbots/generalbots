@@ -14,7 +14,10 @@ pub fn shell_mode() -> bool {
 
 #[cfg(feature = "desktop-local")]
 pub mod activity;
+#[cfg(not(feature = "gblite"))]
 pub mod app;
+#[cfg(feature = "gblite")]
+pub mod app_lite;
 pub mod commands;
 #[cfg(feature = "desktop-local")]
 pub(crate) mod exit_decision;
@@ -26,6 +29,8 @@ pub mod boot_steps;
 pub mod boot_supervisor;
 pub mod data_root;
 pub mod download;
+#[cfg(feature = "gblite")]
+pub mod edition_migration;
 
 /// Port the sidecar listens on. Kept here so the download URL gate can allow
 /// localhost sidecar traffic even when the `desktop-local` feature is off.

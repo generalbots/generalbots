@@ -10,7 +10,12 @@ fn main() {
     botapp::run();
 }
 
-#[cfg(not(feature = "mobile"))]
+#[cfg(all(not(feature = "mobile"), feature = "gblite"))]
+fn main() {
+    desktop::app_lite::run();
+}
+
+#[cfg(all(not(feature = "mobile"), not(feature = "gblite")))]
 fn main() {
     desktop::app::run();
 }
