@@ -37,7 +37,7 @@
     exitBar = document.createElement("div");
     exitBar.className = "docs-present-exitbar";
     exitBar.innerHTML =
-      '<span class="docs-present-legend">Presenting</span>' +
+      '<span class="docs-present-legend">' + docsT("docs-presenting", "Presenting") + '</span>' +
       '<button type="button" class="docs-present-page" data-act="prev" aria-label="Previous page">\u25B2</button>' +
       '<button type="button" class="docs-present-page" data-act="next" aria-label="Next page">\u25BC</button>' +
       '<button type="button" class="docs-present-stop">Exit</button>';

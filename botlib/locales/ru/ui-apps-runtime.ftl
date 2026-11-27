@@ -267,6 +267,10 @@ docs-font-size = Размер шрифта
 slides-font-family = Фонтер-семья
 slides-font-size = Размер шрифта
 docs-no-documents-yet = Документы пока нет. Нажмите + Новый.
+docs-table-header-numbered = Заголовок { $number }
+docs-reference-numbered = Ссылка { $number }
+docs-no-references-yet = Пока нет ссылок — добавьте одну ниже, затем вставьте цитату.
+docs-presenting = Презентация
 
 # semantic i18n key (#2542)
 templates-channel-notification = Уведомление
