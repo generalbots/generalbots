@@ -45,6 +45,8 @@ fn build_args_matches_package_manager_line() {
     assert!(args.contains(&"--ctx-size".to_string()));
     assert!(args.contains(&"8192".to_string()));
     assert!(!args.contains(&"--verbose".to_string()));
+    assert!(args.contains(&"-lv".to_string()), "must set verbosity for layer log");
+    assert!(args.contains(&"4".to_string()), "verbosity 4 prints offloaded layers");
     assert!(!args.contains(&"--cont-batching".to_string()));
     assert!(!args.contains(&"--n-gpu-layers".to_string()));
 }

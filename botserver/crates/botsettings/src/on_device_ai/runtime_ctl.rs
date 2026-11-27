@@ -161,6 +161,9 @@ pub fn build_args(desired: &DesiredRuntime) -> Vec<String> {
         "--ubatch-size".into(), "512".into(),
         "--ctx-size".into(), desired.ctx_size.clone(),
         "--parallel".into(), PARALLEL_SLOTS.to_string(),
+        // -lv 4: the launch plan reads `offloaded N/M layers to GPU`.
+        // Privacy verified: -lv 4 does not log conversation text.
+        "-lv".into(), "4".into(),
     ];
     if desired.gpu_layers.is_empty() {
         args.push("--fit-target".into());
@@ -340,7 +343,7 @@ pub fn llm_log_len() -> u64 {
 }
 
 /// What the engine wrote to its log after `mark` (at most the last 64 KB).
-fn llm_log_since(mark: u64) -> String {
+pub fn llm_log_since(mark: u64) -> String {
     use std::io::{Read, Seek, SeekFrom};
     let Ok(mut file) = std::fs::File::open(llm_log_path()) else {
         return String::new();

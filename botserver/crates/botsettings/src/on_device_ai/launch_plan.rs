@@ -7,6 +7,13 @@
 //! FREE video memory (measured after the previous engine stopped), one slot
 //! is opened (model calls are already serialised by the server), and the
 //! margin is lowered from the engine's 1 GiB to [`FIT_TARGET_MIB`].
+//!
+//! Placement is read from the engine's own log at verbosity 4 (`-lv 4`),
+//! which prints `offloaded N/M layers to GPU` during loading.  VRAM
+//! measurements (free-before, free-after) are kept for display but are NOT
+//! used to decide the placement: the engine maps part of the model weights
+//! to CPU-shared memory even at a full offload, so VRAM arithmetic
+//! consistently under-reports the offload.
 
 use std::sync::Mutex;
 
@@ -35,8 +42,6 @@ pub const BASE_CTX: u32 = 8192;
 const BUFFER_RESERVE_MIB: u64 = 1024;
 /// Context memory per token of a dense 8B-class model (f16 keys and values).
 const KV_KIB_PER_TOKEN: u64 = 128;
-/// Free memory left after a load that still means the card was not filled.
-const FULL_CARD_SLACK_MIB: u64 = 256;
 const MIB: u64 = 1024 * 1024;
 
 /// Context to start with when none is configured.
@@ -59,41 +64,59 @@ pub fn expect_full_offload(model_bytes: u64, ctx: u32, vram_free_mib: u64) -> bo
     vram_free_mib >= need
 }
 
-/// Where the model ended up, judged from the free video memory after the load.
+/// Where the model ended up, judged from the engine's own log.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Placement {
-    /// The card kept room beyond the margin: every layer is on it.
+    /// Every layer is on the graphics card.
     Gpu,
-    /// The engine filled the card to its margin: some layers run on the processor.
+    /// Some layers run on the processor.
     Split,
     /// The engine took (almost) no video memory.
     Cpu,
-    /// No graphics card, or memory could not be read.
+    /// The engine did not report layer counts (older build, or log unreadable).
     Unknown,
 }
 
-/// Judge the placement from free video memory before and after the load.
+/// Parse `offloaded N/M layers to GPU` from the engine log.
 ///
-/// When the engine takes at least as much video memory as the model's file
-/// size, all weights (and the KV cache beside them) are on the card.  When
-/// it takes noticeably less, some layers stayed on the processor.  llama.cpp
-/// with `--fit-target` keeps layers on the processor to meet the free-memory
-/// target; the previous heuristic ("enough room left after the load") could
-/// not tell the difference between a fully offloaded model that left headroom
-/// and a split model on a card that is just large enough.
-pub fn placement(before_mib: Option<u64>, after_mib: Option<u64>, model_mib: u64) -> Placement {
-    let (Some(before), Some(after)) = (before_mib, after_mib) else { return Placement::Unknown };
-    let engine_vram = before.saturating_sub(after);
-    if engine_vram < FULL_CARD_SLACK_MIB {
-        Placement::Cpu
-    } else if model_mib == 0 || engine_vram >= model_mib {
-        // All weights on the card: the engine uses at least the model size
-        // (plus KV cache and compute buffers).
-        Placement::Gpu
-    } else {
-        Placement::Split
+/// Returns `(offloaded, total)` or `None` when the line is not found.
+pub fn parse_offloaded_layers(log_text: &str) -> Option<(u32, u32)> {
+    for line in log_text.lines() {
+        // llama.cpp b12483 at -lv 4 prints:
+        //   "load_tensors: offloaded 33/33 layers to GPU"
+        let Some(idx) = line.find("offloaded ") else { continue };
+        let after = &line[idx + "offloaded ".len()..];
+        let slash = after.find('/')?;
+        let space = after[slash + 1..].find(' ').map(|i| slash + 1 + i)?;
+        let n: u32 = after[..slash].parse().ok()?;
+        let m: u32 = after[slash + 1..space].parse().ok()?;
+        if m > 0 {
+            return Some((n, m));
+        }
     }
+    None
+}
+
+/// Decide placement from the engine's layer report.
+pub fn placement_from_layers(offloaded: Option<(u32, u32)>) -> Placement {
+    match offloaded {
+        Some((n, m)) if n == m => Placement::Gpu,
+        Some((0, _)) => Placement::Cpu,
+        Some(_) => Placement::Split,
+        None => Placement::Unknown,
+    }
+}
+
+/// Parse `projected to use X MiB` from the engine's fit report.
+pub fn parse_projected_mib(log_text: &str) -> Option<u64> {
+    for line in log_text.lines() {
+        let Some(idx) = line.find("projected to use ") else { continue };
+        let after = &line[idx + "projected to use ".len()..];
+        let end = after.find(' ')?;
+        return after[..end].parse().ok();
+    }
+    None
 }
 
 /// The last engine start, for the settings page and the log.
@@ -106,6 +129,15 @@ pub struct LaunchRecord {
     pub vram_free_before_mib: Option<u64>,
     pub vram_free_after_mib: Option<u64>,
     pub placement: Placement,
+    /// `"33/33"` from the engine log, for display.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub offloaded_layers: Option<String>,
+    /// Engine's own projected VRAM usage in MiB.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub projected_vram_mib: Option<u64>,
+    /// Engine log byte offset at the moment the engine was spawned.
+    #[serde(skip)]
+    log_mark: u64,
 }
 
 static LAST_LAUNCH: Mutex<Option<LaunchRecord>> = Mutex::new(None);
@@ -150,24 +182,35 @@ pub fn resolve(desired: &super::runtime_ctl::DesiredRuntime) -> super::runtime_c
             vram_free_before_mib: free,
             vram_free_after_mib: None,
             placement: Placement::Unknown,
+            offloaded_layers: None,
+            projected_vram_mib: None,
+            log_mark: super::runtime_ctl::llm_log_len(),
         });
     }
     resolved
 }
 
-/// Measure the card after the engine answered and log where the model went.
+/// Read the engine log written since `mark`, parse the layer report and
+/// record the placement.  Called after the engine becomes healthy.
 pub fn record_after_load(model_file: &str) {
     let after = free_vram_mib();
     let Ok(mut slot) = LAST_LAUNCH.lock() else { return };
     let Some(record) = slot.as_mut().filter(|r| model_file.ends_with(r.model_file.as_str())) else { return };
+    let engine_log = super::runtime_ctl::llm_log_since(record.log_mark);
+    let offloaded = parse_offloaded_layers(&engine_log);
+    let projected = parse_projected_mib(&engine_log);
     record.vram_free_after_mib = after;
-    record.placement = placement(record.vram_free_before_mib, after, record.model_mib);
+    record.placement = placement_from_layers(offloaded);
+    record.offloaded_layers = offloaded.map(|(n, m)| format!("{n}/{m}"));
+    record.projected_vram_mib = projected;
     let used = record.vram_free_before_mib.zip(after).map(|(b, a)| b.saturating_sub(a));
     log::info!(
-        "[launch_plan] loaded model={} engine_vram={} MiB free_vram_after={} MiB placement={:?}",
+        "[launch_plan] loaded model={} offloaded={} projected={} engine_vram={} MiB free_vram_after={} MiB placement={:?}",
         record.model_file,
-        used.map_or_else(|| "unknown".to_string(), |mib| mib.to_string()),
-        after.map_or_else(|| "unknown".to_string(), |mib| mib.to_string()),
+        record.offloaded_layers.as_deref().unwrap_or("?"),
+        projected.map_or_else(|| "?".to_string(), |m| format!("{m} MiB")),
+        used.map_or_else(|| "?".to_string(), |mib| mib.to_string()),
+        after.map_or_else(|| "?".to_string(), |mib| mib.to_string()),
         record.placement,
     );
     if record.placement == Placement::Split {
