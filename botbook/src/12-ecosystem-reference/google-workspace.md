@@ -11,7 +11,7 @@ Google Workspace (formerly G Suite) provides integrated cloud services that need
 | Google Workspace Service | Self-Hosted Alternative | Migration Tool |
 |-------------------------|------------------------|----------------|
 | Gmail | Mail server (Stalwart, etc.) | imapsync, Got Your Back |
-| Google Drive | MinIO or Nextcloud | rclone |
+| Google Drive | OtterIO or Nextcloud | rclone |
 | Google Docs/Sheets/Slides | LibreOffice, OnlyOffice | Export to Office formats |
 | Google Calendar | CalDAV server | ical export/import |
 | Google Meet | Jitsi, LiveKit | No migration (ephemeral) |

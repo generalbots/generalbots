@@ -149,7 +149,7 @@ fetched through one function — `botsecurity_core::validation::fetch_user_url`.
 It is the only path allowed to make such a request, and it enforces, in order:
 
 * **URL shape** — `http`/`https` only, no userinfo (`user:pass@`), no
-  control-plane ports (SSH, PostgreSQL, Valkey, Vault, MinIO, Docker, kubelet,
+  control-plane ports (SSH, PostgreSQL, Valkey, Vault, OtterIO, Docker, kubelet,
   …), no single-label host, and no obfuscated IPv4 (`2130706433`,
   `0x7f000001`, `127.1`, `0177.0.0.1`). The `url` crate normalises those forms
   to dotted-decimal, so the address classifier sees them.
@@ -174,7 +174,7 @@ caller never learns what internal service exists.
 
 Server-built URLs for the platform's own services go through
 `fetch_internal_service_url`, which accepts only the hosts in
-`ssrf_allowlist::INTERNAL_SERVICES` (Vault, MinIO, Valkey, Zitadel, BotModels,
+`ssrf_allowlist::INTERNAL_SERVICES` (Vault, OtterIO, Valkey, Zitadel, BotModels,
 the local LLM, …). The list is a *host* allowlist, not a bypass: scheme,
 credentials and redirects are still validated on every hop, and a
 caller-supplied URL must never use that path.
@@ -275,7 +275,7 @@ Required security settings include BOTSERVER_JWT_SECRET as a 256-bit hex string 
 
 Directory service configuration requires ZITADEL_DOMAIN pointing to your Zitadel instance, ZITADEL_CLIENT_ID with your application client ID, and ZITADEL_CLIENT_SECRET with your application secret.
 
-Drive configuration requires MINIO_ENDPOINT for the storage server address, MINIO_ACCESS_KEY and MINIO_SECRET_KEY for authentication, and MINIO_USE_SSL set to true for encrypted connections.
+Drive configuration requires OTTERIO_ENDPOINT for the storage server address, OTTERIO_ACCESS_KEY and OTTERIO_SECRET_KEY for authentication, and OTTERIO_USE_SSL set to true for encrypted connections.
 
 Cache configuration requires CACHE_URL pointing to the Redis-compatible server and CACHE_PASSWORD for authentication.
 

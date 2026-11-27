@@ -49,7 +49,7 @@ Returns overall system health status.
       "name": "drive",
       "status": "healthy",
       "latency_ms": 5,
-      "details": "MinIO on drive.local:9000"
+      "details": "OtterIO on drive.local:9000"
     },
     {
       "name": "vectordb",

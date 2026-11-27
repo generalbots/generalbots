@@ -16,7 +16,7 @@ General Bots uses a modular architecture where each component runs in isolated I
 ## Encryption at Rest
 
 General Bots does **not** provide platform-wide encryption at rest. There is no
-PostgreSQL TDE, no MinIO SSE/KMS registration, no Valkey RDB encryption and no
+PostgreSQL TDE, no OtterIO SSE/KMS registration, no Valkey RDB encryption and no
 LUKS/TPM provisioning in the shipped image; the device build states this
 explicitly in [Backup API](../08-rest-api-tools/backup-api.md) and
 [Appliance](../13-ai-os/appliance.md).
@@ -85,7 +85,7 @@ Each tenant or organization gets isolated databases.
 
 Each tenant gets isolated resources with dedicated database schemas, cache namespaces, and vector collections. The router maps tenant IDs to their respective data stores automatically.
 
-Key isolation features include database-per-tenant or schema-per-tenant options, namespace isolation in Valkey cache, collection isolation in Qdrant vectors, and bucket isolation in MinIO storage.
+Key isolation features include database-per-tenant or schema-per-tenant options, namespace isolation in Valkey cache, collection isolation in Qdrant vectors, and bucket isolation in OtterIO storage.
 
 Configuration:
 
@@ -462,7 +462,7 @@ The flow proceeds as follows: the user logs in with password, Zitadel triggers M
 
 ## Summary: What You Need
 
-PostgreSQL, Redis, Qdrant, MinIO, and Zitadel are required components. Vault, InfluxDB, and LiveKit are recommended for production deployments. Vector is optional for log aggregation.
+PostgreSQL, Redis, Qdrant, OtterIO, and Zitadel are required components. Vault, InfluxDB, and LiveKit are recommended for production deployments. Vector is optional for log aggregation.
 
 ## Next Steps
 

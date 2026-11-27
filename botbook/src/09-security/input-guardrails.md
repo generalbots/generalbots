@@ -185,4 +185,4 @@ violation and accepts instead.
 - [Browser Policy and Budgets](./browser-policy.md) — the browsing control plane.
 - [Security Features](./security-features.md) — the enforced surface.
 - [System Limits & Rate Limiting](./system-limits.md) — request limits.
-- [Security Protection Tools](./protection-tools.md) — the protection tool endpoints, which are separate from the unused `antivirus` module. No NocoDB integration exists.
+- [Security Protection Tools](./protection-tools.md) — the protection tool endpoints, which are separate from the unused `antivirus` module.

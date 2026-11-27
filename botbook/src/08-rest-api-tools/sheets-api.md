@@ -140,7 +140,7 @@ Loads a spreadsheet with all sheet data.
 
 **`POST /api/sheet/load-from-drive`**
 
-Loads a spreadsheet directly from a Drive (MinIO) bucket.
+Loads a spreadsheet directly from a Drive (OtterIO) bucket.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|

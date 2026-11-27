@@ -24,7 +24,7 @@ NetworkManager owns the interfaces (`systemd-networkd` is disabled), with
 joins WPA2/WPA3 Wi-Fi from Settings → Network. DNS is `systemd-resolved`.
 
 Inbound traffic is denied by an nftables ruleset loaded at boot. The provisioned
-stack (botserver, Vault, PostgreSQL, Valkey, MinIO, Qdrant, Zitadel) listens on
+stack (botserver, Vault, PostgreSQL, Valkey, OtterIO, Qdrant, Zitadel) listens on
 loopback, and `botserver` binds loopback in shell mode even when
 `no_security=false`. Exposing the suite to the LAN is a deliberate act: set
 `GB_ALLOW_LAN=1` in the sidecar environment and add the client address to the

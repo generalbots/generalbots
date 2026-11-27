@@ -170,13 +170,13 @@ General Bots uses S3-compatible object storage. Configuration is **automatically
 
 | Property | Value |
 |----------|-------|
-| **Local Default** | MinIO on port 9000 |
+| **Local Default** | OtterIO on port 9000 |
 | **Management** | Directory service (automatic) |
-| **Console Port** | 9001 (when using MinIO) |
+| **Console Port** | 9001 (when using OtterIO) |
 | **BASIC Keywords** | `GET` (file retrieval) |
 
 **Compatible Services:**
-- MinIO (default local installation)
+- OtterIO (default local installation)
 - Backblaze B2
 - Wasabi
 - DigitalOcean Spaces

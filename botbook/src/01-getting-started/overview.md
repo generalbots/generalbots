@@ -14,7 +14,7 @@ botserver uses a modular architecture organized into three distinct layers that 
 
 ### Storage Layer
 
-The storage layer handles all data persistence needs. The SQL database stores structured data including users, sessions, and configurations using PostgreSQL with the Diesel ORM. Object storage provides S3-compatible file storage for documents and uploads, typically using MinIO for self-hosted deployments. The high-performance cache layer handles sessions and frequently accessed data using a Redis-compatible store. An optional vector database enables semantic search capabilities for knowledge bases using Qdrant or similar vector stores.
+The storage layer handles all data persistence needs. The SQL database stores structured data including users, sessions, and configurations using PostgreSQL with the Diesel ORM. Object storage provides S3-compatible file storage for documents and uploads, typically using OtterIO for self-hosted deployments. The high-performance cache layer handles sessions and frequently accessed data using a Redis-compatible store. An optional vector database enables semantic search capabilities for knowledge bases using Qdrant or similar vector stores.
 
 ### Application Layer
 
@@ -155,7 +155,7 @@ New messaging channels integrate through the adapter system. WebSocket protocols
 
 ### Storage Backends
 
-Storage is abstracted to support multiple backend options. S3-compatible storage works with AWS, MinIO, and other providers. Database adapters could support different SQL databases. Cache providers can be swapped while maintaining the same interface.
+Storage is abstracted to support multiple backend options. S3-compatible storage works with AWS, OtterIO, and other providers. Database adapters could support different SQL databases. Cache providers can be swapped while maintaining the same interface.
 
 
 ## Community and Support

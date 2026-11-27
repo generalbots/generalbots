@@ -6,13 +6,13 @@ async function loadFiles(path, bucket) {
     if (bucket !== undefined) currentBucket = bucket;
 
     // #1801 — a `local:<root>` bucket stays on the local backend for every
-    // nested folder; MinIO discovery is skipped entirely there.
+    // nested folder; OtterIO discovery is skipped entirely there.
     const localRoot = parseLocalBucket(currentBucket);
     if (localRoot) {
         currentBackend = "local";
         currentLocalRoot = localRoot;
     } else {
-        currentBackend = "minio";
+        currentBackend = "otterio";
         await discoverBuckets();
     }
 
@@ -354,9 +354,9 @@ async function searchFiles(query, allBuckets) {
         params.set("all_buckets", everywhere ? "true" : "false");
         params.set("content", "true");
         if (currentBackend === "local") {
-            // #1801 — local files live on the server's filesystem, not MinIO;
+            // #1801 — local files live on the server's filesystem, not OtterIO;
             // the search endpoint needs the backend/root selectors or it
-            // addresses a MinIO bucket that does not exist.
+            // addresses a OtterIO bucket that does not exist.
             params.set("backend", "local");
             params.set("root", currentLocalRoot || "home");
         } else {

@@ -59,7 +59,7 @@ The Linux matrix above does not apply to the desktop bundles:
   stack, the BotModels pythonbox and the native Incus agent remain unavailable
   (see `desktop/macos/README.md`).
 
-The Windows self-extracting payload bundles MinIO + mc, Redis, Qdrant, Zitadel,
+The Windows self-extracting payload bundles OtterIO + oc, Redis, Qdrant, Zitadel,
 Caddy and the Windows BotModels pythonbox under `installers/` (the MSI/NSIS
 packages carry the same resources). PostgreSQL, Vault and llama.cpp plus its
 models are downloaded once on first run; `GB_DESKTOP_OFFLINE=1` refuses those
@@ -172,7 +172,7 @@ needed to wire the signed Tauri updater later are in
 [`botapp/README.md`](https://github.com/generalbots/generalbots/blob/main/botapp/README.md#installing-and-upgrading).
 
 The macOS bundle is best effort and unsigned. It cannot run the Linux service
-stack natively: PostgreSQL, Valkey, MinIO/mc, Qdrant, Vault, Zitadel and
+stack natively: PostgreSQL, Valkey, OtterIO/oc, Qdrant, Vault, Zitadel and
 llama.cpp stay unavailable in the wizard unless a Linux VM or a remote Incus
 host (`incus remote add`) provides them. The BotModels darwin pythonbox is not
 published yet, so media tools are unavailable, and agent VMs need remote Incus
@@ -181,12 +181,12 @@ because Incus does not run containers natively on macOS.
 Linux arm64 packages are built by `.github/workflows/desktop-linux-arm64.yml`
 and uploaded as the `linux-arm64-installer` artifact. Publishing is opt-in
 (`PUBLISH_ARM64=true`) until the first run is verified on a real arm64 host;
-`botserver/3rdparty.toml` now carries arm64 variants for MinIO/mc, PostgreSQL,
+`botserver/3rdparty.toml` now carries arm64 variants for OtterIO/oc, PostgreSQL,
 Valkey, Qdrant, Vault, Zitadel and llama.cpp. Qdrant and llama.cpp publish no
 arm64 checksum asset, so those two variants skip verification rather than
 comparing them to the x86_64 hash.
 
-The Windows payload bundles `installers/` with MinIO + mc, Redis (cache),
+The Windows payload bundles `installers/` with OtterIO + oc, Redis (cache),
 Qdrant, Zitadel, Caddy and the Windows BotModels pythonbox. PostgreSQL, Vault,
 llama.cpp and models are fetched once on first run, or refused with the exact
 missing file when `GB_DESKTOP_OFFLINE=1`. Media (vision/STT/TTS) uses the
@@ -197,11 +197,11 @@ with the platform reason.
 The Linux arm64 package is preview quality until its first run is verified on
 real arm64 hardware (the CI smoke test still covers x86_64 only), and publishing
 is opt-in through the `PUBLISH_ARM64` repository variable. The core stack has
-arm64 URLs (PostgreSQL, Valkey, MinIO/mc, Qdrant, Vault, Zitadel and llama.cpp,
+arm64 URLs (PostgreSQL, Valkey, OtterIO/oc, Qdrant, Vault, Zitadel and llama.cpp,
 which uses a newer release because the x86_64 pin has no ubuntu-arm64 asset),
 but there is no aarch64 BotModels pythonbox: vision/STT/TTS are reported
 unavailable, and `/api/product` exposes the reason. Optional add-ons outside the
-first-run stack (Caddy, Stalwart, InfluxDB, Vector, Forgejo/runner, NocoDB,
+first-run stack (Caddy, Stalwart, InfluxDB, Vector, Forgejo/runner,
 LiveKit, CoreDNS) remain x86_64-only.
 
 ## Quick Start
@@ -214,7 +214,7 @@ The bootstrap process automatically:
 1. Detects your system (OS/architecture)
 2. Creates the `botserver-stack/` directory structure
 3. Downloads the components pinned in `botserver/3rdparty.toml` — PostgreSQL,
-   Valkey, MinIO and `mc`, Qdrant, Vault, Zitadel, Caddy, Stalwart, llama.cpp
+   Valkey, OtterIO and `oc`, Qdrant, Vault, Zitadel, Caddy, Stalwart, llama.cpp
    (the last one is skipped when the wizard is given a hosted provider)
 4. Initializes database, object storage and secrets in Vault
 5. Deploys the default bot
@@ -309,7 +309,7 @@ archived on the next pass. `.gbkb/` and `.gbdrive/` stay drive-owned.
 Use any S3-compatible client against the drive endpoint:
 - **Cyberduck** (GUI)
 - **rclone** (CLI)
-- **`mc`** (bundled by the provisioner at `botserver-stack/bin/mc`)
+- **`oc`** (bundled by the provisioner at `botserver-stack/bin/oc`)
 
 ```bash
 # rclone sync example (bucket = {org}.gborg, prefix = workspace)

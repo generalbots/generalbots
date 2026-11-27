@@ -121,7 +121,7 @@ Returns an object with merge details:
 
 | Property | Description |
 |----------|-------------|
-| `result.url` | Full URL to the merged PDF (S3/MinIO path) |
+| `result.url` | Full URL to the merged PDF (S3/OtterIO path) |
 | `result.localName` | Local filename of the merged PDF |
 
 ---

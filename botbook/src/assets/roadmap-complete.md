@@ -216,7 +216,7 @@ This table merges the proposed timeline with all features documented in botbook/
 |---------|----------|---------------|
 | PostgreSQL | 2024 ✅ | 12-ecosystem-reference/schema.md |
 | Redis Cache | 2024 ✅ | 07-gbapp/architecture.md |
-| MinIO/S3 | 2024 ✅ | 10-configuration-deployment/drive.md |
+| OtterIO/S3 | 2024 ✅ | 10-configuration-deployment/drive.md |
 | Qdrant Vector | 2025 H2 ✅ | 03-knowledge-base/ |
 | Vault Secrets | 2024 ✅ | 10-configuration-deployment/secrets-management.md |
 | NVIDIA GPU | 2026 Q4 📋 | 08-rest-api-tools/nvidia-gpu-setup.md |

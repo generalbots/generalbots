@@ -8,7 +8,7 @@ The Monitoring Dashboard is the **live operations homepage** for your General Bo
 
 The dashboard displays botserver at the center orchestrating all interactions, with animated data packets flowing between components:
 
-- **Left Side (Data Layer)**: PostgreSQL, Qdrant vector database, and MinIO storage
+- **Left Side (Data Layer)**: PostgreSQL, Qdrant vector database, and OtterIO storage
 - **Right Side (Services)**: BotModels AI, Cache, and Vault security
 - **Center**: botserver core with pulsing rings indicating activity
 - **Top**: Real-time metrics panels for sessions, messages, and response time
@@ -75,7 +75,7 @@ Each service has a status indicator:
 |---------|--------|--------------|
 | **PostgreSQL** | 🟢 Running | Connection pool, query latency |
 | **Qdrant** | 🟢 Running | Vector count, search time |
-| **MinIO** | 🟢 Running | Storage usage, object count |
+| **OtterIO** | 🟢 Running | Storage usage, object count |
 | **BotModels** | 🟢 Running | Token usage, response time |
 | **Cache** | 🟢 Running | Hit rate, memory usage |
 | **Vault** | 🟢 Running | Seal status, policy count |
@@ -270,7 +270,7 @@ Latest: User enrolled in Computer Science course
 |-----------|-------------------|---------------|
 | **PostgreSQL** | Connection count, query rate, replication lag | > 80 connections, queries > 100ms |
 | **Qdrant** | Vector count, search latency, memory | > 50ms search, > 80% memory |
-| **MinIO** | Storage usage, object count, bandwidth | > 80% storage, high error rate |
+| **OtterIO** | Storage usage, object count, bandwidth | > 80% storage, high error rate |
 | **BotModels** | Token usage, response latency, queue depth | > 2s response, queue > 10 |
 | **Vault** | Seal status, policy count, auth failures | Sealed, repeated auth failures |
 | **Cache** | Hit rate, memory usage, evictions | < 80% hit rate, frequent evictions |

@@ -22,7 +22,7 @@ let currentScope = sessionStorage.getItem("drive-scope") || "user";
 // #1801 — local filesystem backend. `currentBackend` selects the storage the
 // current listing came from; `local:<root>` buckets carry the root alias so
 // folders, previews and downloads keep addressing the same place.
-let currentBackend = "minio";
+let currentBackend = "otterio";
 let currentLocalRoot = "home";
 let availableBuckets = [];
 let selectedFiles = new Set();

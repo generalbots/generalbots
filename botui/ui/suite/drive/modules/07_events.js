@@ -10,14 +10,14 @@ function bindTopTabs() {
             sessionStorage.setItem("drive-tab", currentTab);
             selectedFiles.clear();
             currentPath = "";
-            // #1801 — leaving the Home tab must restore MinIO discovery; the
+            // #1801 — leaving the Home tab must restore OtterIO discovery; the
             // `local:home` bucket is not a real S3 bucket.
             if (parseLocalBucket(currentBucket)) {
                 currentBucket = "";
                 currentGborgBucket = null;
                 currentGborgBranch = null;
                 bucketLayoutResolved = false;
-                currentBackend = "minio";
+                currentBackend = "otterio";
             }
             updateSelectionBar();
 

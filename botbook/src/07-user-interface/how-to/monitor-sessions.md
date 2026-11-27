@@ -67,7 +67,7 @@ Your General Bots deployment is a **living system** of interconnected components
 | **botserver** | Core application, handles all requests | Response time, active sessions |
 | **PostgreSQL** | Primary database, stores users & config | Connections, query rate |
 | **Qdrant** | Vector database, powers semantic search | Vector count, search latency |
-| **MinIO** | File storage, manages documents | Storage used, object count |
+| **OtterIO** | File storage, manages documents | Storage used, object count |
 | **BotModels** | LLM server, generates AI responses | Tokens/hour, model latency |
 | **Vault** | Secrets manager, stores API keys | Sealed status, policy count |
 | **Cache** | Cache layer, speeds up responses | Hit rate, memory usage |
@@ -210,7 +210,7 @@ The dashboard shows the health of all components:
 │                                                                         │
 │  ● PostgreSQL      Running    v16.2       24/100 connections           │
 │  ● Qdrant          Running    v1.9.2      1.2M vectors                 │
-│  ● MinIO           Running    v2024.01    45.2 GB stored               │
+│  ● OtterIO           Running    v2024.01    45.2 GB stored               │
 │  ● BotModels       Running    v2.1.0      LLM active                   │
 │  ● Vault           Sealed     v1.15.0     156 secrets                  │
 │  ● Cache           Running    v7.2.4      94.2% hit rate               │
@@ -429,7 +429,7 @@ GET /api/monitoring/status
   "services": {
     "postgresql": "running",
     "qdrant": "running",
-    "minio": "running",
+    "otterio": "running",
     "botmodels": "running",
     "vault": "sealed",
     "redis": "running",

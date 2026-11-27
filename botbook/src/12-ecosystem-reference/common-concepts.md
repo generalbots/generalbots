@@ -14,7 +14,7 @@ This shift brings responsibility alongside freedom. You become accountable for s
 
 ## Component Equivalencies
 
-Understanding how cloud services map to self-hosted alternatives helps plan migrations systematically. Cloud storage services translate to S3-compatible object storage like MinIO, which implements the same API that applications expect. Email services map to self-hosted mail servers using standard SMTP and IMAP protocols. Identity providers correspond to authentication servers implementing OIDC and SAML standards.
+Understanding how cloud services map to self-hosted alternatives helps plan migrations systematically. Cloud storage services translate to S3-compatible object storage like OtterIO, which implements the same API that applications expect. Email services map to self-hosted mail servers using standard SMTP and IMAP protocols. Identity providers correspond to authentication servers implementing OIDC and SAML standards.
 
 These mappings matter because they define what changes and what stays the same. Applications using standard protocols often work unchanged after migration—you simply point them at new endpoints. Applications tightly coupled to vendor-specific features require more adaptation.
 

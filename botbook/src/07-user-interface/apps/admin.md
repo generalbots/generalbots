@@ -154,7 +154,7 @@ Navigate directly to:
       <p>✅ BotServer - Running (port 8080)</p>
       <p>✅ PostgreSQL - Connected (5432)</p>
       <p>✅ Valkey - Connected (6379)</p>
-      <p>✅ MinIO - Running (9000)</p>
+      <p>✅ OtterIO - Running (9000)</p>
       <p>📊 Uptime: 99.9% (30 days)</p>
       <div class="wa-time">09:00</div>
     </div>

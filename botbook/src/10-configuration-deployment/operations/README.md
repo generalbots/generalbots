@@ -32,7 +32,7 @@ business-facing operations, Monitoring owns the host.
 |-------|-------|--------|
 | Platform (API, WebSocket, queues) | `platform-oncall` | `platform-backup` |
 | LLM providers and model routing | `ai-oncall` | `platform-oncall` |
-| Drive / storage (MinIO) | `storage-oncall` | `platform-oncall` |
+| Drive / storage (OtterIO) | `storage-oncall` | `platform-oncall` |
 | Chat and WhatsApp channels | `channels-oncall` | `platform-oncall` |
 
 The owner of a scope is the person allowed to decide a rollback for it. The
@@ -83,7 +83,7 @@ or the migration is broken. Treat it as SEV2 until proven otherwise.
 | Runbook | Use when |
 |---------|----------|
 | [Deploy and rollback](./runbook-deploy-rollback.md) | A release must ship or be reverted (binary, UI, desktop payload) |
-| [Restore PostgreSQL/MinIO](./runbook-restore-backup.md) | Data loss, corruption, failed migration, tenant isolation doubt |
+| [Restore PostgreSQL/OtterIO](./runbook-restore-backup.md) | Data loss, corruption, failed migration, tenant isolation doubt |
 | [Rotate Vault secrets](./runbook-rotate-secrets.md) | Credential leak, provider token expiry, rotation window |
 | [Drain or disable a tenant](./runbook-disable-tenant.md) | One tenant/bot must be stopped, or an app/channel needs a kill switch |
 | [LLM provider outage](./runbook-llm-outage.md) | Provider errors, first-token/answer SLO burn, quota exhaustion |

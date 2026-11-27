@@ -212,7 +212,7 @@
 
     <!-- Components -->
     <rect x="1020" y="270" width="120" height="50" class="neon-orange" rx="6.5"/>
-    <text x="1080" y="300" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" class="main-text">MinIO</text>
+    <text x="1080" y="300" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" class="main-text">OtterIO</text>
 
     <rect x="1160" y="270" width="120" height="50" class="neon-purple" rx="6.5"/>
     <text x="1220" y="300" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" class="main-text">Stalwart</text>

@@ -124,7 +124,7 @@
             }
         }
 
-        // Save to drive (MinIO) when file was loaded from drive
+        // Save to drive (OtterIO) when file was loaded from drive
         async function saveToDrive() {
             const basCode = generateBasCode();
             const { bucket, path } = GBDesignerState.driveSource;

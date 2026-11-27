@@ -46,7 +46,7 @@ The General Bots testing framework is designed with a multi-layered, isolated ap
         │                         │
         ▼                         ▼
    ┌─────────────┐          ┌──────────────┐
-   │ PostgreSQL  │          │ Redis, MinIO │
+   │ PostgreSQL  │          │ Redis, OtterIO │
    │ (Isolated)  │          │  (Isolated)  │
    └─────────────┘          └──────────────┘
 ```
@@ -186,9 +186,9 @@ Isolated test environments for complete system integration:
 ├── redis/
 │   ├── data/               ← Redis persistence
 │   └── redis.log
-├── minio/
+├── otterio/
 │   ├── data/               ← S3-compatible storage
-│   └── minio.log
+│   └── otterio.log
 ├── botserver/
 │   ├── config/
 │   │   ├── config.toml     ← Application config
@@ -210,7 +210,7 @@ Each test gets dedicated service instances:
 
 - **Database**: Separate PostgreSQL cluster on port 5433
 - **Cache**: Separate Redis instance on port 6380
-- **Storage**: Separate MinIO instance on port 9001
+- **Storage**: Separate OtterIO instance on port 9001
 - **API**: Separate botserver on port 8000
 
 ### Network Isolation

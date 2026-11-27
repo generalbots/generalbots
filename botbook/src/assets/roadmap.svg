@@ -36,7 +36,7 @@
 <rect x="185" y="178" width="110" height="28" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="196" y="194" font-size="8" class="main-text">Actix-Web</text>
 <rect x="305" y="178" width="110" height="28" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="316" y="194" font-size="8" class="main-text">Tokio Runtime</text>
 <rect x="425" y="178" width="110" height="28" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="436" y="194" font-size="8" class="main-text">SQLx+PostgreSQL</text>
-<rect x="545" y="178" width="110" height="28" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="556" y="194" font-size="8" class="main-text">MinIO Storage</text>
+<rect x="545" y="178" width="110" height="28" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="556" y="194" font-size="8" class="main-text">OtterIO Storage</text>
 <rect x="665" y="178" width="110" height="28" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="676" y="194" font-size="8" class="main-text">Valkey Cache</text>
 <rect x="65" y="215" width="110" height="28" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="76" y="231" font-size="8" class="main-text">Knowledge Base</text>
 <rect x="185" y="215" width="110" height="28" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="196" y="231" font-size="8" class="main-text">BASIC Engine</text>

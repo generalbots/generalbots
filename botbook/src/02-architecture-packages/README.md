@@ -15,7 +15,7 @@ botserver is built in Rust with a modular architecture. Extend it by creating cu
 │         BASIC Runtime (Rhai)            │
 ├──────────┬──────────┬──────────┬────────┤
 │   LLM    │ Storage  │  Vector  │ Cache  │
-│ Service  │ (MinIO)  │ (Qdrant) │(Valkey)│
+│ Service  │ (OtterIO)  │ (Qdrant) │(Valkey)│
 ├──────────┴──────────┴──────────┴────────┤
 │            PostgreSQL                   │
 └─────────────────────────────────────────┘

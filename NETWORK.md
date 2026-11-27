@@ -71,8 +71,8 @@ Configured via Vault / settings. Only the chosen provider is contacted.
 | `127.0.0.1` | 8080 | botserver API (self) |
 | `127.0.0.1` | 8081 | botmodels (llama.cpp) |
 | `127.0.0.1` | 8200 | Vault |
-| `127.0.0.1` | 9000 | MinIO (Drive) |
-| `127.0.0.1` | 9100 | MinIO console |
+| `127.0.0.1` | 9000 | OtterIO (Drive) |
+| `127.0.0.1` | 9100 | OtterIO console |
 | `127.0.0.1` | 6333 | Qdrant (vectordb) |
 | `127.0.0.1` | 3000 | botui (dev) |
 | `127.0.0.1` | 4000 | cloud UI (dev) |

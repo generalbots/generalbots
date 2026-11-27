@@ -142,7 +142,7 @@
             { id: "rust", name: "Rust" },
             { id: "postgresql", name: "PostgreSQL" },
             { id: "valkey", name: "Valkey / Redis" },
-            { id: "minio", name: "MinIO" },
+            { id: "otterio", name: "OtterIO" },
             { id: "qdrant", name: "Qdrant" },
             { id: "vault", name: "Vault" },
             { id: "zitadel", name: "Zitadel" }

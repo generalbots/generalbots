@@ -1,4 +1,4 @@
-# Runbook: restore PostgreSQL or MinIO from backup
+# Runbook: restore PostgreSQL or OtterIO from backup
 
 Alert: data loss, corruption, a failed migration, or any doubt about tenant
 isolation. Panel: **Analytics → Operations → Traffic** (turns stop) and
@@ -8,12 +8,12 @@ isolation. Panel: **Analytics → Operations → Traffic** (turns stop) and
 
 - A migration failed halfway and left the schema inconsistent.
 - Rows disappeared, or a tenant reports seeing another tenant's data.
-- MinIO refuses writes or lost objects.
+- OtterIO refuses writes or lost objects.
 
 ## Impact
 
 Restoring PostgreSQL stops the product: every bot, session and queue read goes
-through it. Restoring MinIO breaks Drive, knowledge bases and file delivery.
+through it. Restoring OtterIO breaks Drive, knowledge bases and file delivery.
 Plan the window with the incident commander; a restore is always SEV1.
 
 ## Diagnosis
@@ -34,8 +34,8 @@ psql -h localhost -U postgres -d botserver -c "SELECT COUNT(*) FROM bots;"
 psql -h localhost -U postgres -d botserver -c \
   "SELECT COUNT(*) AS bots_without_org FROM bots WHERE org_id IS NULL;"
 
-# 5. MinIO health.
-sudo incus exec drive -- mc admin info local
+# 5. OtterIO health.
+sudo incus exec drive -- oc admin info local
 ```
 
 ## Mitigation — PostgreSQL
@@ -62,14 +62,14 @@ psql -h localhost -U postgres -c "ALTER DATABASE botserver_restore RENAME TO bot
 sudo incus exec bot -- systemctl start botserver
 ```
 
-## Mitigation — MinIO
+## Mitigation — OtterIO
 
 ```bash
 # 1. Inspect the bucket that is failing (each workspace is a .gborg/.gbai tree).
-sudo incus exec drive -- mc ls local/
+sudo incus exec drive -- oc ls local/
 
 # 2. Restore the affected prefix from the backup mirror.
-sudo incus exec drive -- mc mirror --overwrite /opt/gbo/data/backup/drive/<bucket> local/<bucket>
+sudo incus exec drive -- oc mirror --overwrite /opt/gbo/data/backup/drive/<bucket> local/<bucket>
 
 # 3. Never restore a whole drive over a live one while bots are writing: stop
 #    the affected bots first (see runbook-disable-tenant.md).
@@ -145,6 +145,6 @@ psql -h localhost -U postgres -c "ALTER DATABASE botserver_broken RENAME TO bots
 
 ## Escalation
 
-Owner: `storage-oncall` for MinIO, `platform-oncall` for PostgreSQL. Escalate
+Owner: `storage-oncall` for OtterIO, `platform-oncall` for PostgreSQL. Escalate
 to the incident commander immediately when tenant isolation is in doubt — that
 is always SEV1, regardless of how few rows are involved.

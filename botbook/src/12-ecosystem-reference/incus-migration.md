@@ -36,7 +36,7 @@ Check the services the migration will attach to:
 ```bash
 curl -k https://localhost:8200/v1/sys/health   # Vault
 pg_isready -h localhost -p 5432                # PostgreSQL
-curl http://localhost:9000/minio/health/live   # Drive (MinIO)
+curl http://localhost:9000/otterio/health/live   # Drive (OtterIO)
 redis-cli -h localhost -p 6379 ping            # Valkey
 ```
 
@@ -46,7 +46,7 @@ redis-cli -h localhost -p 6379 ping            # Valkey
 incus list
 incus info vault
 incus info postgres
-incus info minio
+incus info otterio
 incus info redis
 incus info zitadel
 ```

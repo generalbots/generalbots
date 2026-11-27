@@ -30,7 +30,7 @@ Browse and activate connectors for external services:
 | **CRM** | Salesforce, HubSpot, Dynamics 365 |
 | **Communication** | Slack, Microsoft Teams, Twilio |
 | **Email** | Gmail, Outlook, SendGrid |
-| **Storage** | Google Drive, Dropbox, OneDrive, MinIO |
+| **Storage** | Google Drive, Dropbox, OneDrive, OtterIO |
 | **Finance** | Stripe, PayPal, QuickBooks |
 | **Marketing** | Mailchimp, Sendinblue, ActiveCampaign |
 | **Databases** | PostgreSQL, MySQL, MongoDB |

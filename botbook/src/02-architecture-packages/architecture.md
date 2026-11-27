@@ -223,7 +223,7 @@ Access control mechanisms ensure appropriate authorization. Role-based permissio
 
 ### Container Structure
 
-Production deployments typically use containers for isolation and portability. The main application container runs the botserver binary. PostgreSQL runs in a separate database container. Drive storage uses an S3-compatible container like MinIO. The cache layer uses Valkey in its own container. Qdrant provides vector database functionality in another container. Nginx serves as a reverse proxy for external traffic.
+Production deployments typically use containers for isolation and portability. The main application container runs the botserver binary. PostgreSQL runs in a separate database container. Drive storage uses an S3-compatible container like OtterIO. The cache layer uses Valkey in its own container. Qdrant provides vector database functionality in another container. Nginx serves as a reverse proxy for external traffic.
 
 ### Scaling Strategy
 

@@ -18,7 +18,7 @@ GOAL: Process all github issues off-line first codeing, let github ci do the wor
 | **Todos** | 📋 Update the todo list REGULARLY — after every completed step, when starting a new phase, and whenever priorities change. Long stretches without todo updates are forbidden |
 | **CDP control** | 🖥️ Browser automation MUST be fragmented: one short script = ONE action, print state, STOP. NEVER generate long all-in-one CDP scripts that batch many steps silently |
 | **Containers** | 🧱 Everything runs on **Incus** (`incus` CLI, `images:ubuntu/24.04`). ❌ NEVER document or script `lxc`/`lxd` as the container layer — LXC is not a supported runtime for us (`raw.lxc` in an `incus config set` is an Incus config key and stays). |
-| **License** | The project is **MIT** and the copyright holder is **General Bots**. ❌ NEVER describe our own code as AGPL/GPL. ✅ Third-party AGPL notices (MinIO, Stalwart, Forgejo, Garage, Skytable) are correct and MUST stay |
+| **License** | The project is **MIT** and the copyright holder is **General Bots**. ❌ NEVER describe our own code as AGPL/GPL. ✅ Third-party AGPL notices (Stalwart, Forgejo, Garage, Skytable) are correct and MUST stay |
 | **Diesel schema** | 🗄️ `table!`/`joinable!` live ONLY in the `botschema` crate (#1497). NEVER copy a table into a feature crate — re-export `pub use botschema::<table>;`. Change schema via a migration → `diesel migration run` → `diesel print-schema` → update `botschema` → commit. There is no guard script for this today: the rule is enforced in review. |
 | **Plans** | 🗂️ Plans, roadmaps, task lists and status tables are stored as **GitHub issues** — an epic (`type:epic`) with one child issue per phase or workstream, progress tracked in their checklists and comments. ❌ NEVER write a plan as documentation: not in `botbook/`, not in a new `.md` file, not in a README. Documentation describes what the product does today; what we intend to do lives in issues. |
 | **i18n** | 🌍 NEVER hardcode a user-facing string in suite HTML/JS (no Portuguese, no English literals added by hand). HTML uses `data-i18n` (plus `data-i18n-placeholder`, `data-i18n-title`, `data-i18n-aria-label`) with a catalog key; JS uses `gbT("key", "English fallback")`. Every new or changed key MUST be added to **all** locale catalogs (`botlib/locales/{en,it,ru,pt-BR,es,fr,de,ja,ko,zh-CN}/*.ftl`, one `.ftl` per feature). ❌ NEVER invent `auto-*` keys (machine-generated, no catalog entry — see #2542) and never reuse a key whose meaning does not match. Writes to a status region also need `role="status" aria-live="polite"`. |
@@ -47,7 +47,7 @@ GOAL: Process all github issues off-line first codeing, let github ci do the wor
 - ✅ `bottemplates/` ships source templates in the monorepo (reference material, not a bot's runtime source)
 - ✅ **Git-owned bots (reform #1501/#1505): the ALM repository is the source of truth** — `.gbdialog/` (tools) and `.gbot/` (channel prompts) live in the bot's repo, pulled every 15 s by `git_bot_monitor` and materialized into `work/{branch}.gborg/{branch}.gbai/{bot}.gbdialog|{bot}.gbot/`. Drive copies of those two prefixes are archived to `{bucket}/archive/{bot}-{stamp}/`, never read. `.gbkb`/`.gbdrive` stay in Drive.
 - 🚨 **A bot without `PROMPT-{CHANNEL}.md` in its work-dir `.gbot/` silently answers with the generic fallback prompt** (`load_system_prompt_for_channel` in `botserver/src/core/bot/ws/message.rs:16`) — no error is logged, tools simply stop being called (e.g. `classify_media` never fires). Shipped templates must therefore commit their `.gbot` prompts with the tool (`templates.rs` → `config_files`, `persist_config_to_git`, `bot_config::write_config_files`); `git_config` recovers orphaned Drive/archived `.gbot` on boot, and the archive pass refuses to delete a Drive `.gbot` that is not in the repo yet.
-- The **runtime** materializes and loads bots through Drive (MinIO `.gbai` buckets) — see `botserver/src/main_module/drive_monitors/`. For git-owned bots that Drive tree is a materialized copy of the bot's ALM repo (`git_bot_monitor`, every 15 s); a change made straight in Drive is out-of-band and gets archived. Never point code at local filesystem paths.
+- The **runtime** materializes and loads bots through Drive (OtterIO `.gbai` buckets) — see `botserver/src/main_module/drive_monitors/`. For git-owned bots that Drive tree is a materialized copy of the bot's ALM repo (`git_bot_monitor`, every 15 s); a change made straight in Drive is out-of-band and gets archived. Never point code at local filesystem paths.
 
 ---
 
@@ -178,7 +178,7 @@ Subdirectory apps (e.g. `/suite/social/social.html`) injected into `/suite/deskt
 ```
 User Message (WebSocket) → botserver/src/main_module/ws/handler.rs
   1. WS Connection        → UserSession created, session_id generated, Redis connected
-  2. start.bas            → runs ONCE per session (MinIO {bot}.gbai/{bot}.gbdialog/start.bas)
+  2. start.bas            → runs ONCE per session (OtterIO {bot}.gbai/{bot}.gbdialog/start.bas)
                            ADD_SUGGESTION calls; Redis flag session:{id}:initialized prevents re-run
   3. Message Processing   → stream_response(): IF message_type == 6 → TOOL_EXEC (bypass LLM)
                            ELSE → KB injection (USE_KB) → LLM generate_response()
@@ -274,7 +274,7 @@ result = DETECT "folha_salarios"   ' Analyze table for anomalies (requires table
 
 ## Drive & Vault Operations — MANDATORY
 
-**Sources of truth:** for git-owned bots (reform #1501/#1505) `.gbdialog/` scripts and `.gbot/` prompts live in the **bot's ALM repository** — edit them there, commit, push; `git_bot_monitor` materializes the repo into Drive within 15 s. Never "fix" those files by writing straight into Drive: the Drive copy is a materialized artifact and the next sync (or archive pass) clobbers or archives it. Drive (MinIO `{bot}.gbai` buckets) remains the home of runtime state — `.gbkb` knowledge, `.gbdrive` user files and media — manipulated with `mc`, never by touching the local filesystem.
+**Sources of truth:** for git-owned bots (reform #1501/#1505) `.gbdialog/` scripts and `.gbot/` prompts live in the **bot's ALM repository** — edit them there, commit, push; `git_bot_monitor` materializes the repo into Drive within 15 s. Never "fix" those files by writing straight into Drive: the Drive copy is a materialized artifact and the next sync (or archive pass) clobbers or archives it. Drive (OtterIO `{bot}.gbai` buckets) remains the home of runtime state — `.gbkb` knowledge, `.gbdrive` user files and media — manipulated with `oc`, never by touching the local filesystem.
 
 ### Drive Bucket Hierarchy — Two Layouts
 
@@ -289,7 +289,7 @@ result = DETECT "folha_salarios"   ' Analyze table for anomalies (requires table
 ```
 
 - **Discovery:** `botserver/src/main_module/drive_monitors/` scans `.gborg` buckets → lists `.gbai/` prefixes (workspaces) → extracts bot names from object keys `{workspace}.gbai/{bot}.gbdialog/file.bas` → creates `bots` rows (one per bot).
-- **Workspace ↔ Drive mismatch:** the SaaS cloud UI (`cloud_workspaces` table) is populated only by signup (`create_cloud_workspace_inner`) or the "New Workspace" API. A `.gborg` uploaded directly via `mc` gets its org + bots auto-created by drive_monitor but has **no `cloud_workspaces` row** (e.g. `salesianos.gborg` exists in Drive but salesianos does not appear in the cloud orgs page). Renaming a workspace row does NOT rename Drive bots.
+- **Workspace ↔ Drive mismatch:** the SaaS cloud UI (`cloud_workspaces` table) is populated only by signup (`create_cloud_workspace_inner`) or the "New Workspace" API. A `.gborg` uploaded directly via `oc` gets its org + bots auto-created by drive_monitor but has **no `cloud_workspaces` row** (e.g. `salesianos.gborg` exists in Drive but salesianos does not appear in the cloud orgs page). Renaming a workspace row does NOT rename Drive bots.
 
 ### Vault credential retrieval (canonical — reuse everywhere)
 ```bash
@@ -301,23 +301,23 @@ VAULT_BIN=${WORKSPACE}/botserver-stack/bin/vault/vault
 DRIVE_ACCESSKEY=$($VAULT_BIN kv get -field=accesskey secret/gbo/drive)
 DRIVE_SECRET=$($VAULT_BIN kv get -field=secret secret/gbo/drive)
 DRIVE_PORT=$($VAULT_BIN kv get -field=port secret/gbo/drive)
-/tmp/mc alias set local http://127.0.0.1:${DRIVE_PORT} ${DRIVE_ACCESSKEY} ${DRIVE_SECRET} --api s3v4
+/tmp/oc alias set local http://127.0.0.1:${DRIVE_PORT} ${DRIVE_ACCESSKEY} ${DRIVE_SECRET} --api s3v4
 ```
 
 ### Workflow for ANY bot file operation
-1. Get credentials from Vault (above) → 2. Configure mc → 3. Pull the file to `/tmp/` for INSPECTION.
-   - `.gbkb` / `.gbdrive` content (Drive-owned): edit locally in `/tmp/`, push back with `mc` → drive_monitor reloads.
+1. Get credentials from Vault (above) → 2. Configure oc → 3. Pull the file to `/tmp/` for INSPECTION.
+   - `.gbkb` / `.gbdrive` content (Drive-owned): edit locally in `/tmp/`, push back with `oc` → drive_monitor reloads.
    - `.gbdialog/` scripts and `.gbot/` prompts of a git-owned bot: make the change in the bot's ALM repo and push — NEVER write script edits back to Drive.
 
-### Common mc operations
+### Common oc operations
 ```bash
-/tmp/mc ls local/                                          # List all bots (each bucket = {bot}.gbai)
-/tmp/mc ls local/{bot}.gbai/{bot}.gbdialog/                # Inspect dialog files (read-only for git-owned bots)
-/tmp/mc cp local/{bot}.gbai/{bot}.gbdialog/start.bas /tmp/ # Read a bot's start.bas (inspection only)
-/tmp/mc ls local/{bot}.gbai/{bot}.gbkb/docs/               # List KB documents
-/tmp/mc cp /tmp/document.pdf local/{bot}.gbai/{bot}.gbkb/docs/        # Upload KB doc (Drive-owned content)
-/tmp/mc ls local/{bot}.gbai/{bot}.gbdrive/                 # Inspect user files/media (Drive-owned)
-/tmp/mc mb local/{bot}.gbai && /tmp/mc cp --recursive botserver-stack/data/system/work/{bot}.gbai/ local/{bot}.gbai/  # Upload bot
+/tmp/oc ls local/                                          # List all bots (each bucket = {bot}.gbai)
+/tmp/oc ls local/{bot}.gbai/{bot}.gbdialog/                # Inspect dialog files (read-only for git-owned bots)
+/tmp/oc cp local/{bot}.gbai/{bot}.gbdialog/start.bas /tmp/ # Read a bot's start.bas (inspection only)
+/tmp/oc ls local/{bot}.gbai/{bot}.gbkb/docs/               # List KB documents
+/tmp/oc cp /tmp/document.pdf local/{bot}.gbai/{bot}.gbkb/docs/        # Upload KB doc (Drive-owned content)
+/tmp/oc ls local/{bot}.gbai/{bot}.gbdrive/                 # Inspect user files/media (Drive-owned)
+/tmp/oc mb local/{bot}.gbai && /tmp/oc cp --recursive botserver-stack/data/system/work/{bot}.gbai/ local/{bot}.gbai/  # Upload bot
 ```
 
 ### LLM Configuration — Vault (single source of truth)
@@ -416,7 +416,7 @@ Conventions:
 **Test in Chrome:** open `http://localhost:3000/`, log in (or SSO redirect), type `/drive` in the desktop launcher; or CDP: `http://localhost:9222/json/new?http://localhost:3000/drive`.
 
 ### Three Pillars of Bot Testing
-- **Drive (mc)** — all bot files come from MinIO, manipulated via `mc` with Vault credentials
+- **Drive (oc)** — all bot files come from OtterIO, manipulated via `oc` with Vault credentials
 - **Vault (.env)** — credentials ALWAYS from Vault; only `VAULT_*` variables may be in `.env`
 - **Chrome CDP (9222)** — visual debugging ALWAYS via remote Chrome, one tab per active parallel issue (typically 3–4); recycle finished issues' tabs. ❌ NEVER via direct WebSocket
 
@@ -455,7 +455,7 @@ AI-driven task execution: 1) Analyze user intent ("Send email to all customers")
 
 ## Reset Process Notes
 
-- **Purpose:** reset.sh cleans and restarts the dev environment; bootstrap takes 3-5 min (Vault, PostgreSQL, Valkey, MinIO, Zitadel, LLM)
+- **Purpose:** reset.sh cleans and restarts the dev environment; bootstrap takes 3-5 min (Vault, PostgreSQL, Valkey, OtterIO, Zitadel, LLM)
 - **Timeout risk:** script can timeout on "Step 3/4: Waiting for BotServer to bootstrap"
   - Zitadel not ready within 60s → admin user creation fails; script waits indefinitely
   - **Solution:** check `botserver.log` for "Bootstrap process completed!"
@@ -479,7 +479,7 @@ cat /opt/gbo/data/default.gbai/default.gbdialog/start.bas
 # Verify tool registration (expected: Registered tool 'start' in database)
 grep -E "Registered tool|Compiled.*start" botserver.log
 # Clean reset from scratch
-killall -9 botserver vault postgres valkey minio qdrant zitadel 2>/dev/null; sleep 2
+killall -9 botserver vault postgres valkey otterio qdrant zitadel 2>/dev/null; sleep 2
 rm -rf botserver-stack/ botserver/botserver-stack/ ./work/ botserver/work/ .env botserver.log botserver/botserver.log botui.log botserver/botui.log botmodels.log botserver/botmodels.log
 BOTMODELS_HOST="http://localhost:8085" BOTMODELS_API_KEY="starter" RUST_LOG=info \
   nohup ./target/debug/botserver --noconsole > botserver.log 2>&1 &
@@ -721,7 +721,7 @@ Compilation is allowed while fixing issues. Never block on a build.
 2. **Get Drive credentials from Vault** (see [Drive & Vault Operations](#-drive--vault-operations--mandatory))
 3. **Run restart.sh** — `nohup ./restart.sh > /tmp/restart.log 2>&1 &`
 4. **Wait for bootstrap** — poll `curl -s http://localhost:8080/health` until 200 (up to 5 min)
-5. **Find the bot** — `/tmp/mc ls local/` (each bucket = `{bot}.gbai`)
+5. **Find the bot** — `/tmp/oc ls local/` (each bucket = `{bot}.gbai`)
 6. **If bot not in drive, ask user** — do NOT copy from work dir. Ask: "Where can I get a copy of the .gbai to work on?"
 7. **Verify bot loaded** — check botserver logs for `[drive_monitor]` confirming bot sync
 8. **Start Chrome CDP** if not running (see [Chrome CDP Testing](#-chrome-cdp-testing-9222))
@@ -1103,7 +1103,7 @@ sshpass -p "$PASS" ssh root@<SRV1_HOST> "sudo incus exec bot -- systemctl stop b
 | vault | Vault | 8200 | Secrets (isolated) |
 | tables | PostgreSQL | 5432 | Database |
 | cache | Valkey | 6379 | Cache |
-| drive | MinIO | 9000/9100 | Object storage |
+| drive | OtterIO | 9000/9100 | Object storage |
 | directory | Zitadel | 9000 | Identity provider |
 | meet | LiveKit | 7880 | Video conferencing |
 | vectordb | Qdrant | 6333 | Vector database |
@@ -1114,7 +1114,6 @@ sshpass -p "$PASS" ssh root@<SRV1_HOST> "sudo incus exec bot -- systemctl stop b
 | proxy | Caddy | 80/443 | Reverse proxy |
 | dns | CoreDNS | 53 | DNS resolution |
 | webmail | Roundcube | behind proxy | PHP-FPM webmail |
-| table-editor | NocoDB | behind proxy | Database UI |
 
 **Important:** ALM (Forgejo) listens on port **4747**, not 3000. Runner token stored in `action_runner_token` table in `PROD-ALM` database.
 
@@ -1169,13 +1168,13 @@ sudo incus exec <container> -- ss -tlnp                         # listening port
 ### Quick Health Check
 ```bash
 sudo incus list --format csv
-for c in dns proxy tables system email webmail alm alm-ci drive table-editor; do
+for c in dns proxy tables system email webmail alm alm-ci drive; do
   echo -n "$c: "
   sudo incus exec $c -- pgrep -a $(case $c in
     dns) echo "coredns";; proxy) echo "caddy";; tables) echo "postgres";;
     system) echo "botserver";; email) echo "stalwart";; webmail) echo "php-fpm";;
-    alm) echo "forgejo";; alm-ci) echo "runner";; drive) echo "minio";;
-    table-editor) echo "nocodb";; esac) >/dev/null && echo OK || echo FAIL
+    alm) echo "forgejo";; alm-ci) echo "runner";; drive) echo "otterio";;
+    esac) >/dev/null && echo OK || echo FAIL
 done
 ```
 
@@ -1186,7 +1185,7 @@ External ports DNAT'd to container IPs via iptables; rules in `/etc/iptables.rul
 -A PREROUTING -i <external-iface> -p tcp --dport <port> -j DNAT --to-destination <container-ip>:<port>
 ```
 
-**Typical port map:** 53 DNS · 80/443 HTTP(S) via Caddy · 5432 PostgreSQL (restricted) · 993 IMAPS · 465 SMTPS · 587 SMTP Submission · 25 SMTP (often blocked) · 4747 Forgejo (behind proxy) · 9000 MinIO API (internal) · 8200 Vault (isolated)
+**Typical port map:** 53 DNS · 80/443 HTTP(S) via Caddy · 5432 PostgreSQL (restricted) · 993 IMAPS · 465 SMTPS · 587 SMTP Submission · 25 SMTP (often blocked) · 4747 Forgejo (behind proxy) · 9000 OtterIO API (internal) · 8200 Vault (isolated)
 
 **Network diagnostics:**
 ```bash
@@ -1203,7 +1202,7 @@ nc -zv <container-ip> <port>                      # port connectivity
 | **Database (PostgreSQL)** | `/opt/gbo/data` | Backup `pg_dump -U postgres -F c -f /tmp/backup.dump <dbname>`; Restore `pg_restore -U postgres -d <dbname> /tmp/backup.dump` |
 | **Email (Stalwart)** | `/opt/gbo/conf/config.toml` | DKIM: TXT records `selector._domainkey.<domain>`; webmail behind proxy |
 | **Proxy (Caddy)** | `/opt/gbo/conf/config` | Backup before edit; `caddy validate --config`; `caddy reload --config` |
-| **Storage (MinIO/Drive)** | `/opt/gbo/data` | Console behind proxy; internal API `http://127.0.0.1:9100` (dev stack); buckets `{botname}.gbai`; creds in Vault `secret/gbo/drive` |
+| **Storage (OtterIO/Drive)** | `/opt/gbo/data` | Console behind proxy; internal API `http://127.0.0.1:9100` (dev stack); buckets `{botname}.gbai`; creds in Vault `secret/gbo/drive` |
 | **Bot System** | `/opt/gbo/bin/botserver` | BotServer + Valkey (port 6379) |
 
 **Email recovery from crash:**
@@ -1228,14 +1227,14 @@ DRIVE_SECRET=$($VAULT_BIN kv get -field=secret secret/gbo/drive)
 DRIVE_PORT=$($VAULT_BIN kv get -field=port secret/gbo/drive)
 ```
 
-**mc usage (install to /tmp, never repo root):**
+**oc usage (install to /tmp, never repo root):**
 ```bash
-curl -sL https://dl.min.io/client/mc/release/linux-amd64/mc -o /tmp/mc && chmod +x /tmp/mc
-/tmp/mc alias set local http://127.0.0.1:${DRIVE_PORT} ${DRIVE_ACCESSKEY} ${DRIVE_SECRET} --api s3v4
-/tmp/mc ls local/                                     # list bot buckets
-/tmp/mc ls local/{botname}.gbai/{botname}.gbkb/docs/  # list KB files
-/tmp/mc cp /path/to/file.xlsx local/{botname}.gbai/{botname}.gbkb/docs/   # upload KB
-/tmp/mc mb local/testbot.gbai && /tmp/mc cp start.bas local/testbot.gbai/testbot.gbdialog/start.bas  # new bot
+curl -sL https://github.com/soulteary/oc/releases/download/RELEASE.2026-11-25T20-30-01Z/oc-RELEASE.2026-11-25T20-30-01Z-linux-amd64.tar.gz -o /tmp/oc.tar.gz && tar -xzf /tmp/oc.tar.gz -C /tmp oc && chmod +x /tmp/oc
+/tmp/oc alias set local http://127.0.0.1:${DRIVE_PORT} ${DRIVE_ACCESSKEY} ${DRIVE_SECRET} --api s3v4
+/tmp/oc ls local/                                     # list bot buckets
+/tmp/oc ls local/{botname}.gbai/{botname}.gbkb/docs/  # list KB files
+/tmp/oc cp /path/to/file.xlsx local/{botname}.gbai/{botname}.gbkb/docs/   # upload KB
+/tmp/oc mb local/testbot.gbai && /tmp/oc cp start.bas local/testbot.gbai/testbot.gbdialog/start.bas  # new bot
 ```
 
 **Vault secret paths:** `secret/gbo/drive` (accesskey, secret, host, port) · `secret/gbo/tables` · `secret/gbo/cache` · `secret/gbo/directory` · `secret/gbo/llm` · `secret/gbo/vectordb` · `secret/gbo/alm` · `secret/gbo/email` · `secret/gbo/meet` · `secret/gbo/encryption`

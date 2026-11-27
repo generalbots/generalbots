@@ -22,7 +22,7 @@ O `ON UPDATE OF` é uma declaração especial que deve ser a **primeira linha** 
 
 ### Ciclo de Detecção
 
-1. O DriveMonitor observa o bucket MinIO do bot a cada ~10 segundos
+1. O DriveMonitor observa o bucket OtterIO do bot a cada ~10 segundos
 2. Quando encontra um arquivo `{tabela}_update.bas`, registra o gatilho
 3. O serviço `sync_bot_tables()` monitora o banco de dados PostgreSQL
 4. Ao detectar uma alteração, o BotServer executa o script automaticamente

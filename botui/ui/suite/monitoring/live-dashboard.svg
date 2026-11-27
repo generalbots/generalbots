@@ -165,7 +165,7 @@
     </circle>
   </g>
 
-  <!-- MinIO -->
+  <!-- OtterIO -->
   <g transform="translate(150, 500)">
     <circle r="45" fill="#1e293b" stroke="url(#storageGradient)" stroke-width="2" filter="url(#glow)"/>
     <g fill="url(#storageGradient)">
@@ -176,8 +176,8 @@
       <circle cx="10" cy="-6" r="2" fill="#fbbf24"/>
       <circle cx="10" cy="6" r="2" fill="#fbbf24"/>
     </g>
-    <text y="65" text-anchor="middle" fill="#f8fafc" font-family="system-ui" font-size="12" font-weight="500">MinIO</text>
-    <circle cx="35" cy="-35" r="6" fill="#10b981" id="minio-status">
+    <text y="65" text-anchor="middle" fill="#f8fafc" font-family="system-ui" font-size="12" font-weight="500">OtterIO</text>
+    <circle cx="35" cy="-35" r="6" fill="#10b981" id="otterio-status">
       <animate attributeName="opacity" values="1;0.6;1" dur="2s" repeatCount="indefinite"/>
     </circle>
   </g>
@@ -247,7 +247,7 @@
       <animateMotion dur="2.5s" repeatCount="indefinite" path="M195 350 L505 350"/>
     </circle>
 
-    <!-- MinIO to Core -->
+    <!-- OtterIO to Core -->
     <path d="M195 500 Q400 500 505 380" stroke="#f59e0b" opacity="0.4"/>
     <circle r="4" fill="#fcd34d">
       <animateMotion dur="3.5s" repeatCount="indefinite" path="M195 500 Q400 500 505 380"/>

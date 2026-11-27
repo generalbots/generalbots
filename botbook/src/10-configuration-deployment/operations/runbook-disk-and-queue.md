@@ -6,7 +6,7 @@ panel that keeps growing. Panel: **Analytics → Operations → Queue depth** an
 
 ## Trigger
 
-- The disk that holds PostgreSQL, MinIO or the logs is above 90 %.
+- The disk that holds PostgreSQL, OtterIO or the logs is above 90 %.
 - A migration failed and the process is retrying on every boot.
 - Queue depth grows while running stays flat (nothing is draining).
 - Dead letters accumulate in the queue panel.
@@ -60,7 +60,7 @@ psql -h localhost -U postgres -d botserver -c \
 # 3. Vacuum the tables that grew.
 psql -h localhost -U postgres -d botserver -c "VACUUM (ANALYZE) message_history;"
 
-# 4. Only then consider moving MinIO data to a larger volume.
+# 4. Only then consider moving OtterIO data to a larger volume.
 ```
 
 ## Mitigation — failed migration
@@ -73,7 +73,7 @@ sudo incus exec bot -- grep -A 20 "migration" /opt/gbo/logs/stdout.log | tail -4
 sudo incus exec tables -- pg_dump -U postgres -F c -f /tmp/pre-migration.dump botserver
 
 # 3. If the migration is partially applied, follow
-#    restore PostgreSQL/MinIO before rolling the binary back.
+#    restore PostgreSQL/OtterIO before rolling the binary back.
 ```
 
 ## Mitigation — stuck queue
@@ -114,10 +114,10 @@ Nothing here is destructive except the reaper update and the counter prune, and
 both are additive (status change, retention delete). A migration rollback is a
 binary rollback plus a database restore — follow
 [deploy and rollback](./runbook-deploy-rollback.md) and
-[restore PostgreSQL/MinIO](./runbook-restore-backup.md).
+[restore PostgreSQL/OtterIO](./runbook-restore-backup.md).
 
 ## Escalation
 
 Owner: `platform-oncall`. Escalate to `storage-oncall` when the volume that is
-full holds MinIO, and to the incident commander when the queue cannot be
+full holds OtterIO, and to the incident commander when the queue cannot be
 drained without dropping work.

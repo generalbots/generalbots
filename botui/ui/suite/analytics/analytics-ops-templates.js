@@ -47,7 +47,7 @@
 
     var runbooks = [
         ["Deploy & rollback", "runbook-deploy-rollback.md"],
-        ["Restore PostgreSQL/MinIO", "runbook-restore-backup.md"],
+        ["Restore PostgreSQL/OtterIO", "runbook-restore-backup.md"],
         ["Rotate Vault secrets", "runbook-rotate-secrets.md"],
         ["Drain/disable a tenant", "runbook-disable-tenant.md"],
         ["LLM provider outage", "runbook-llm-outage.md"],

@@ -88,7 +88,7 @@
     <text x="690" y="151" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" class="main-text">Valkey</text>
 
     <rect x="490" y="190" width="120" height="50" fill="none" class="neon-green" rx="5"/>
-    <text x="550" y="221" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" class="main-text">MinIO</text>
+    <text x="550" y="221" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" class="main-text">OtterIO</text>
 
     <rect x="630" y="190" width="120" height="50" fill="none" class="neon-cyan" rx="5"/>
     <text x="690" y="221" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" class="main-text">Qdrant</text>

@@ -320,7 +320,7 @@ name). The template's inner `.gbdialog`/`.gbot` directories are renamed to the
 bot name while staging, because the tool-execution, prompt and MCP resolvers
 look those directories up by bot name — a bot whose dialog directory kept the
 template name would load no scripts. The drive monitor then uploads the staged
-tree to MinIO and registers the bot, the same mechanism bootstrap uses for the
+tree to OtterIO and registers the bot, the same mechanism bootstrap uses for the
 shipped catalog.
 
 Telegram also needs a bot token before the channel can be reached. Provide it at

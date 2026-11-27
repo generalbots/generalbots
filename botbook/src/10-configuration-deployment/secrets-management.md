@@ -73,7 +73,7 @@ Vault manages **machine-to-machine** secrets:
 
 | Path | Contents |
 |------|----------|
-| `gbo/drive` | MinIO access key and secret |
+| `gbo/drive` | OtterIO access key and secret |
 | `gbo/tables` | PostgreSQL username and password |
 | `gbo/cache` | Redis password |
 | `gbo/llm` | OpenAI, Anthropic, Groq API keys |
@@ -114,7 +114,7 @@ Note: Most service credentials (database, drive, cache) are fetched automaticall
 4. Fetches ALL service credentials:
    - gbo/directory → Zitadel URL, client_id, client_secret
    - gbo/tables → Database host, port, username, password
-   - gbo/drive → MinIO endpoint, accesskey, secret
+   - gbo/drive → OtterIO endpoint, accesskey, secret
    - gbo/cache → Redis host, port, password
    - gbo/llm → API keys for all providers
    - gbo/encryption → Master encryption keys
@@ -175,11 +175,11 @@ vault kv put gbo/tables \
   username=gbuser \
   password=secure-password
 
-# Drive (MinIO)
+# Drive (OtterIO)
 vault kv put gbo/drive \
   endpoint=https://localhost:9000 \
-  accesskey=minioadmin \
-  secret=minioadmin123
+  accesskey=otterio-admin \
+  secret=otterio-admin123
 
 # Cache (Redis)
 vault kv put gbo/cache \
@@ -518,8 +518,8 @@ DIRECTORY_CLIENT_SECRET=your-client-secret
 REDIS_PASSWORD=redis-secret
 OPENAI_API_KEY=sk-xxxxx
 ANTHROPIC_API_KEY=sk-ant-xxxxx
-DRIVE_ACCESSKEY=minio
-DRIVE_SECRET=minio123
+DRIVE_ACCESSKEY=otterio
+DRIVE_SECRET=otterio123
 ENCRYPTION_KEY=super-secret-key
 ```
 
@@ -557,8 +557,8 @@ vault kv put gbo/llm \
 
 vault kv put gbo/drive \
   endpoint=https://localhost:9000 \
-  accesskey=minio \
-  secret=minio123
+  accesskey=otterio \
+  secret=otterio123
 
 vault kv put gbo/encryption \
   master_key=super-secret-key
@@ -751,7 +751,7 @@ tar -czf vault-backup.tar.gz botserver-stack/data/vault/
 │                                                                 │
 │  gbo/directory → Zitadel URL, credentials                       │
 │  gbo/tables    → Database connection + credentials              │
-│  gbo/drive     → MinIO endpoint + credentials                   │
+│  gbo/drive     → OtterIO endpoint + credentials                   │
 │  gbo/cache     → Redis connection + password                    │
 │  gbo/llm       → All LLM API keys                               │
 └─────────────────────────────┬───────────────────────────────────┘

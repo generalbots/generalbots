@@ -11,9 +11,9 @@ Always manage services with systemctl inside the **bot** container. Never run bi
 
 Never push secrets (API keys, passwords, tokens) to git. Never commit `init.json` (it contains Vault unseal keys). All secrets must come from Vault — only `VAULT_*` variables are allowed in `.env`. Never deploy manually via scp or ssh; always use CI/CD. Always push all submodules (botserver, botui, botlib) before or alongside the main repo. Always ask before pushing to ALM.
 
-**NEVER restart botserver for config.csv changes** — DriveMonitor auto-reloads on ETag change (~10s). Upload edited config.csv with `mc put`, wait 10s, config is live.
+**NEVER restart botserver for config.csv changes** — DriveMonitor auto-reloads on ETag change (~10s). Upload edited config.csv with `oc put`, wait 10s, config is live.
 
-**Credentials cache:** Agent reads `~/.gbo-credentials` for production IPs, container names, Vault tokens, MinIO keys, LLM keys, and domain mappings. This file is auto-populated during session setup — no need to re-fetch credentials each time.
+**Credentials cache:** Agent reads `~/.gbo-credentials` for production IPs, container names, Vault tokens, OtterIO keys, LLM keys, and domain mappings. This file is auto-populated during session setup — no need to re-fetch credentials each time.
 
 **Operator address table:** the authoritative IP/host mapping (container IPs, DNAT targets, public server addresses) is kept only in that private operator record, outside the repository. This guide uses placeholders such as `<email-container-ip>` and `<srv1-public-ip>`; never paste the real values here — `scripts/check_doc_ips.py` rejects literal IPs in tracked Markdown.
 
@@ -52,7 +52,7 @@ The host machine is accessed via `ssh user@<hostname>`, running Incus (an LXD fo
 | **tables** | PostgreSQL | PostgreSQL 15+ | `/usr/lib/postgresql/*/bin/postgres` | `/opt/gbo/logs/postgresql/` | `/opt/gbo/data/pgdata/` | Primary database |
 | **vault** | HashiCorp Vault | Vault | `/opt/gbo/bin/vault` | `/opt/gbo/logs/vault/` | `/opt/gbo/data/vault/` | Secrets management |
 | **cache** | Valkey | Valkey (Redis fork) | `/opt/gbo/bin/valkey-server` | `/opt/gbo/logs/valkey/` | `/opt/gbo/data/valkey/` | Distributed cache |
-| **drive** | MinIO | MinIO | `/opt/gbo/bin/minio` | `/opt/gbo/logs/minio/` | `/opt/gbo/data/minio/` | Object storage (S3 API) |
+| **drive** | OtterIO | OtterIO | `/opt/gbo/bin/otterio` | `/opt/gbo/logs/otterio/` | `/opt/gbo/data/otterio/` | Object storage (S3 API) |
 | **directory** | Zitadel | Zitadel (Go) | `/opt/gbo/bin/zitadel` | `/opt/gbo/logs/zitadel.log` | `PROD-DIRECTORY` DB | Identity provider |
 | **llm** | llama.cpp | C++/CUDA | `/opt/gbo/bin/llama-server` | `/opt/gbo/logs/llm/` | `/opt/gbo/models/` | Local LLM inference |
 | **vectordb** | Qdrant | Qdrant (Rust) | `/opt/gbo/bin/qdrant` | `/opt/gbo/logs/qdrant/` | `/opt/gbo/data/qdrant/` | Vector database |
@@ -63,7 +63,6 @@ The host machine is accessed via `ssh user@<hostname>`, running Incus (an LXD fo
 | **webmail** | Roundcube (PHP built-in server) | PHP 8.3 | `/opt/gbo/data` (`public_html`) | journald | PostgreSQL `PROD-WEBMAIL` @ `<db-host-ip>` | Webmail frontend — served by `webmail.service` (`php -S 0.0.0.0:5252`) behind Caddy vhost `webmail.<domain>`; **IMAP/SMTP point at `<email-container-ip>`** (moved 2026-10-29), attachments up to **20 MB** (`upload_max_filesize=20M`, `post_max_size=25M`, Caddy `request_body max_size 25MB`) |
 | **dns** | CoreDNS | CoreDNS (Go) | `/opt/gbo/bin/coredns` | `/opt/gbo/logs/dns/` | `/opt/gbo/conf/Corefile` | DNS resolution |
 | **meet** | LiveKit | LiveKit (Go) | `/opt/gbo/bin/livekit-server` | `/opt/gbo/logs/meet/` | `/opt/gbo/data/meet/` | Video conferencing |
-| **table-editor** | NocoDB | NocoDB | `/opt/gbo/bin/nocodb` | `/opt/gbo/logs/nocodb/` | `/opt/gbo/data/nocodb/` | Database UI |
 
 ### Network Access
 
@@ -119,7 +118,7 @@ sudo incus list
 sudo incus exec bot -- systemctl is-active botserver
 sudo incus exec bot -- systemctl is-active botui
 sudo incus exec directory -- systemctl is-active directory 2>/dev/null || echo "Directory check failed"
-sudo incus exec drive -- pgrep -f minio > /dev/null && echo "MinIO OK" || echo "MinIO DOWN"
+sudo incus exec drive -- pgrep -f otterio > /dev/null && echo "OtterIO OK" || echo "OtterIO DOWN"
 sudo incus exec tables -- pgrep -f postgres > /dev/null && echo "PostgreSQL OK" || echo "PostgreSQL DOWN"
 
 # 3. IPv4 connectivity check - all containers should have IPv4
@@ -156,8 +155,8 @@ sudo incus exec vault -- curl -ksf https://localhost:8200/v1/sys/health | grep -
 # (If a runner is (re)deployed, restore this check:)
 # sudo incus exec alm-ci -- pgrep -f forgejo > /dev/null && echo "CI runner OK" || echo "CI runner DOWN"
 
-# 5. MinIO buckets health
-sudo incus exec drive -- bash -c 'export PATH=/opt/gbo/bin:$PATH && mc admin info local' 2>&1 | head -10
+# 5. OtterIO buckets health
+sudo incus exec drive -- bash -c 'export PATH=/opt/gbo/bin:$PATH && oc admin info local' 2>&1 | head -10
 
 # 6. Backup verification - check latest snapshot exists
 sudo incus snapshot list bot | head -5
@@ -360,7 +359,7 @@ sudo incus exec bot -- systemctl start botserver
 
 ## Services Detail
 
-Botserver runs as user `gbuser`, binary at `/opt/gbo/bin/botserver`, logs at `/opt/gbo/logs/out.log` and `/opt/gbo/logs/err.log`, systemd unit at `/etc/systemd/system/botserver.service`, env loaded from `/opt/gbo/bin/.env`. Bot BASIC scripts are stored in MinIO Drive under `{bot}.gbai/{bot}.gbdialog/*.bas` and are downloaded/compiled by DriveMonitor to `/opt/gbo/work/{bot}.gbai/{bot}.gbdialog/*.ast`.
+Botserver runs as user `gbuser`, binary at `/opt/gbo/bin/botserver`, logs at `/opt/gbo/logs/out.log` and `/opt/gbo/logs/err.log`, systemd unit at `/etc/systemd/system/botserver.service`, env loaded from `/opt/gbo/bin/.env`. Bot BASIC scripts are stored in OtterIO Drive under `{bot}.gbai/{bot}.gbdialog/*.bas` and are downloaded/compiled by DriveMonitor to `/opt/gbo/work/{bot}.gbai/{bot}.gbdialog/*.ast`.
 
 The directory service runs Zitadel as user `root`, binary at `/opt/gbo/bin/zitadel`, logs at `/opt/gbo/logs/zitadel.log`, systemd unit at `/etc/systemd/system/directory.service`, and loads environment from the service configuration. Zitadel provides identity management and OAuth2 services for the platform.
 
@@ -371,7 +370,7 @@ Internally, Zitadel listens on port 8080 within the directory container. For ext
 
 Access the Zitadel console at `https://<login-domain>/ui/console` with admin credentials. Zitadel implements v1 Management API (deprecated) and v2 Organization/User services. Always use the v2 endpoints under `/v2/organizations` and `/v2/users` for all operations.
 
-The botserver bootstrap also manages: Vault (secrets), PostgreSQL (database), Valkey (cache, password auth), MinIO (object storage), Zitadel (identity provider), and llama.cpp (LLM).
+The botserver bootstrap also manages: Vault (secrets), PostgreSQL (database), Valkey (cache, password auth), OtterIO (object storage), Zitadel (identity provider), and llama.cpp (LLM).
 
 To obtain a PAT for Zitadel API access, check /opt/gbo/conf/directory/admin-pat.txt in the directory container. Use it with curl by setting the Authorization header: `Authorization: Bearer $(cat /opt/gbo/conf/directory/admin-pat.txt)` and include `-H "Host: <directory-ip> "` for correct host resolution.
 
@@ -566,27 +565,27 @@ curl -sf https://chat.pragmatismo.com.br/api/health || echo "Health check failed
 
 ## DriveMonitor & Bot Configuration
 
-DriveMonitor is a background service inside botserver that watches MinIO buckets and syncs changes to the local filesystem and database every 10 seconds. It monitors three directory types per bot: the `.gbdialog/` folder for BASIC scripts (downloads and recompiles on change), the `.gbot/` folder for `config.csv` (syncs to the `bot_configuration` database table), and the `.gbkb/` folder for knowledge base documents (downloads and indexes for vector search).
+DriveMonitor is a background service inside botserver that watches OtterIO buckets and syncs changes to the local filesystem and database every 10 seconds. It monitors three directory types per bot: the `.gbdialog/` folder for BASIC scripts (downloads and recompiles on change), the `.gbot/` folder for `config.csv` (syncs to the `bot_configuration` database table), and the `.gbkb/` folder for knowledge base documents (downloads and indexes for vector search).
 
 Bot configuration is stored in two PostgreSQL tables inside the `botserver` database. The `bot_configuration` table holds key-value pairs with columns `bot_id`, `config_key`, `config_value`, `config_type`, `is_encrypted`, and `updated_at`. The `gbot_config_sync` table tracks sync state with columns `bot_id`, `config_file_path`, `last_sync_at`, `file_hash`, and `sync_count`.
 
-The `config.csv` format is a plain CSV with no header: each line is `key,value`, for example `llm-provider,groq` or `theme-color1,#cc0000`. DriveMonitor syncs it when the file ETag changes in MinIO (~10s). **NEVER restart botserver for config.csv changes — DriveMonitor auto-reloads on ETag change.**
+The `config.csv` format is a plain CSV with no header: each line is `key,value`, for example `llm-provider,groq` or `theme-color1,#cc0000`. DriveMonitor syncs it when the file ETag changes in OtterIO (~10s). **NEVER restart botserver for config.csv changes — DriveMonitor auto-reloads on ETag change.**
 
-**Check config status:** Query `bot_configuration` via `sudo incus exec tables -- psql -h localhost -U postgres -d botserver -c "SELECT config_key, config_value FROM bot_configuration WHERE bot_id = (SELECT id FROM bots WHERE name = '<botname>') ORDER BY config_key;"`. Check sync state via the `gbot_config_sync` table. Inspect the bucket directly with `sudo incus exec drive -- /opt/gbo/bin/mc cat local/<botname>.gbai/<botname>.gbot/config.csv`.
+**Check config status:** Query `bot_configuration` via `sudo incus exec tables -- psql -h localhost -U postgres -d botserver -c "SELECT config_key, config_value FROM bot_configuration WHERE bot_id = (SELECT id FROM bots WHERE name = '<botname>') ORDER BY config_key;"`. Check sync state via the `gbot_config_sync` table. Inspect the bucket directly with `sudo incus exec drive -- /opt/gbo/bin/oc cat local/<botname>.gbai/<botname>.gbot/config.csv`.
 
 **Debug DriveMonitor:** Monitor live logs with `sudo incus exec bot -- tail -f /opt/gbo/logs/out.log | grep -E "(DRIVE_MONITOR|check_gbot|config)"`. An empty `gbot_config_sync` table means DriveMonitor has not synced yet. If no new log entries appear after 30 seconds, the loop may be stuck — restart botserver with systemctl to clear the state.
 
-**Common config issues:** If config.csv is missing from the bucket, create and upload it with `mc cp`. To force a re-sync, copy config.csv over itself with `mc cp local/... local/...` to change the ETag — DriveMonitor picks it up in ~10s. No restart needed.
+**Common config issues:** If config.csv is missing from the bucket, create and upload it with `oc cp`. To force a re-sync, copy config.csv over itself with `oc cp local/... local/...` to change the ETag — DriveMonitor picks it up in ~10s. No restart needed.
 
 ---
 
-## MinIO (Drive) Operations
+## OtterIO (Drive) Operations
 
-All bot files live in MinIO buckets. Use the `mc` CLI at `/opt/gbo/bin/mc` from inside the `drive` container. The bucket structure per bot is: `{bot}.gbai/` as root, `{bot}.gbai/{bot}.gbdialog/` for BASIC scripts, `{bot}.gbai/{bot}.gbot/` for config.csv, and `{bot}.gbai/{bot}.gbkb/` for knowledge base folders.
+All bot files live in OtterIO buckets. Use the `oc` CLI at `/opt/gbo/bin/oc` from inside the `drive` container. The bucket structure per bot is: `{bot}.gbai/` as root, `{bot}.gbai/{bot}.gbdialog/` for BASIC scripts, `{bot}.gbai/{bot}.gbot/` for config.csv, and `{bot}.gbai/{bot}.gbkb/` for knowledge base folders.
 
-Common mc commands: `mc ls local/` lists all buckets; `mc ls local/botname.gbai/` lists a bucket; `mc cat local/.../start.bas` prints a file; `mc cp local/.../file /tmp/file` downloads; `mc cp /tmp/file local/.../file` uploads (this triggers DriveMonitor recompile); `mc stat local/.../config.csv` shows ETag and metadata; `mc mb local/newbot.gbai` creates a bucket; `mc rb local/oldbot.gbai` removes an empty bucket.
+Common oc commands: `oc ls local/` lists all buckets; `oc ls local/botname.gbai/` lists a bucket; `oc cat local/.../start.bas` prints a file; `oc cp local/.../file /tmp/file` downloads; `oc cp /tmp/file local/.../file` uploads (this triggers DriveMonitor recompile); `oc stat local/.../config.csv` shows ETag and metadata; `oc mb local/newbot.gbai` creates a bucket; `oc rb local/oldbot.gbai` removes an empty bucket.
 
-If mc is not found, use the full path `/opt/gbo/bin/mc`. If alias `local` is not configured, check with `mc config host list`. If MinIO is not running, check with `sudo incus exec drive -- systemctl status minio`.
+If oc is not found, use the full path `/opt/gbo/bin/oc`. If alias `local` is not configured, check with `oc config host list`. If OtterIO is not running, check with `sudo incus exec drive -- systemctl status otterio`.
 
 ---
 
@@ -594,7 +593,7 @@ If mc is not found, use the full path `/opt/gbo/bin/mc`. If alias `local` is not
 
 HashiCorp Vault is the single source of truth for all secrets. Botserver reads `VAULT_ADDR` and `VAULT_TOKEN` from `/opt/gbo/bin/.env` at startup, initializes a TLS/mTLS client, then reads credentials from Vault paths. If Vault is unavailable, it falls back to defaults. The `.env` file must only contain `VAULT_*` variables plus `PORT`, `DATA_DIR`, `WORK_DIR`, and `LOAD_ONLY`.
 
-**Global Vault paths:** `gbo/tables` holds PostgreSQL credentials; `gbo/drive` holds MinIO access key and secret; `gbo/cache` holds Valkey password; `gbo/llm` holds LLM URL and API keys; `gbo/directory` holds Zitadel config; `gbo/email` holds SMTP credentials; `gbo/vectordb` holds Qdrant config; `gbo/jwt` holds JWT signing secret; `gbo/encryption` holds the master encryption key. Organization-scoped secrets follow patterns like `gbo/orgs/{org_id}/bots/{bot_id}` and tenant infrastructure uses `gbo/tenants/{tenant_id}/infrastructure`.
+**Global Vault paths:** `gbo/tables` holds PostgreSQL credentials; `gbo/drive` holds OtterIO access key and secret; `gbo/cache` holds Valkey password; `gbo/llm` holds LLM URL and API keys; `gbo/directory` holds Zitadel config; `gbo/email` holds SMTP credentials; `gbo/vectordb` holds Qdrant config; `gbo/jwt` holds JWT signing secret; `gbo/encryption` holds the master encryption key. Organization-scoped secrets follow patterns like `gbo/orgs/{org_id}/bots/{bot_id}` and tenant infrastructure uses `gbo/tenants/{tenant_id}/infrastructure`.
 
 **Credential resolution:** For any service, botserver checks the most specific Vault path first (org+bot level), falls back to a default bot path, then falls back to the global path, and only uses environment variables as a last resort in development.
 
@@ -790,7 +789,7 @@ certificate` means the `tls-ask` endpoint refused or was unreachable.
 
 **botui can't reach botserver:** Check that the `botui.service` systemd file has `BOTSERVER_URL=http://localhost:5858` — not the external HTTPS URL. Fix with `sed -i 's|BOTSERVER_URL=.*|BOTSERVER_URL=http://localhost:5858|'` on the service file, then `systemctl daemon-reload` and `systemctl restart botui`.
 
-**Suggestions not showing:** Confirm bot `.bas` files exist in MinIO Drive under `{bot}.gbai/{bot}.gbdialog/`. Check logs for compilation errors. Clear the AST cache in `/opt/gbo/work/` and restart botserver.
+**Suggestions not showing:** Confirm bot `.bas` files exist in OtterIO Drive under `{bot}.gbai/{bot}.gbdialog/`. Check logs for compilation errors. Clear the AST cache in `/opt/gbo/work/` and restart botserver.
 
 **IPv6 DNS timeouts on external APIs (Groq, Cloudflare):** The container's DNS may return AAAA records without IPv6 connectivity. The container should have `IPV6=no` in its network config and `gai.conf` set appropriately. Check for `RES_OPTIONS=inet4` in `botserver.service` if issues persist.
 
@@ -800,22 +799,22 @@ certificate` means the `tls-ask` endpoint refused or was unreachable.
 
 ---
 
-## Drive (MinIO) File Operations Cheatsheet
+## Drive (OtterIO) File Operations Cheatsheet
 
-All `mc` commands run inside the `drive` container with `PATH` set: `sudo incus exec drive -- bash -c 'export PATH=/opt/gbo/bin:$PATH && mc <command>'`. If `local` alias is missing, create it with credentials from Vault path `gbo/drive`.
+All `oc` commands run inside the `drive` container with `PATH` set: `sudo incus exec drive -- bash -c 'export PATH=/opt/gbo/bin:$PATH && oc <command>'`. If `local` alias is missing, create it with credentials from Vault path `gbo/drive`.
 
-**List bucket contents recursively:** `mc ls local/<bot>.gbai/ --recursive`
+**List bucket contents recursively:** `oc ls local/<bot>.gbai/ --recursive`
 
-**Read a file from Drive:** `mc cat local/<bot>.gbai/<bot>.gbdialog/start.bas`
+**Read a file from Drive:** `oc cat local/<bot>.gbai/<bot>.gbdialog/start.bas`
 
-**Download a file:** `mc cp local/<bot>.gbai/<bot>.gbdialog/start.bas /tmp/start.bas`
+**Download a file:** `oc cp local/<bot>.gbai/<bot>.gbdialog/start.bas /tmp/start.bas`
 
-**Upload a file to Drive (triggers DriveMonitor recompile):** Transfer file to host via `scp`, push into drive container with `sudo incus file push /tmp/file drive/tmp/file`, then `mc put /tmp/file local/<bot>.gbai/<bot>.gbdialog/start.bas`
+**Upload a file to Drive (triggers DriveMonitor recompile):** Transfer file to host via `scp`, push into drive container with `sudo incus file push /tmp/file drive/tmp/file`, then `oc put /tmp/file local/<bot>.gbai/<bot>.gbdialog/start.bas`
 
 **Full upload workflow example — updating config.csv:**
 ```bash
 # 1. Download current config from Drive
-ssh user@host "sudo incus exec drive -- bash -c 'export PATH=/opt/gbo/bin:\$PATH && mc cat local/botname.gbai/botname.gbot/config.csv'" > /tmp/config.csv
+ssh user@host "sudo incus exec drive -- bash -c 'export PATH=/opt/gbo/bin:\$PATH && oc cat local/botname.gbai/botname.gbot/config.csv'" > /tmp/config.csv
 
 # 2. Edit locally (change model, keys, etc.)
 sed -i 's/llm-model,old-model/llm-model,new-model/' /tmp/config.csv
@@ -823,17 +822,17 @@ sed -i 's/llm-model,old-model/llm-model,new-model/' /tmp/config.csv
 # 3. Push edited file back to Drive
 scp /tmp/config.csv user@host:/tmp/config.csv
 ssh user@host "sudo incus file push /tmp/config.csv drive/tmp/config.csv"
-ssh user@host "sudo incus exec drive -- bash -c 'export PATH=/opt/gbo/bin:\$PATH && mc put /tmp/config.csv local/botname.gbai/botname.gbot/config.csv'"
+ssh user@host "sudo incus exec drive -- bash -c 'export PATH=/opt/gbo/bin:\$PATH && oc put /tmp/config.csv local/botname.gbai/botname.gbot/config.csv'"
 
 # 4. Wait ~15 seconds, then verify DriveMonitor picked up the change
 ssh user@host "sudo incus exec bot -- bash -c 'grep -i \"Model:\" /opt/gbo/logs/err.log | tail -3'"
 ```
 
-**Force re-sync of config.csv** (change ETag without content change): `mc cp local/<bot>.gbai/<bot>.gbot/config.csv local/<bot>.gbai/<bot>.gbot/config.csv`
+**Force re-sync of config.csv** (change ETag without content change): `oc cp local/<bot>.gbai/<bot>.gbot/config.csv local/<bot>.gbai/<bot>.gbot/config.csv`
 
-**Create a new bot bucket:** `mc mb local/newbot.gbai`
+**Create a new bot bucket:** `oc mb local/newbot.gbai`
 
-**Check MinIO health:** `sudo incus exec drive -- bash -c '/opt/gbo/bin/mc admin info local'`
+**Check OtterIO health:** `sudo incus exec drive -- bash -c '/opt/gbo/bin/oc admin info local'`
 
 ---
 
@@ -859,7 +858,7 @@ ssh user@host "sudo incus exec bot -- bash -c 'grep -i \"Model:\" /opt/gbo/logs/
 |---------|-----------|------|-------|
 | botserver | system | `/opt/gbo/bin/botserver` | Run via systemctl only |
 | botui | system | `/opt/gbo/bin/botui` | Run via systemctl only |
-| mc (MinIO Client) | drive | `/opt/gbo/bin/mc` | Must set `PATH=/opt/gbo/bin:$PATH` |
+| oc (OtterIO Client) | drive | `/opt/gbo/bin/oc` | Must set `PATH=/opt/gbo/bin:$PATH` |
 | psql | tables | `/usr/bin/psql` | `psql -h localhost -U postgres -d botserver` |
 | vault | vault | `/opt/gbo/bin/vault` | Needs `VAULT_ADDR`, `VAULT_TOKEN`, `VAULT_CACERT` |
 | zitadel | directory | `/opt/gbo/bin/zitadel` | Runs as root on port 8080 internally |
@@ -889,7 +888,7 @@ The `.ast` file has all transforms applied: `USE KB "cartas"` becomes `USE_KB("c
 | system | YES | `systemctl is-active botserver` | `systemctl restart botserver` |
 | tables | YES | `pgrep -f postgres` | `systemctl restart postgresql` |
 | vault | YES | `curl -ksf https://localhost:8200/v1/sys/health` | `systemctl restart vault` |
-| drive | YES | `pgrep -f minio` | `systemctl restart minio` |
+| drive | YES | `pgrep -f otterio` | `systemctl restart otterio` |
 | cache | HIGH | `pgrep -f valkey` | `systemctl restart valkey` |
 | directory | HIGH | `curl -sf http://localhost:8080/debug/healthz` | `systemctl restart directory` |
 | alm-ci | MED | `pgrep -f forgejo` | manual restart |
@@ -999,7 +998,7 @@ sudo incus exec alm-ci -- bash -c 'cd /opt/gbo/bin && nohup ./forgejo-runner dae
 
 ---
 
-### MinIO (Drive) Operations with `mc`
+### OtterIO (Drive) Operations with `oc`
 
 **Setup:**
 ```bash
@@ -1009,41 +1008,41 @@ sudo incus exec drive -- bash
 # Set PATH
 export PATH=/opt/gbo/bin:$PATH
 
-# Verify mc works
-mc --version
+# Verify oc works
+oc --version
 ```
 
 **Common Commands:**
 ```bash
 # List all buckets
-mc ls local/
+oc ls local/
 
 # List bot bucket
-mc ls local/<botname>.gbai/
+oc ls local/<botname>.gbai/
 
 # Read start.bas
-mc cat local/<botname>.gbai/<botname>.gbdialog/start.bas
+oc cat local/<botname>.gbai/<botname>.gbdialog/start.bas
 
 # Download file
-mc cp local/<botname>.gbai/<botname>.gbdialog/config.csv /tmp/config.csv
+oc cp local/<botname>.gbai/<botname>.gbdialog/config.csv /tmp/config.csv
 
 # Upload file (triggers DriveMonitor)
-mc cp /tmp/config.csv local/<botname>.gbai/<botname>.gbot/config.csv
+oc cp /tmp/config.csv local/<botname>.gbai/<botname>.gbot/config.csv
 
 # Force re-sync (change ETag)
-mc cp local/<bot>.gbai/<bot>.gbot/config.csv local/<bot>.gbai/<bot>.gbot/config.csv
+oc cp local/<bot>.gbai/<bot>.gbot/config.csv local/<bot>.gbai/<bot>.gbot/config.csv
 
 # Create new bucket
-mc mb local/newbot.gbai
+oc mb local/newbot.gbai
 
-# Check MinIO health
-mc admin info local
+# Check OtterIO health
+oc admin info local
 ```
 
 **If `local` alias missing:**
 ```bash
 # Create alias
-mc alias set local http://localhost:9000 <access-key> <secret-key>
+oc alias set local http://localhost:9000 <access-key> <secret-key>
 ```
 
 ---
@@ -1230,7 +1229,7 @@ ssh root@$SRV1_HOST 'sudo incus exec bot -- cp /opt/gbo/bin/botserver.old /opt/g
 - **bot** — BotServer + BotUI (formerly `system`)
 - **tables** — PostgreSQL
 - **vault** — HashiCorp Vault
-- **drive** — MinIO
+- **drive** — OtterIO
 - **cache** — Valkey
 - **directory** — Zitadel
 - **vectordb** — Qdrant

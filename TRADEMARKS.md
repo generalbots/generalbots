@@ -65,7 +65,7 @@ run alongside or beneath General Bots.
 
 | Name | Owner / project | Role in General Bots |
 |------|-----------------|----------------------|
-| **MinIO**, **MinIO Client (mc)** | MinIO, Inc. | S3-compatible object storage ("Drive") |
+| **OtterIO**, **OC (oc)** | OtterIO project (soulteary) | S3-compatible object storage ("Drive") |
 | **PostgreSQL**, **libpq** | PostgreSQL Global Development Group | Relational database |
 | **Valkey** | Valkey contributors (Linux Foundation) | In-memory cache (Redis-compatible) |
 | **Redis** | Redis Ltd. | Protocol/API compatibility reference only |
@@ -76,7 +76,6 @@ run alongside or beneath General Bots.
 | **CoreDNS** | The Kubernetes Authors / CNCF | DNS server |
 | **LiveKit** | LiveKit, Inc. | Real-time audio/video ("Meet") |
 | **Qdrant** | Qdrant Solutions GmbH | Vector database |
-| **NocoDB** | NocoDB, Inc. | Database UI ("table editor") |
 | **Roundcube** | The Roundcube Project | Webmail |
 | **Vector** | Datadog, Inc. | Log aggregation |
 | **InfluxDB** | InfluxData, Inc. | Time-series database |
@@ -316,7 +315,7 @@ Trademark rights and copyright licenses are different things:
 
 - The **MIT license** in [`LICENSE`](./LICENSE) covers the General Bots source
   code and grants no rights in any name or logo.
-- Bundled third-party binaries (MinIO, Caddy, Stalwart, Zitadel, Forgejo,
+- Bundled third-party binaries (OtterIO, Caddy, Stalwart, Zitadel, Forgejo,
   Vault, Qdrant, LiveKit, PostgreSQL, Valkey, Garage, Skytable, and others) are
   distributed under **their own licenses**, some of which are copyleft. Their
   notices must be preserved. See `botserver/3rdparty.toml`, the per-project

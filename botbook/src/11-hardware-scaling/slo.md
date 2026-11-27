@@ -32,7 +32,7 @@ A target never rises silently to hide a regression.
 | Provider retries | llm | rate | ≤ 5 % of calls retried | 7 days | `llm.provider_retry_pct` |
 | Database query | dependency | p95 | ≤ 50 ms | 7 days | `dep.db_ms` |
 | Cache (Valkey) | dependency | p95 | ≤ 10 ms | 7 days | `dep.cache_ms` |
-| Drive (MinIO/S3) | dependency | p95 | ≤ 100 ms | 7 days | `dep.drive_ms` |
+| Drive (OtterIO/S3) | dependency | p95 | ≤ 100 ms | 7 days | `dep.drive_ms` |
 | Cost per conversation | cost | mean | ≤ USD 0.010 | 1 day rolling | `cost.conversation_usd` — computed from tokens in/out |
 | Cost per tenant per day | cost | total | ≤ USD 10.00 hard quota, alert at 80 % | 1 day rolling | `cost.tenant_day_usd` |
 | Soak RSS growth | soak | relative | ≤ 10 % over a 60-minute soak | 60-minute run | `soak.rss_growth_pct` |

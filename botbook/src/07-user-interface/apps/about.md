@@ -38,7 +38,7 @@ The About page provides comprehensive product information for General Bots Suite
 | **Email Service** | SMTP/IMAP email handling |
 | **WhatsApp** | WhatsApp Business API |
 | **Video Conferencing** | LiveKit integration |
-| **Object Storage** | MinIO file storage |
+| **Object Storage** | OtterIO file storage |
 | **Vector Database** | Qdrant embeddings |
 
 ### System Details
@@ -48,7 +48,7 @@ The About page provides comprehensive product information for General Bots Suite
 | **Operating System** | Server environment details |
 | **Database** | PostgreSQL version and status |
 | **Cache** | Valkey/Redis version and status |
-| **Storage** | MinIO bucket configuration |
+| **Storage** | OtterIO bucket configuration |
 | **Runtime** | Rust version and build info |
 
 ### Third-party licenses

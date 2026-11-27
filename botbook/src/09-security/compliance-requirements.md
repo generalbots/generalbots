@@ -140,7 +140,7 @@ log_statement = 'all'
 
 | Status | Requirement | Component | Standard | Implementation |
 |--------|-------------|-----------|----------|----------------|
-| ❌ | Encryption at Rest | Drive | All | Not implemented: no MinIO SSE/KMS registration; provide it at the storage layer |
+| ❌ | Encryption at Rest | Drive | All | Not implemented: no OtterIO SSE/KMS registration; provide it at the storage layer |
 | ✅ | Encryption in Transit | Drive | All | TLS for all connections |
 | ✅ | Bucket Policies | Drive | All | Fine-grained access control policies |
 | ✅ | Object Versioning | Drive | HIPAA | Version control for data recovery |
@@ -379,7 +379,7 @@ pg_dump -h localhost -U postgres generalbots | \
   openssl enc -aes-256-cbc -salt -out /backup/pg_${BACKUP_DATE}.sql.gz.enc
 
 # Drive backup
-mc mirror drive/generalbots /backup/drive_${BACKUP_DATE}/
+oc mirror drive/generalbots /backup/drive_${BACKUP_DATE}/
 
 # Qdrant snapshot
 curl -X POST "http://localhost:6333/collections/botserver/snapshots"
@@ -529,7 +529,7 @@ sudo -u postgres psql -c "ALTER SYSTEM SET ssl = 'on';"
 sudo systemctl restart postgresql
 
 # 4. Set Drive encryption
-mc admin config set drive/ server-side-encryption-s3 on
+oc admin config set drive/ server-side-encryption-s3 on
 
 # 5. Configure Zitadel MFA
 # Via web console: Settings > Security > MFA > Require for admins

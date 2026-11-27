@@ -76,17 +76,18 @@ services:
     networks:
       - gb-network
 
-  minio:
-    image: minio/minio:latest
+  drive:
+    # Build this image from the pinned OtterIO binary in botserver/3rdparty.toml.
+    image: otterio-local
     command: server /data --console-address ":9001"
     ports:
       - "9000:9000"
       - "9001:9001"
     volumes:
-      - minio-data:/data
+      - otterio-data:/data
     environment:
-      MINIO_ROOT_USER: ${DRIVE_ACCESSKEY}
-      MINIO_ROOT_PASSWORD: ${DRIVE_SECRET}
+      OTTERIO_ROOT_USER: ${DRIVE_ACCESSKEY}
+      OTTERIO_ROOT_PASSWORD: ${DRIVE_SECRET}
     networks:
       - gb-network
 
@@ -103,7 +104,7 @@ services:
     image: your-registry/botserver:latest
     depends_on:
       - postgres
-      - minio
+      - otterio
       - qdrant
     ports:
       - "8000:8000"
@@ -111,7 +112,7 @@ services:
       - ./work:/opt/gbo/work
     environment:
       DATABASE_URL: postgres://botserver:${DB_PASSWORD}@postgres:5432/botserver
-      DRIVE_URL: http://minio:9000
+      DRIVE_URL: http://otterio:9000
       DRIVE_ACCESSKEY: ${DRIVE_ACCESSKEY}
       DRIVE_SECRET: ${DRIVE_SECRET}
       QDRANT_URL: http://qdrant:6333
@@ -124,7 +125,7 @@ networks:
 
 volumes:
   postgres-data:
-  minio-data:
+  otterio-data:
   qdrant-data:
 ```
 
@@ -132,8 +133,8 @@ volumes:
 
 ```bash
 DB_PASSWORD=secure-db-password
-DRIVE_ACCESSKEY=minioadmin
-DRIVE_SECRET=secure-minio-secret
+DRIVE_ACCESSKEY=otterio-admin
+DRIVE_SECRET=secure-otterio-secret
 ADMIN_PASS=admin-password
 DOMAIN=your-domain.com
 ```
@@ -188,7 +189,7 @@ spec:
 |---------|----------|
 | botserver | `GET /health` |
 | PostgreSQL | `pg_isready` |
-| MinIO | `GET /minio/health/live` |
+| OtterIO | `GET /otterio/health/live` |
 | Qdrant | `GET /health` |
 
 ## Troubleshooting
@@ -204,13 +205,13 @@ spec:
 ```bash
 # 1. Backup data
 pg_dump botserver > backup.sql
-mc cp --recursive /path/to/drive minio/backup/
+oc cp --recursive /path/to/drive otterio/backup/
 
 # 2. Start Docker containers
 
 # 3. Restore
 docker exec -i gb-postgres psql -U botserver < backup.sql
-docker exec gb-minio mc cp --recursive /backup minio/drive/
+docker exec gb-otterio oc cp --recursive /backup otterio/drive/
 ```
 
 ## See Also

@@ -79,7 +79,7 @@ This checklist covers critical security considerations before deploying General 
 
 - [ ] **Encryption at Rest**
   - [ ] Database encryption enabled
-  - [ ] Object storage (MinIO) encryption enabled
+  - [ ] Object storage (OtterIO) encryption enabled
   - [ ] Secrets encrypted with AES-GCM
 
 - [ ] **Encryption in Transit**

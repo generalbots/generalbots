@@ -18,7 +18,7 @@ Valkey serves as the in-memory caching system, providing Redis-compatible functi
 
 ### Drive (S3-Compatible Storage)
 
-For file management and object storage, GeneralBots integrates MinIO from [min.io](https://min.io). This S3-compatible storage solution enables seamless file operations and is licensed under AGPLv3.
+For file management and object storage, GeneralBots integrates OtterIO from [min.io](https://min.io). This S3-compatible storage solution enables seamless file operations and is licensed under AGPLv3.
 
 ### Qdrant (Vector Database)
 
@@ -87,10 +87,6 @@ Web-based email access is provided by Roundcube from [roundcube/roundcubemail](h
 ### LiveKit (Meeting)
 
 Real-time video conferencing and media capabilities are powered by LiveKit from [livekit/livekit](https://github.com/livekit/livekit). This Apache 2.0 licensed component enables high-quality video meetings and streaming.
-
-### NocoDB (Table Editor)
-
-For database visualization and management, GeneralBots integrates NocoDB from [nocodb/nocodb](https://github.com/nocodb/nocodb). This GPLv3 licensed tool provides an Airtable-like interface for working with structured data.
 
 ### LibreOffice Online (Doc Editor)
 

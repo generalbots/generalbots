@@ -219,7 +219,7 @@
   <text x="750.0" y="1622.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Valkey</text>
   <text x="750.0" y="1644.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">cache · sessions · limits</text>
   <rect x="897.5999999999999" y="1598" width="271.2" height="58" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
-  <text x="1033.1999999999998" y="1622.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">MinIO (S3)</text>
+  <text x="1033.1999999999998" y="1622.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">OtterIO (S3)</text>
   <text x="1033.1999999999998" y="1644.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">drive: {bot}.gbai</text>
   <rect x="1180.8" y="1598" width="271.2" height="58" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
   <text x="1316.3999999999999" y="1622.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Zitadel</text>
@@ -233,10 +233,7 @@
   <rect x="614.4" y="1666" width="271.2" height="58" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
   <text x="750.0" y="1690.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">LiveKit</text>
   <text x="750.0" y="1712.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">voice &amp; video rooms</text>
-  <rect x="897.5999999999999" y="1666" width="271.2" height="58" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
-  <text x="1033.1999999999998" y="1690.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">NocoDB</text>
-  <text x="1033.1999999999998" y="1712.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">table editor</text>
-  <rect x="1180.8" y="1666" width="271.2" height="58" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+    <rect x="1180.8" y="1666" width="271.2" height="58" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
   <text x="1316.3999999999999" y="1690.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Roundcube</text>
   <text x="1316.3999999999999" y="1712.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">webmail</text>
   <rect x="26" y="1746" width="1448" height="172" rx="14" fill="none" stroke="#8b949e" stroke-opacity="0.32" stroke-width="1.5"/>
@@ -270,7 +267,7 @@
   <rect x="1280.5714285714284" y="1798" width="171.42857142857142" height="56" rx="9" fill="none" stroke="#7c3aed" stroke-opacity="0.7" stroke-width="1.5"/>
   <text x="1366.2857142857142" y="1822.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#7c3aed" text-anchor="middle">{bot}.gbdrive</text>
   <text x="1366.2857142857142" y="1843.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#6e7781" text-anchor="middle">files &amp; reports</text>
-  <text x="48" y="1876" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#6e7781" text-anchor="start">drive_monitors watches MinIO, discovers tenants and bots, compiles .bas → .ast, registers tools  ·  LLM settings resolve per-bot → nil → global secret/gbo/llm</text>
+  <text x="48" y="1876" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#6e7781" text-anchor="start">drive_monitors watches OtterIO, discovers tenants and bots, compiles .bas → .ast, registers tools  ·  LLM settings resolve per-bot → nil → global secret/gbo/llm</text>
   <rect x="26" y="1934" width="1448" height="134" rx="14" fill="none" stroke="#8b949e" stroke-opacity="0.32" stroke-width="1.5"/>
   <rect x="26" y="1934" width="4" height="134" rx="2" fill="#7c3aed" fill-opacity="0.55"/>
   <text x="48" y="1966" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="19" font-weight="700" fill="#7c3aed" text-anchor="start">Operations</text>

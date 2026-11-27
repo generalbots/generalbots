@@ -27,7 +27,7 @@ botserver Stack Versions:
   vault:     2.2.1
   tables:    18.6.1 (PostgreSQL)
   directory: 4.20.1 (Zitadel)
-  drive:     latest (MinIO)
+  drive:     latest (OtterIO)
   cache:     9.1.3 (Valkey)
   llm:       b7345 (llama.cpp)
   email:     1.0.3 (Stalwart)
@@ -43,7 +43,7 @@ botserver Stack Versions:
 |-----------|--------------|
 | llama.cpp | [github.com/ggml-org/llama.cpp/releases](https://github.com/ggml-org/llama.cpp/releases) |
 | PostgreSQL | [postgresql.org/download](https://www.postgresql.org/download/) |
-| MinIO | [github.com/minio/minio/releases](https://github.com/minio/minio/releases) |
+| OtterIO | [github.com/soulteary/otterio/releases](https://github.com/soulteary/otterio/releases) |
 | Valkey | [github.com/valkey-io/valkey/releases](https://github.com/valkey-io/valkey/releases) |
 | Zitadel | [github.com/zitadel/zitadel/releases](https://github.com/zitadel/zitadel/releases) |
 | Vault | [releases.hashicorp.com/vault](https://releases.hashicorp.com/vault/) |
@@ -194,21 +194,22 @@ psql $DATABASE_URL -c "SELECT version();"
 
 ---
 
-### Updating MinIO (Drive)
+### Updating OtterIO (Drive)
 
-MinIO updates are generally safe and backward-compatible.
+OtterIO is Apache-2.0, forked from the last Apache-2.0 baseline (2021) with
+selective backports; review each release before changing the pin.
 
 ```bash
-# Update 3rdparty.toml
+# Update 3rdparty.toml with the new release URL and its published SHA-256
 [components.drive]
-url = "https://dl.min.io/server/minio/release/linux-amd64/minio"
-filename = "minio"
+url = "https://github.com/soulteary/otterio/releases/download/RELEASE.2026-11-25T20-30-00Z/otterio-linux-amd64"
+filename = "otterio"
 
 # Apply update
 ./botserver update drive
 
 # Verify
-curl http://localhost:9000/minio/health/live
+curl http://localhost:9000/otterio/health/live
 ```
 
 ---
@@ -383,7 +384,7 @@ cargo test
 # Individual service checks
 curl -k https://localhost:8081/health  # LLM
 curl -k https://localhost:8082/health  # Embedding
-curl http://localhost:9000/minio/health/live  # Drive
+curl http://localhost:9000/otterio/health/live  # Drive
 ```
 
 ### Security Audit
@@ -439,7 +440,7 @@ tar -xzf botserver-stack-backup.tar.gz
 | Component | Update Frequency | Risk Level |
 |-----------|-----------------|------------|
 | llama.cpp | Weekly/Monthly | Low |
-| MinIO | Monthly | Low |
+| OtterIO | Monthly | Low |
 | Valkey | Quarterly | Low |
 | Caddy | Monthly | Low |
 | CoreDNS | Quarterly | Low |

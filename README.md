@@ -83,7 +83,7 @@ Every application is a self-contained module that can be deployed alone or as pa
 | <img src=".github/svg/auth.svg" width="32"> | **Auth / Identity**<br><sub>Core Platform</sub> | OAuth 2.0, OpenID Connect, JWT validation and session management, with role-based access control on every endpoint. SSO-ready. |
 | <img src=".github/svg/database.svg" width="32"> | **Shared / Database**<br><sub>Core Platform</sub> | PostgreSQL with managed schema definitions, shared models and common utilities used across every application. |
 | <img src=".github/svg/ai-engine.svg" width="32"> | **AI Engine**<br><sub>Core Platform</sub> | LLM provider orchestration across DeepSeek, Qwen, GLM, Kimi, MiniMax, Yi or any OpenAI-compatible API. Automatic failover, token counting, streaming and cost tracking. |
-| <img src=".github/svg/drive.svg" width="32"> | **Drive / Storage**<br><sub>Core Platform</sub> | S3-compatible object storage with upload, download, versioning and automatic indexing for search and RAG. Works with MinIO, AWS S3 and Wasabi. |
+| <img src=".github/svg/drive.svg" width="32"> | **Drive / Storage**<br><sub>Core Platform</sub> | S3-compatible object storage with upload, download, versioning and automatic indexing for search and RAG. Works with OtterIO, AWS S3 and Wasabi. |
 | <img src=".github/svg/dashboards.svg" width="32"> | **Dashboards / Analytics**<br><sub>Core Platform</sub> | Real-time dashboards covering system health, business KPIs and custom visualisations. Exportable and embeddable. |
 | <img src=".github/svg/ai-search.svg" width="32"> | **AI Search**<br><sub>Capabilities</sub> | Retrieval-augmented generation over PDFs, Word and Excel with sub-second semantic retrieval and cited answers. |
 | <img src=".github/svg/bot-factory.svg" width="32"> | **Bot Factory**<br><sub>Capabilities</sub> | Rapid prototyping and multi-bot orchestration. Run many bots with distinct personalities from one dashboard. |
@@ -121,7 +121,7 @@ Two Rust services, one workspace, thirteen platform services behind them.
 
 <a href=".github/svg/diagram-platform.svg"><img src=".github/svg/diagram-platform.svg" alt="Platform architecture: clients and channels reach Caddy, which routes to botui on three ports and to botserver, whose message pipeline runs channel_entry to consent gate to start.bas to knowledge base retrieval to the API catalog to tool execution and out to the client, over the BASIC engine, drive compiler and app registry, with the AI layer, data services and drive tenancy model below" width="1500"></a>
 
-The full picture, top to bottom. **Clients and channels** reach **Caddy**, which routes to **botui** (three ports, one binary) and **botserver** (`8080`, HTTP and WebSocket). Inside botserver a message runs `channel_entry → consent_gate → start.bas → kb/RAG → api_catalog → tool_exec → sink`, over the BASIC (Rhai) engine, the drive compiler and the app registry that gives the model a UI automation surface. Below that sit the **AI layer** — `botllm` routing across Claude, Bedrock, Vertex, GLM, Kimi, Kiro or a local llama.cpp — the **data services** (PostgreSQL, Vault, Valkey, MinIO, Zitadel, Qdrant, Stalwart, LiveKit) and the **drive tenancy model** (`{org}.gborg → {workspace}.gbai → {bot}`) that `drive_monitors` discovers from object storage at runtime.
+The full picture, top to bottom. **Clients and channels** reach **Caddy**, which routes to **botui** (three ports, one binary) and **botserver** (`8080`, HTTP and WebSocket). Inside botserver a message runs `channel_entry → consent_gate → start.bas → kb/RAG → api_catalog → tool_exec → sink`, over the BASIC (Rhai) engine, the drive compiler and the app registry that gives the model a UI automation surface. Below that sit the **AI layer** — `botllm` routing across Claude, Bedrock, Vertex, GLM, Kimi, Kiro or a local llama.cpp — the **data services** (PostgreSQL, Vault, Valkey, OtterIO, Zitadel, Qdrant, Stalwart, LiveKit) and the **drive tenancy model** (`{org}.gborg → {workspace}.gbai → {bot}`) that `drive_monitors` discovers from object storage at runtime.
 
 **botserver** is the platform core: 113 domain crates, one per business domain (`botcrm`, `botcalendar`, `botdrive`, `botlearn`, `botcloud`, …). Business logic belongs there, not in the API surface.
 
@@ -174,7 +174,7 @@ cd generalbots
 ./restart.sh
 ```
 
-`restart.sh` stops anything already running, builds botserver and botui in order, and starts both. BotServer then provisions its own stack — PostgreSQL, Vault, MinIO, Valkey, Zitadel, Qdrant and a local llama.cpp server — and reads every credential from Vault. No global database or Redis install is needed or wanted.
+`restart.sh` stops anything already running, builds botserver and botui in order, and starts both. BotServer then provisions its own stack — PostgreSQL, Vault, OtterIO, Valkey, Zitadel, Qdrant and a local llama.cpp server — and reads every credential from Vault. No global database or Redis install is needed or wanted.
 
 Once it is up:
 

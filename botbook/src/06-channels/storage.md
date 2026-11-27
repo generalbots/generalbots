@@ -1,7 +1,7 @@
 # Storage Services 🟡 BETA
 
 Drive stores bot files on an S3-compatible endpoint. The default is the
-self-hosted MinIO that ships with the stack; Backblaze B2, Cloudflare R2 and
+self-hosted OtterIO that ships with the stack; Backblaze B2, Cloudflare R2 and
 Wasabi are selectable without a rebuild.
 
 The backend, its region and an optional failover endpoint are read from the
@@ -38,7 +38,7 @@ deliberately not offered, because they would bypass revocation.
 
 | Backend | Vault `backend` | Storage /TB/mo | Egress | Minimums | Runtime buckets |
 |---|---|---|---|---|---|
-| MinIO | `minio` | self-hosted | none | none | ✅ default |
+| OtterIO | `otterio` | self-hosted | none | none | ✅ default |
 | Backblaze B2 | `b2` | $6.95 | free to 3× stored, then $0.01/GB | none | ✅ |
 | Cloudflare R2 | `r2` | $15.00 | **$0 unlimited** | none | ✅ |
 | Wasabi | `wasabi` | $7.99 | $0, fair use 1:1 | **1 TB floor, 90-day term** | ⚠️ see below |
@@ -67,7 +67,7 @@ aligned with the data and the floor is met by aggregate volume.
 
 | Tier | Backend | Why |
 |---|---|---|
-| Hot runtime path | MinIO | unchanged; no egress charge, no external dependency |
+| Hot runtime path | OtterIO | unchanged; no egress charge, no external dependency |
 | Cold / archive / KB originals | Backblaze B2 | cheapest at $6.95/TB, no floor, no retention term, 3× egress included |
 | Egress-heavy share links | Cloudflare R2 | $0 egress, at $15/TB storage |
 
@@ -77,9 +77,9 @@ aligned with the data and the floor is met by aggregate volume.
 
 | Key | Required | Meaning |
 |---|---|---|
-| `host`, `port` | for MinIO | endpoint components, used as `http://host:port` |
+| `host`, `port` | for OtterIO | endpoint components, used as `http://host:port` |
 | `endpoint` | for B2/R2/Wasabi | full URL; wins over `host`/`port` |
-| `backend` | no | `minio` (default), `b2`, `wasabi`, `r2` |
+| `backend` | no | `otterio` (default), `b2`, `wasabi`, `r2` |
 | `region` | no | signing region; defaults per backend (`us-west-004` for B2) |
 | `fallback_endpoint` | no | secondary endpoint used for read failover |
 | `accesskey`, `secret`, `bucket` | yes | credentials and default bucket |
@@ -88,10 +88,10 @@ Backblaze B2 and Cloudflare R2 both **require** an explicit region — signing
 against the wrong one is what makes them unusable — so the backend supplies a
 default when the key is absent.
 
-Env-var equivalents, for deployments that skip Vault: `MINIO_ENDPOINT`,
-`MINIO_REGION`, `MINIO_BACKEND`, `MINIO_FALLBACK_ENDPOINT`.
+Env-var equivalents, for deployments that skip Vault: `OTTERIO_ENDPOINT`,
+`OTTERIO_REGION`, `OTTERIO_BACKEND`, `OTTERIO_FALLBACK_ENDPOINT`.
 
-An unknown `backend` value falls back to MinIO rather than failing the boot; a
+An unknown `backend` value falls back to OtterIO rather than failing the boot; a
 typo in a secret should not take Drive offline.
 
 ## Failover
@@ -115,7 +115,7 @@ than a Drive content change.
 | B2 | 3× the stored volume |
 | Wasabi | 1:1, and a breach is flagged by the provider |
 | R2 | unmetered |
-| MinIO | unmetered |
+| OtterIO | unmetered |
 
 Without this, B2's overage and Wasabi's fair-use limit arrive with the invoice.
 Read it with `S3Repository::egress()`.
@@ -135,4 +135,4 @@ Under each workspace prefix: `{bot}.gbdrive/` for user files and media,
 ## Related
 
 - [Storage and Data](../03-knowledge-ai/storage.md) — how the storage layers fit together
-- [MinIO Configuration](../10-configuration-deployment/minio.md) — running the default backend
+- [OtterIO Configuration](../10-configuration-deployment/otterio.md) — running the default backend

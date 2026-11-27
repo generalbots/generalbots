@@ -98,7 +98,7 @@ curl http://<vectordb-ip>:6333/health
 | `vault` | HashiCorp Vault - Secrets management |
 | `tables` | PostgreSQL - Primary database |
 | `cache` | Valkey - Redis-compatible cache |
-| `drive` | MinIO - S3-compatible object storage |
+| `drive` | OtterIO - S3-compatible object storage |
 | `llm` | llama.cpp - Local LLM server |
 | `email` | Stalwart - Mail server |
 | `proxy` | Caddy - HTTPS reverse proxy |
@@ -292,7 +292,7 @@ botserver vault list
 ```
 Configured secret paths:
   gbo/tables           - Database credentials
-  gbo/drive            - S3/MinIO credentials
+  gbo/drive            - S3/OtterIO credentials
   gbo/cache            - Redis credentials
   gbo/email            - SMTP credentials
   gbo/directory        - Zitadel credentials
@@ -399,7 +399,7 @@ botserver rotate-secret <component>
 | Component | What Gets Rotated |
 |-----------|-------------------|
 | `tables` | PostgreSQL password |
-| `drive` | MinIO access key and secret |
+| `drive` | OtterIO access key and secret |
 | `cache` | Valkey/Redis password |
 | `email` | SMTP password |
 | `directory` | Zitadel client secret |
@@ -423,7 +423,7 @@ botserver rotate-secret tables
 # Save to Vault? [y/N]: y
 # ✓ Credentials saved to Vault
 
-# Rotate S3/MinIO credentials
+# Rotate S3/OtterIO credentials
 botserver rotate-secret drive
 
 # Rotate Redis password
@@ -455,7 +455,7 @@ Type 'ROTATE ALL' to continue: ROTATE ALL
 Generating new credentials...
 
 ✓ tables: ALTER USER postgres WITH PASSWORD 'Xk9mP@ss...';
-✓ drive: mc admin user add myminio AKIAEXAMPLE... secretkey...
+✓ drive: oc admin user add myotterio AKIAEXAMPLE... secretkey...
 ✓ cache: redis-cli CONFIG SET requirepass 'NewRedisP@ss...'
 ✓ email: new password = SmtpP@ss...
 ✓ directory: new client_secret = ZitadelSecret...
@@ -475,9 +475,9 @@ After rotating secrets, follow this checklist:
 # 1. Update PostgreSQL
 incus exec pragmatismo-tables -- psql -U postgres -c "ALTER USER postgres WITH PASSWORD 'new-password';"
 
-# 2. Update MinIO (create new user, migrate data, delete old)
-incus exec pragmatismo-drive -- mc admin user add local newkey newsecret
-incus exec pragmatismo-drive -- mc admin policy attach local readwrite --user newkey
+# 2. Update OtterIO (create new user, migrate data, delete old)
+incus exec pragmatismo-drive -- oc admin user add local newkey newsecret
+incus exec pragmatismo-drive -- oc admin policy attach local readwrite --user newkey
 
 # 3. Update Valkey/Redis
 incus exec pragmatismo-cache -- redis-cli CONFIG SET requirepass 'new-password'
@@ -505,7 +505,7 @@ botserver version --all
 After rotating credentials, you MUST manually update each service:
 
 - **Database (tables):** Run the provided SQL command to update PostgreSQL user password
-- **Drive (MinIO):** Run the provided `mc admin` commands to update S3 credentials
+- **Drive (OtterIO):** Run the provided `oc admin` commands to update S3 credentials
 - **Cache (Redis):** Run the provided `redis-cli` command to update password
 - **Directory (Zitadel):** Update client secret via admin console
 
@@ -530,7 +530,7 @@ If verification fails, you must manually restore from backups:
 | Component | Credential Type | Manual Update Required | Service Restart |
 |-----------|----------------|------------------------|-----------------|
 | `tables` | PostgreSQL password | ✅ Run SQL command | ❌ No |
-| `drive` | MinIO S3 credentials | ✅ Run mc commands | ❌ No |
+| `drive` | OtterIO S3 credentials | ✅ Run oc commands | ❌ No |
 | `cache` | Redis/Valkey password | ✅ Run redis-cli | ❌ No |
 | `email` | SMTP password | ✅ Update mail server | ❌ No |
 | `directory` | Zitadel client secret | ✅ Update via console | ❌ No |
@@ -628,7 +628,7 @@ Database connection credentials.
 
 ### gbo/drive
 
-S3/MinIO storage credentials.
+S3/OtterIO storage credentials.
 
 | Key | Description |
 |-----|-------------|
@@ -821,7 +821,7 @@ iptables -A INPUT -p tcp --dport 8200 -j DROP
 |-----------|-------------------|---------|
 | Vault Token | 30 days | Vault UI or API |
 | Database | 90 days | `botserver rotate-secret tables` |
-| S3/MinIO | 90 days | `botserver rotate-secret drive` |
+| S3/OtterIO | 90 days | `botserver rotate-secret drive` |
 | Redis | 90 days | `botserver rotate-secret cache` |
 | Email | 90 days | `botserver rotate-secret email` |
 | All at once | After incident | `botserver rotate-secrets --all` |

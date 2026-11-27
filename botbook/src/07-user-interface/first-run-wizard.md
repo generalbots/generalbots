@@ -3,7 +3,7 @@
 The desktop edition ships a dedicated first-run wizard that runs **before** the
 local stack exists. It is static HTML/CSS/JS bundled with the application and
 rendered by its own window, so it never depends on botserver, botui, Vault,
-PostgreSQL, MinIO or the network.
+PostgreSQL, OtterIO or the network.
 
 Issues: #1586 (placement), #1587 (shell), #1588 (services), #1589
 (provisioning), #1590 (privacy data map), #1591 (acceptance matrix).
@@ -39,14 +39,14 @@ read-only and installs nothing:
 | macOS | `./PROD-DEPENDENCIES.sh --check` | Remote Incus (`incus remote add`) or a Linux VM; Incus cannot run containers natively on macOS |
 
 On macOS the unsigned dmg is best effort. The wizard must mark the service
-stack components (PostgreSQL, Valkey, MinIO/mc, Qdrant, Vault, Zitadel and
+stack components (PostgreSQL, Valkey, OtterIO/oc, Qdrant, Vault, Zitadel and
 llama.cpp) unavailable instead of failing provisioning, because they have no
 darwin builds. BotModels has no darwin pythonbox yet, and the agent backend
 needs remote Incus or a Linux VM. Gatekeeper blocks the unsigned app until the
 user right-clicks -> Open or runs
 `xattr -dr com.apple.quarantine "/Applications/General Bots.app"`.
 
-On Windows the payload includes `installers/` for MinIO + mc, Redis (cache),
+On Windows the payload includes `installers/` for OtterIO + oc, Redis (cache),
 Qdrant, Zitadel, Caddy and the Windows BotModels pythonbox
 (`botmodels-pythonbox-windows-x86_64.zip`). The wizard downloads PostgreSQL,
 Vault, llama.cpp and models once unless `GB_DESKTOP_OFFLINE=1`; with that flag
@@ -108,7 +108,7 @@ exists. `/api/product` always returns `media_capabilities` with
 service unavailable instead of trying to install (and failing or hanging on) an
 archive that cannot run.
 
-The Windows self-extracting payload bundles MinIO + mc, Redis, Qdrant, Zitadel,
+The Windows self-extracting payload bundles OtterIO + oc, Redis, Qdrant, Zitadel,
 Caddy and the Windows pythonbox under `installers/`; PostgreSQL, Vault and
 llama.cpp (when the local model is selected) are downloaded once on first run.
 `GB_DESKTOP_OFFLINE=1` refuses those downloads and names the missing archive.
