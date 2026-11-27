@@ -1286,3 +1286,18 @@ app-events-name = Eventos
 app-events-desc = Gestiona eventos y horarios.
 app-notepad-name = Bloc de notas
 app-notepad-desc = Tome notas almacenadas localmente por usuario.
+
+# Calendar event form (#console smoke 2026-11-27)
+calendar-15min-before = 15 minutos antes
+calendar-1day-before = 1 día antes
+calendar-1hour-before = 1 hora antes
+calendar-30min-before = 30 minutos antes
+calendar-5min-before = 5 minutos antes
+calendar-daily = Diario
+calendar-monthly = Mensual
+calendar-no-reminder = Sin recordatorio
+calendar-no-repeat = No repite
+calendar-save-event = Guardar evento
+calendar-weekly = Semanal
+calendar-yearly = Anual
+label-color = Color

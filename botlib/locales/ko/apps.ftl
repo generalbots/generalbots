@@ -1288,3 +1288,18 @@ app-events-name = 이벤트
 app-events-desc = 이벤트와 일정을 관리합니다.
 app-notepad-name = 메모장
 app-notepad-desc = 사용자별로 로컬에 저장되는 메모를 작성합니다.
+
+# Calendar event form (#console smoke 2026-11-27)
+calendar-15min-before = 15분 전
+calendar-1day-before = 1일 전
+calendar-1hour-before = 1시간 전
+calendar-30min-before = 30분 전
+calendar-5min-before = 5분 전
+calendar-daily = 매일
+calendar-monthly = 매월
+calendar-no-reminder = 알림 없음
+calendar-no-repeat = 반복 없음
+calendar-save-event = 이벤트 저장
+calendar-weekly = 매주
+calendar-yearly = 매년
+label-color = 색상

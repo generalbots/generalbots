@@ -1288,3 +1288,18 @@ app-events-name = イベント
 app-events-desc = イベントとスケジュールを管理します。
 app-notepad-name = メモ帳
 app-notepad-desc = ユーザーごとにローカル保存されるメモを作成します。
+
+# Calendar event form (#console smoke 2026-11-27)
+calendar-15min-before = 15分前
+calendar-1day-before = 1日前
+calendar-1hour-before = 1時間前
+calendar-30min-before = 30分前
+calendar-5min-before = 5分前
+calendar-daily = 毎日
+calendar-monthly = 毎月
+calendar-no-reminder = リマインダーなし
+calendar-no-repeat = 繰り返しなし
+calendar-save-event = イベントを保存
+calendar-weekly = 毎週
+calendar-yearly = 毎年
+label-color = 色

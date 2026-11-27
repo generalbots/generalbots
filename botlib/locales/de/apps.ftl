@@ -1288,3 +1288,18 @@ app-events-name = Veranstaltungen
 app-events-desc = Veranstaltungen und Termine verwalten.
 app-notepad-name = Notizblock
 app-notepad-desc = Notizen lokal pro Benutzer speichern.
+
+# Calendar event form (#console smoke 2026-11-27)
+calendar-15min-before = 15 Minuten vorher
+calendar-1day-before = 1 Tag vorher
+calendar-1hour-before = 1 Stunde vorher
+calendar-30min-before = 30 Minuten vorher
+calendar-5min-before = 5 Minuten vorher
+calendar-daily = Täglich
+calendar-monthly = Monatlich
+calendar-no-reminder = Keine Erinnerung
+calendar-no-repeat = Wiederholt sich nicht
+calendar-save-event = Termin speichern
+calendar-weekly = Wöchentlich
+calendar-yearly = Jährlich
+label-color = Farbe

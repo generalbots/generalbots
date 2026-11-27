@@ -1,7 +1,6 @@
 //! Protocol, action and verdict tests, on lines recorded from Claude Code
 //! 2.1.330 in the live spike.
 
-use axum::http::StatusCode;
 use serde_json::json;
 
 use super::protocol::{self, Incoming};
@@ -107,8 +106,8 @@ fn report(answer: &str, cli: &str, result: TurnResult) -> DriveReport {
 fn a_spent_plan_keeps_the_limit_card_path() {
     let result = TurnResult { subtype: "success".into(), is_error: true, text: "You've hit your limit · resets 3pm".into(), ..TurnResult::default() };
     let error = interpret(report("", "You've hit your limit · resets 3pm", result)).map(|_| ()).unwrap_err();
-    assert_eq!(error.0, StatusCode::TOO_MANY_REQUESTS);
-    assert!(error.1.starts_with(crate::plan_limit::MARKER));
+    assert_eq!(error.error, "rate_limited");
+    assert!(error.message.starts_with(crate::plan_limit::MARKER));
 }
 
 #[test]
@@ -117,9 +116,9 @@ fn a_good_turn_keeps_its_session_id_and_an_empty_one_fails() {
     let mut good = report("Hello", "", ok.clone());
     good.session_id = Some("s-1".into());
     assert_eq!(interpret(good).expect("ok").session_id.as_deref(), Some("s-1"));
-    assert_eq!(interpret(report("", "", ok)).map(|_| ()).unwrap_err().0, StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(interpret(report("", "", ok)).map(|_| ()).unwrap_err().error, "internal_error");
     let failed = TurnResult { subtype: "error_max_turns".into(), is_error: true, ..TurnResult::default() };
-    assert_eq!(interpret(report("partial", "", failed)).map(|_| ()).unwrap_err().1, "Claude Code failed to answer.");
+    assert_eq!(interpret(report("partial", "", failed)).map(|_| ()).unwrap_err().message, "Claude Code failed to answer.");
 }
 
 #[test]

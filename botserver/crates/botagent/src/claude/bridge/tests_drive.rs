@@ -5,7 +5,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::Duration;
 
-use axum::http::StatusCode;
 use botlib::security::command_guard::SafeCommand;
 
 use super::{drive, interpret, BridgeGate, ClaudeAction, DriveReport, GateAnswer, ToolOutcome, ToolRequest, UNKNOWN_TOOL};
@@ -109,7 +108,7 @@ async fn a_session_that_ends_mid_request_closes_the_allowed_step_and_fails() {
     assert_eq!(finished.len(), 1);
     assert!(!finished[0].1.ok);
     assert!(report.result.is_none());
-    assert_eq!(interpret(report).map(|_| ()).unwrap_err().0, StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(interpret(report).map(|_| ()).unwrap_err().error, "internal_error");
 }
 
 #[tokio::test]
@@ -135,5 +134,5 @@ async fn the_cli_sign_in_message_is_not_streamed_and_becomes_not_signed_in() {
     let report = run("synthetic", &gate).await;
     assert!(gate.text.lock().expect("lock").is_empty());
     let error = interpret(report).map(|_| ()).unwrap_err();
-    assert_eq!(error.0, StatusCode::UNAUTHORIZED);
+    assert_eq!(error.error, "unauthorized");
 }

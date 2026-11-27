@@ -1288,3 +1288,18 @@ app-events-name = 活动
 app-events-desc = 管理活动和日程。
 app-notepad-name = 记事本
 app-notepad-desc = 创建按用户本地存储的笔记。
+
+# Calendar event form (#console smoke 2026-11-27)
+calendar-15min-before = 15 分钟前
+calendar-1day-before = 1 天前
+calendar-1hour-before = 1 小时前
+calendar-30min-before = 30 分钟前
+calendar-5min-before = 5 分钟前
+calendar-daily = 每天
+calendar-monthly = 每月
+calendar-no-reminder = 无提醒
+calendar-no-repeat = 不重复
+calendar-save-event = 保存事件
+calendar-weekly = 每周
+calendar-yearly = 每年
+label-color = 颜色

@@ -1291,3 +1291,18 @@ app-events-name = Events
 app-events-desc = Manage events and schedules.
 app-notepad-name = Notepad
 app-notepad-desc = Take notes stored locally per user.
+
+# Calendar event form (#console smoke 2026-11-27)
+calendar-15min-before = 15 minutes before
+calendar-1day-before = 1 day before
+calendar-1hour-before = 1 hour before
+calendar-30min-before = 30 minutes before
+calendar-5min-before = 5 minutes before
+calendar-daily = Daily
+calendar-monthly = Monthly
+calendar-no-reminder = No reminder
+calendar-no-repeat = Does not repeat
+calendar-save-event = Save Event
+calendar-weekly = Weekly
+calendar-yearly = Yearly
+label-color = Color
