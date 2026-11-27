@@ -170,6 +170,17 @@ jobs:
           # which needs dnsmasq; it is only a recommended package of incus.
           sudo apt-get install -y -q --no-install-recommends incus dnsmasq-base
           sudo incus admin init --auto
+          # ubuntu-26.04 runners boot with this AppArmor restriction on. The
+          # kernel then stacks `unconfined` on the label Incus gives a
+          # container ("change_profile unprivileged unconfined converted to
+          # stacking" in dmesg), the container's own profile stops its
+          # processes from signalling each other, and systemd in the guest
+          # hangs before systemd-networkd starts: the builder never asks for
+          # a DHCP lease. The test keeps the step working on a runner image
+          # whose kernel has no such knob.
+          if sudo sysctl kernel.apparmor_restrict_unprivileged_unconfined 2>/dev/null; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_unconfined=0
+          fi
           # Docker on the runner sets the FORWARD policy to DROP, which cuts
           # the builder container off the network behind incusbr0.
           sudo iptables -P FORWARD ACCEPT
@@ -205,50 +216,41 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       # Runs only after a failed step. The build script deletes its builder on
-      # exit, so this prints the host side (bridge, DHCP, firewall) and boots a
-      # throw-away container on the same bridge to watch it ask for a lease.
+      # exit, so this prints the host side (AppArmor, bridge, DHCP, firewall)
+      # and boots a throw-away container on the same bridge to watch whether
+      # it asks for a lease and whether the bridge passes traffic at all.
       - name: Network diagnostics
         if: ${{ failure() }}
         run: |
           set +e +o pipefail
-          show() { printf '\n##### %s\n' "$*"; "$@" 2>&1 | head -n 250; }
-          show uname -a
-          show sudo incus info
-          show sudo incus network list
-          show sudo incus network show incusbr0
-          show sudo incus network list-leases incusbr0
-          show sudo incus profile show default
-          show ip -4 addr
-          show ip route
-          show sysctl net.ipv4.ip_forward net.bridge.bridge-nf-call-iptables
-          show sudo ss -ulpn
-          show pgrep -a dnsmasq
-          show sudo ufw status verbose
-          show sudo iptables --version
-          show sudo iptables -S
-          show sudo iptables -t nat -S
-          show sudo nft list ruleset
-          show cat /etc/docker/daemon.json
-          show sudo journalctl -u incus -n 80 --no-pager
-          show sudo sh -c 'dmesg | grep -i "apparmor.*denied" | tail -n 40'
+          exec 2>&1
+          t() { printf '\n##### %s\n' "$*"; }
+          audit() { sudo dmesg | grep -E 'apparmor="(DENIED|AUDIT)"' | sed -E 's/^.*audit\([0-9.:]+\): //; s/ pid=[0-9]+//' | sort | uniq -c | sort -rn | head -n 40; }
+          t kernel and AppArmor knobs; uname -r; sudo sysctl -a 2>/dev/null | grep apparmor
+          t incus; sudo incus info | sed -n '/^environment:/,$p'
+          sudo incus network show incusbr0; sudo incus network list-leases incusbr0
+          sudo incus profile show default; sudo incus list
+          t host addresses and routes; ip -4 addr; ip route; sysctl net.ipv4.ip_forward
+          t dnsmasq; pgrep -a dnsmasq; sudo ss -ulpn | grep -E ':(53|67) '
+          t firewall; sudo ufw status; sudo iptables -S; sudo iptables -t nat -S
+          sudo nft list ruleset | head -n 250
+          t incus journal; sudo journalctl -u incus -n 60 --no-pager
+          t AppArmor denials so far; audit
 
-          printf '\n##### probe container on incusbr0\n'
-          sudo apt-get install -y -q --no-install-recommends tcpdump >/dev/null 2>&1
-          sudo timeout 45 tcpdump -lnei incusbr0 -c 24 'udp port 67 or udp port 68' 2>&1 | sed 's/^/tcpdump: /' &
+          t probe container on incusbr0
+          sudo apt-get install -y -q --no-install-recommends tcpdump >/dev/null
+          sudo timeout 45 tcpdump -lnei incusbr0 -c 24 'udp port 67 or udp port 68' | sed 's/^/tcpdump: /' &
           sleep 3
           sudo incus launch images:debian/13 gb-net-probe
           sleep 40
           wait
-          show sudo incus list
-          show sudo incus network list-leases incusbr0
-          show sudo incus exec gb-net-probe -- sh -c 'ip a; ip route; cat /etc/resolv.conf; ls -l /etc/systemd/network; cat /etc/systemd/network/*; systemctl is-system-running; systemctl --failed --no-pager; systemctl status systemd-networkd --no-pager -l; networkctl status --no-pager; journalctl -b -u systemd-networkd -n 60 --no-pager'
-          show sudo incus exec gb-net-probe -- journalctl -b -p warning -n 60 --no-pager
-          show sudo incus info gb-net-probe --show-log
-          # With a hand-set address: does the bridge itself pass traffic, to
-          # the gateway (dnsmasq on :53) and through NAT to the internet?
+          sudo incus list; sudo incus network list-leases incusbr0
+          sudo incus exec gb-net-probe -- sh -c 'ip a; ip route; cat /etc/resolv.conf; cat /etc/systemd/network/*; systemctl is-system-running; systemctl --failed --no-pager; systemctl status systemd-networkd --no-pager -l; journalctl -b -n 60 --no-pager'
+          # With a hand-set address: does the bridge pass traffic to the
+          # gateway (dnsmasq on :53) and through NAT to the internet?
           gw=$(sudo incus network get incusbr0 ipv4.address); gw=${gw%/*}
-          show sudo incus exec gb-net-probe -- sh -c "ip addr add ${gw%.*}.250/24 dev eth0; ip link set eth0 up; ip route replace default via $gw; timeout 5 bash -c 'echo > /dev/tcp/$gw/53' && echo 'static: tcp to the gateway works' || echo 'static: no tcp to the gateway'; timeout 8 bash -c 'echo > /dev/tcp/1.1.1.1/443' && echo 'static: tcp to the internet works' || echo 'static: no tcp to the internet'"
-          show sudo sh -c 'dmesg | tail -n 60'
+          sudo incus exec gb-net-probe -- sh -c "ip addr add ${gw%.*}.250/24 dev eth0; ip link set eth0 up; ip route replace default via $gw; timeout 5 bash -c 'echo > /dev/tcp/$gw/53' && echo 'static: tcp to the gateway works' || echo 'static: no tcp to the gateway'; timeout 8 bash -c 'echo > /dev/tcp/1.1.1.1/443' && echo 'static: tcp to the internet works' || echo 'static: no tcp to the internet'"
+          t AppArmor denials after the probe; audit
           sudo incus delete --force gb-net-probe
           exit 0
 
@@ -300,6 +302,7 @@ jobs:
             --fragments meta --version "$VERSION" --tag "$tag" --commit "$GITHUB_SHA" \
             --built-at "$built_at" --snapshot "$SNAPSHOT" \
             --out out/agent-runtime-manifest.json --sums out/SHA256SUMS
+          cat out/agent-runtime-manifest.json out/SHA256SUMS
           {
             echo "### agent-runtime-manifest.json"
             echo '```json'
