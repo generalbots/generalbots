@@ -267,6 +267,10 @@ docs-font-size = Tamaño de fuente
 slides-font-family = Familia de fuente
 slides-font-size = Tamaño de fuente
 docs-no-documents-yet = Aún no hay documentos. Haz clic en + Nuevo.
+docs-table-header-numbered = Encabezado { $number }
+docs-reference-numbered = Referencia { $number }
+docs-no-references-yet = Aún no hay referencias — añade una abajo y luego inserta una cita.
+docs-presenting = Presentando
 
 # semantic i18n key (#2542)
 templates-channel-notification = Notificación

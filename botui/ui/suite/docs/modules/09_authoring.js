@@ -135,7 +135,7 @@
     for (var c = 0; c < cols; c++) {
       var th = document.createElement("th");
       th.contentEditable = "true";
-      th.textContent = "Header " + (c + 1);
+      th.textContent = docsT("docs-table-header-numbered", "Header { $number }", { number: c + 1 });
       htr.appendChild(th);
     }
     thead.appendChild(htr);

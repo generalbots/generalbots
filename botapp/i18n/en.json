@@ -35,5 +35,6 @@
   "tray-files": "Files",
   "tray-new-chat": "New Chat",
   "tray-quit": "Quit",
-  "tray-settings": "Settings"
+  "tray-settings": "Settings",
+  "tray-tooltip": "General Bots Lite"
 }

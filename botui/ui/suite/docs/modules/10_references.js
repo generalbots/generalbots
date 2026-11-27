@@ -62,7 +62,7 @@
     sup.className = "docs-citation";
     sup.contentEditable = "false";
     sup.textContent = "[" + (index + 1) + "]";
-    sup.title = "Reference " + (index + 1);
+    sup.title = docsT("docs-reference-numbered", "Reference { $number }", { number: index + 1 });
     if (window.DocsAuthoringCore) window.DocsAuthoringCore.insertNodeAtCaret(sup);
   }
 
@@ -81,7 +81,7 @@
     var listEl = panel.querySelector(".gref-list");
     var refs = readReferences();
     if (!refs.length) {
-      listEl.innerHTML = '<div class="gref-empty">No references yet — add one below, then insert a citation.</div>';
+      listEl.innerHTML = '<div class="gref-empty">' + docsT("docs-no-references-yet", "No references yet — add one below, then insert a citation.") + '</div>';
       return;
     }
     listEl.innerHTML = refs.map(function (ref, i) {
@@ -107,7 +107,7 @@
     panel = document.createElement("div");
     panel.id = "gb-refs-panel";
     panel.setAttribute("role", "dialog");
-    panel.setAttribute("aria-label", "References");
+    panel.setAttribute("aria-label", docsT("docs-references", "References"));
     panel.innerHTML =
       '<div class="gref-header">' +
       '<span class="gref-title">References &amp; citations</span>' +

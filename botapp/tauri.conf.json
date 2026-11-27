@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "General Bots",
+  "productName": "General Bots Lite",
   "version": "7.1.2",
   "identifier": "org.generalbots.botapp",
   "build": {
@@ -17,7 +17,7 @@
     "windows": [
       {
         "label": "splash",
-        "title": "General Bots",
+        "title": "General Bots Lite",
         "url": "splash.html",
         "width": 420,
         "height": 420,
@@ -32,7 +32,7 @@
         "visible": false
       },
       {
-        "title": "General Bots",
+        "title": "General Bots Lite",
         "url": "suite/desktop.html",
         "width": 1200,
         "height": 800,

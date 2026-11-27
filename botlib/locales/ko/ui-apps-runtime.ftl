@@ -39,6 +39,10 @@ docs-font-size = 글꼴 크기
 slides-font-family = 글꼴
 slides-font-size = 글꼴 크기
 docs-no-documents-yet = 아직 문서가 없습니다. + 새로 만들기를 클릭하세요.
+docs-table-header-numbered = 헤더 { $number }
+docs-reference-numbered = 참고 문헌 { $number }
+docs-no-references-yet = 아직 참고 문헌이 없습니다. 아래에 추가한 다음 인용을 삽입하세요.
+docs-presenting = 발표 중
 
 # semantic i18n key (#2542)
 templates-channel-notification = 알림

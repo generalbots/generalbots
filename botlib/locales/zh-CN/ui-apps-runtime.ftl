@@ -39,6 +39,11 @@ docs-font-size = 字号
 slides-font-family = 字体
 slides-font-size = 字号
 docs-no-documents-yet = 还没有文档。点击 + 新建。
+docs-references = 参考文献
+docs-table-header-numbered = 表头 { $number }
+docs-reference-numbered = 参考文献 { $number }
+docs-no-references-yet = 尚无参考文献 — 请在下方添加一条，然后插入引文。
+docs-presenting = 演示中
 
 # semantic i18n key (#2542)
 templates-channel-notification = 通知

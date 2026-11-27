@@ -39,6 +39,11 @@ docs-font-size = Taille de police
 slides-font-family = Police
 slides-font-size = Taille de police
 docs-no-documents-yet = Aucun document pour l’instant. Cliquez sur + Nouveau.
+docs-references = Références
+docs-table-header-numbered = En-tête { $number }
+docs-reference-numbered = Référence { $number }
+docs-no-references-yet = Aucune référence pour l’instant — ajoutez-en une ci-dessous, puis insérez une citation.
+docs-presenting = Présentation
 
 # semantic i18n key (#2542)
 templates-channel-notification = Notification

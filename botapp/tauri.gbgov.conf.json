@@ -1,6 +1,6 @@
 {
   "productName": "General Bots Lite",
-  "identifier": "org.generalbots.lite",
+  "identifier": "org.generalbots.botapp",
   "bundle": {
     "targets": [
       "nsis",
@@ -13,11 +13,7 @@
     "resources": {
       "../botserver/.product.gbgov": ".product.gbgov",
       "../botserver/botserver-installers/*": "installers/",
-      "../botui/ui": "ui",
-      "../desktop/windows/licenses/*": "licenses/",
-      "../desktop/os/licenses/NOTICE": "licenses/NOTICE",
-      "../LICENSES-desktop.md": "licenses/LICENSES-desktop.md",
-      "../LICENSE": "licenses/LICENSE-General-Bots.txt"
+      "../botui/ui": "ui"
     },
     "externalBin": [
       "binaries/botserver"
@@ -30,8 +26,7 @@
         ],
         "displayLanguageSelector": true,
         "installMode": "perMachine",
-        "installerIcon": "icons/icon.ico",
-        "installerHooks": "nsis/agent-runtime-uninstall.nsh"
+        "installerIcon": "icons/icon.ico"
       },
       "wix": {
         "language": [

@@ -39,6 +39,11 @@ docs-font-size = フォントサイズ
 slides-font-family = フォント
 slides-font-size = フォントサイズ
 docs-no-documents-yet = まだドキュメントがありません。+ 新規 をクリックしてください。
+docs-references = 参照
+docs-table-header-numbered = ヘッダー { $number }
+docs-reference-numbered = 参照 { $number }
+docs-no-references-yet = 参照はまだありません。下に追加してから引用を挿入してください。
+docs-presenting = プレゼンテーション
 
 # semantic i18n key (#2542)
 templates-channel-notification = 通知

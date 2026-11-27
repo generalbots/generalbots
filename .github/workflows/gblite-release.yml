@@ -1,0 +1,327 @@
+name: gblite release
+
+# Dedicated Windows MSI for the Lite edition, built from the gbgov pipeline:
+# same features (chat, drive, settings, llm, vectordb, consent, agent-vm,
+# web-search, embed-ui + custom-protocol), same Tauri config and product name
+# "General Bots Lite" (botapp/tauri.gbgov.conf.json), same bundle identifier.
+#
+# Only the exact tag `gblite-1.0.0` publishes. Manual dispatch builds and tests
+# the same files and keeps them as artifacts; it never creates a release.
+
+on:
+  push:
+    tags: ["gblite-1.0.0"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gblite-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  GBLITE_FEATURES: gbgov
+  TARGET_TRIPLE: x86_64-pc-windows-msvc
+  GBLITE_TAG: gblite-1.0.0
+
+jobs:
+  build:
+    name: Release build, offline payload, smoke, MSI
+    runs-on: windows-latest
+    timeout-minutes: 240
+    env:
+      # `secrets` cannot be read in a step condition; this flag can.
+      HAS_WINDOWS_CERT: ${{ secrets.WINDOWS_CERT != '' }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Resolve the edition version
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:GITHUB_REF_TYPE -eq 'tag') {
+            if ($env:GITHUB_REF_NAME -ne $env:GBLITE_TAG) {
+              throw "tag $($env:GITHUB_REF_NAME) is not the Lite release tag ($env:GBLITE_TAG)"
+            }
+            $version = $env:GITHUB_REF_NAME.Substring('gblite-'.Length)
+            $label = $env:GITHUB_REF_NAME
+          } else {
+            $version = (Get-Content botapp/tauri.conf.json -Raw | ConvertFrom-Json).version
+            $label = "gblite-build-$((git rev-parse --short HEAD).Trim())"
+          }
+          if ($version -notmatch '^\d+\.\d+\.\d+(-\d+)?$') {
+            throw "version '$version' is not major.minor.patch with an optional numeric pre-release"
+          }
+          $commit = (git rev-parse --short HEAD).Trim()
+          $built = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd')
+          "GBLITE_VERSION=$version" >> $env:GITHUB_ENV
+          "GBLITE_LABEL=$label" >> $env:GITHUB_ENV
+          "BOTSERVER_BUILD_VERSION=$version" >> $env:GITHUB_ENV
+          "BOTSERVER_COMMIT=$commit" >> $env:GITHUB_ENV
+          "BOTSERVER_BUILD_DATE=$built" >> $env:GITHUB_ENV
+          $versionConf = Join-Path $env:RUNNER_TEMP 'gblite-version.conf.json'
+          @{ version = $version } | ConvertTo-Json | Set-Content $versionConf -Encoding utf8
+          "GBLITE_VERSION_CONF=$versionConf" >> $env:GITHUB_ENV
+          Write-Host "edition version $version ($label, $commit)"
+
+      # Same pinned client build as gbgov (botserver/3rdparty.toml libpq_win):
+      # the server links libpq and the sidecar stages these DLLs at first run.
+      # The EDB archive below also provides a database server for the smoke test.
+      - name: PostgreSQL client libraries (pinned) and a server for the smoke test
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $zip = Join-Path $env:RUNNER_TEMP 'pgsql-17.4-binaries.zip'
+          Invoke-WebRequest -Uri 'https://get.enterprisedb.com/postgresql/postgresql-17.4-1-windows-x64-binaries.zip' -OutFile $zip -MaximumRetryCount 3 -RetryIntervalSec 10
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($hash -ne '80bb49e80df0100dd52e7b3c647896f8d8cfde760b6473e5180819c8df4b23c4') { throw "PostgreSQL client archive digest mismatch: $hash" }
+          $client = Join-Path $env:RUNNER_TEMP 'pgclient'
+          Expand-Archive $zip -DestinationPath $client -Force
+          $pgsql = Join-Path $client 'pgsql'
+          $payload = 'botserver\botserver-installers'
+          New-Item -ItemType Directory -Force $payload | Out-Null
+          $runtimeDlls = @(
+            'libpq.dll', 'libcrypto-3-x64.dll', 'libssl-3-x64.dll',
+            'libiconv-2.dll', 'libintl-9.dll', 'libwinpthread-1.dll',
+            'liblz4.dll', 'libzstd.dll', 'zlib1.dll'
+          )
+          foreach ($name in $runtimeDlls) {
+            $dll = Join-Path "$pgsql\bin" $name
+            if (-not (Test-Path $dll)) { throw "PostgreSQL runtime DLL is missing: $name" }
+            Copy-Item $dll $payload -Force
+          }
+          choco install postgresql16 --no-progress -y --params '/Password:postgres'
+          $server = Get-ChildItem "C:\Program Files\PostgreSQL" -Directory | Sort-Object Name | Select-Object -Last 1
+          if (-not $server) { throw "PostgreSQL server install directory not found" }
+          "PQ_LIB_DIR=$pgsql\lib" >> $env:GITHUB_ENV
+          # Later entries win: the pinned client DLLs come before the server's.
+          "$($server.FullName)\bin" >> $env:GITHUB_PATH
+          "$pgsql\bin" >> $env:GITHUB_PATH
+
+      - uses: ./.github/actions/rust-setup
+        with:
+          cache-scope: gblite-release
+
+      - name: Build botserver (release, Chat + Drive profile)
+        run: cargo build --release -p botserver --no-default-features --features ${{ env.GBLITE_FEATURES }}
+
+      - name: Prepare the smoke database
+        shell: pwsh
+        env:
+          PGPASSWORD: postgres
+        run: |
+          $svc = Get-Service -Name "postgresql*" | Select-Object -First 1
+          if ($svc.Status -ne 'Running') { Start-Service $svc.Name; Start-Sleep -Seconds 5 }
+          psql -U postgres -h 127.0.0.1 -v ON_ERROR_STOP=1 -c "CREATE ROLE gb LOGIN PASSWORD 'gb'"
+          psql -U postgres -h 127.0.0.1 -v ON_ERROR_STOP=1 -c "CREATE DATABASE botserver OWNER gb"
+
+      # Proves the release server starts with the gbgov feature set and serves
+      # the Chat + Drive product profile, with no network egress in the smoke.
+      - name: Smoke test the release server (isolated stack, local mock model)
+        shell: pwsh
+        env:
+          BOTSERVER_STACK_PATH: ${{ runner.temp }}\gblite-stack
+          DATABASE_URL: postgres://gb:gb@127.0.0.1:5432/botserver
+        run: |
+          $ErrorActionPreference = 'Stop'
+          ./scripts/gbgov-smoke.ps1 -Binary target\release\botserver.exe
+          $logs = Get-ChildItem 'botserver-smoke.log*' -ErrorAction SilentlyContinue
+          $panics = $logs | Select-String -Pattern 'panicked at' -SimpleMatch
+          if ($panics) {
+            $panics | Select-Object -First 5 | ForEach-Object { Write-Host "::error::$($_.Line)" }
+            throw "the release server panicked during the smoke test"
+          }
+
+      - name: Build the desktop shell (release)
+        run: cargo build --release -p botapp --features ${{ env.GBLITE_FEATURES }},custom-protocol
+
+      # Downloads every in-scope Windows asset from botserver/3rdparty.toml,
+      # verifies its SHA-256 pin and records SHA256SUMS-windows-installers.
+      # Unpinned upstream assets are warned about and recorded, never invented.
+      - name: Stage the full offline payload
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python scripts/stage_windows_installers.py
+          if ($LASTEXITCODE -ne 0) { throw "offline payload staging failed with exit code $LASTEXITCODE" }
+
+      # First boot must work with downloads disabled: the installer's only
+      # opt-in is GB_DESKTOP_ALLOW_DOWNLOAD=1 and this job must never set it.
+      - name: Assert offline-first boot and payload coverage
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $optIn = $env:GB_DESKTOP_ALLOW_DOWNLOAD
+          if ($optIn -and $optIn -in @('1', 'true', 'TRUE', 'yes')) {
+            throw "GB_DESKTOP_ALLOW_DOWNLOAD is enabled ($optIn); the Lite MSI must be offline by default"
+          }
+          $workflow = Get-Content '.github/workflows/gblite-release.yml' -Raw
+          if ($workflow -match 'GB_DESKTOP_ALLOW_DOWNLOAD\s*:\s*(1|true|yes)') {
+            throw 'this workflow enables GB_DESKTOP_ALLOW_DOWNLOAD'
+          }
+          $guard = Get-Content 'botserver/crates/botcore/src/package_manager/facade/mod.rs' -Raw
+          if ($guard -notmatch 'fn desktop_download_allowed' -or
+              $guard -notmatch 'GB_DESKTOP_ALLOW_DOWNLOAD' -or
+              $guard -notmatch 'Ok\("1"\)') {
+            throw 'the opt-in-only download guard is missing from the installer'
+          }
+          $conf = Get-Content 'botapp/tauri.gbgov.conf.json' -Raw | ConvertFrom-Json
+          if ($conf.productName -ne 'General Bots Lite') { throw "productName is '$($conf.productName)'" }
+          if ($conf.identifier -ne 'org.generalbots.botapp') { throw "identifier is '$($conf.identifier)'" }
+          $resources = $conf.bundle.resources.PSObject.Properties
+          if (-not ($resources.Name -contains '../botserver/botserver-installers/*')) {
+            throw 'tauri config does not embed the installer cache as installers/'
+          }
+          python scripts/stage_windows_installers.py --check
+          if ($LASTEXITCODE -ne 0) { throw "offline payload check failed with exit code $LASTEXITCODE" }
+
+      - name: Stage the server sidecar
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force botapp\binaries | Out-Null
+          Copy-Item target\release\botserver.exe "botapp\binaries\botserver-$env:TARGET_TRIPLE.exe" -Force
+
+      # With the certificate secrets the bundler signs the application, the
+      # sidecar and the MSI with the existing private Windows certificate.
+      - name: Prepare code signing
+        if: env.HAS_WINDOWS_CERT == 'true'
+        shell: pwsh
+        env:
+          WINDOWS_CERT: ${{ secrets.WINDOWS_CERT }}
+          WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $pfx = Join-Path $env:RUNNER_TEMP 'signing.pfx'
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_CERT))
+          $password = ConvertTo-SecureString $env:WINDOWS_CERT_PASSWORD -AsPlainText -Force
+          $cert = Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $password
+          Remove-Item $pfx -Force
+          $signConf = Join-Path $env:RUNNER_TEMP 'gblite-sign.conf.json'
+          @{ bundle = @{ windows = @{
+              certificateThumbprint = $cert.Thumbprint
+              digestAlgorithm = 'sha256'
+              timestampUrl = 'http://timestamp.digicert.com'
+          } } } | ConvertTo-Json -Depth 5 | Set-Content $signConf -Encoding utf8
+          "GBLITE_SIGN_CONF=$signConf" >> $env:GITHUB_ENV
+
+      - name: Install the Tauri bundler
+        run: cargo install tauri-cli --version "^2" --locked
+
+      # The base config already declares productName "General Bots Lite", the
+      # unchanged identifier and the installers/ resource glob. --bundles msi
+      # overrides its nsis+msi targets: this edition ships one MSI only.
+      - name: Package the MSI installer
+        shell: pwsh
+        working-directory: botapp
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $configs = @('--config', 'tauri.gbgov.conf.json', '--config', $env:GBLITE_VERSION_CONF)
+          if ($env:GBLITE_SIGN_CONF) { $configs += @('--config', $env:GBLITE_SIGN_CONF) }
+          cargo tauri build --features "$env:GBLITE_FEATURES,custom-protocol" @configs --bundles msi
+          if ($LASTEXITCODE -ne 0) { throw "cargo tauri build failed with exit code $LASTEXITCODE" }
+
+      - name: Collect the release files
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $v = $env:GBLITE_VERSION
+          New-Item -ItemType Directory -Force dist | Out-Null
+          $bundles = @('target\release\bundle', 'botapp\target\release\bundle')
+          $msi = Get-ChildItem ($bundles | ForEach-Object { "$_\msi\*.msi" }) -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $msi) { throw 'the bundler produced no MSI' }
+          Copy-Item $msi.FullName "dist\generalbots-gblite-$v-windows-x64.msi"
+          $out = Get-Item "dist\generalbots-gblite-$v-windows-x64.msi"
+          if ($out.Length -lt 1MB) { throw "$($out.Name) is suspiciously small ($($out.Length) bytes)" }
+          Write-Host "MSI: $($out.Name) ($([math]::Round($out.Length / 1MB, 1)) MB)"
+
+      - name: Software bill of materials (CycloneDX)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          cargo install cargo-cyclonedx --version "^0.5" --locked
+          if ($LASTEXITCODE -ne 0) { throw 'could not install cargo-cyclonedx' }
+          $builds = @(
+            @{ Crate = 'botserver'; Args = @('--no-default-features', '--features', $env:GBLITE_FEATURES) },
+            @{ Crate = 'botapp'; Args = @('--features', "$env:GBLITE_FEATURES,custom-protocol") }
+          )
+          foreach ($b in $builds) {
+            cargo cyclonedx --manifest-path "$($b.Crate)\Cargo.toml" --format json --target $env:TARGET_TRIPLE @($b.Args)
+            if ($LASTEXITCODE -ne 0) { throw "cargo cyclonedx failed for $($b.Crate)" }
+            $sbom = Get-ChildItem $b.Crate -Filter '*.cdx.json' -File | Select-Object -First 1
+            if (-not $sbom) { throw "no SBOM was written for $($b.Crate)" }
+            Copy-Item $sbom.FullName "dist\$($b.Crate)-gblite-$env:GBLITE_VERSION.cdx.json" -Force
+          }
+
+      - name: SHA-256 sums
+        shell: pwsh
+        run: |
+          $sums = "SHA256SUMS-gblite-$env:GBLITE_VERSION-windows.txt"
+          Get-ChildItem dist -File | Where-Object { $_.Name -ne $sums } | Sort-Object Name |
+            ForEach-Object { "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $($_.Name)" } |
+            Set-Content (Join-Path dist $sums) -Encoding ascii
+          Get-Content (Join-Path dist $sums)
+
+      - name: Upload the release files
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: gblite-release-${{ env.GBLITE_LABEL }}
+          path: dist/*
+          if-no-files-found: error
+
+      - name: Upload smoke evidence and logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: gblite-release-smoke-${{ github.sha }}
+          path: |
+            botserver-smoke.log
+            botserver-smoke.log.err
+            mock-llm.log
+            mock-llm.log.err
+            smoke-artifacts/**
+          if-no-files-found: warn
+
+  publish:
+    name: Publish the pre-release
+    needs: build
+    if: ${{ github.event_name == 'push' && github.ref_type == 'tag' && github.ref_name == 'gblite-1.0.0' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Require the exact edition tag
+        run: |
+          if [ "$GITHUB_REF_TYPE" != "tag" ] || [ "$GITHUB_REF_NAME" != "gblite-1.0.0" ]; then
+            echo "::error::publishing needs the gblite-1.0.0 tag; this run is on $GITHUB_REF_TYPE $GITHUB_REF_NAME"
+            exit 1
+          fi
+
+      - name: Download the release files
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: gblite-release-${{ github.ref_name }}
+          path: dist
+
+      - name: Create or update the GitHub pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          ls -l dist
+          msi=$(find dist -maxdepth 1 -name 'generalbots-gblite-1.0.0-windows-x64.msi' -print -quit)
+          if [ -z "$msi" ]; then
+            echo "::error::the expected Lite MSI is missing"
+            exit 1
+          fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber
+          else
+            gh release create "$TAG" dist/* \
+              --title "$TAG" \
+              --prerelease \
+              --verify-tag \
+              --notes "Windows MSI of General Bots Lite: offline first boot, Chat and Drive. Verify the download with the SHA256SUMS file attached to this release."
+          fi
