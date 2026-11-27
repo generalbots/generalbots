@@ -173,7 +173,7 @@ jobs:
             # download ~350 MB at runtime.
             @{ Name = 'postgresql-18.6-1-windows-x64-binaries.zip'; Url = 'https://get.enterprisedb.com/postgresql/postgresql-18.6-1-windows-x64-binaries.zip'; Algo = 'SHA256'; Hash = 'fbe23da234ee31547bf8a36d29dfd81e82b849df2d2b78d2eecb43d360252f8c' },
             @{ Name = 'minio.exe'; Url = 'https://github.com/generalbots/generalbots/releases/download/drive-bin-v4/minio.exe'; Algo = 'SHA256'; Hash = 'e63f9c4ac8b8697ca679d4864497688c3486aa9ac9370c3569203420c25e5799' },
-            @{ Name = 'mc.exe'; Url = 'https://github.com/minio/mc/releases/download/RELEASE.2025-08-13T08-35-41Z/mc.windows-amd64.RELEASE.2025-08-13T08-35-41Z.exe'; Algo = 'SHA256'; Hash = 'c8db13ebeda31497f354c0e950809db0ae9b2a2a69b8afee68c128c37300c157' },
+            @{ Name = 'mc.exe'; Url = 'https://github.com/minio/mc/releases/download/RELEASE.2025-08-13T08-35-41Z/mc.windows-amd64.RELEASE.2025-08-13T08-35-41Z.exe'; Algo = 'SHA256'; Hash = 'c8db13ebeda31497f354c0e950809db0ae9b2a2a69b8afee68c128c37300c157' }
             # Redis removed: Windows uses the built-in RESP cache (no external service).
             # Qdrant, Zitadel and Caddy are not bundled: the product file switches
             # those services off; one that is switched back on is downloaded then.
