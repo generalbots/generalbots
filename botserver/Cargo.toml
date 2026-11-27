@@ -225,9 +225,9 @@ desktop-local = [
 
 # Government desktop edition (branch gbgov, #2560): Chat and Drive only.
 # No agent workspace, terminal, database tool, office apps, web lookup or
-# research. The product file is `.product.gbgov`. Build with:
-#   cargo build -p botserver --no-default-features --features gbgov
-gbgov = [
+# research. The product file is `.product.gblite`. Build with:
+#   cargo build -p botserver --no-default-features --features gblite
+gblite = [
     "chat",
     "drive",
     "llm",
@@ -259,7 +259,7 @@ gbgov = [
     "botcore/settings",
     "botcore/automation",
     "botcore/agent-vm",
-    "botcore/gbgov",
+    "botcore/gblite",
     "botdrive/desktop-local",
 ]
 

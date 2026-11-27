@@ -11,7 +11,7 @@
       "icons/icon.png"
     ],
     "resources": {
-      "../botserver/.product.gbgov": ".product.gbgov",
+      "../botserver/.product.gblite": ".product.gblite",
       "../botserver/botserver-installers/*": "installers/",
       "../botui/ui": "ui"
     },

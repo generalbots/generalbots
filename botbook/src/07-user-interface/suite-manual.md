@@ -818,7 +818,7 @@ shell uses, so it carries across both shells; `Ctrl+=`, `Ctrl+-` and `Ctrl+0`
 also work.
 
 **Two shells, one chat.** The government desktop profile
-(`botserver/.product.gbgov`) selects `shell=assistant`, a chat-first page;
+(`botserver/.product.gblite`) selects `shell=assistant`, a chat-first page;
 other profiles use the windowed desktop shell. Both remain selectable: the
 suite Settings action sets `gb-shell-override=assistant`, while the assistant
 Settings action sets it back to `desktop` and opens

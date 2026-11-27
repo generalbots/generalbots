@@ -1,6 +1,6 @@
 # Product Configuration — Government Desktop Edition (branch gbgov)
-# Loaded first when botserver is compiled with --features gbgov:
-#   cargo build -p botserver --no-default-features --features gbgov
+# Loaded first when botserver is compiled with --features gblite:
+#   cargo build -p botserver --no-default-features --features gblite
 #
 # The edition is Chat and Drive on the user's own machine, with the agent
 # workspace (agent-vm) compiled in. On Windows the Incus backend is unavailable

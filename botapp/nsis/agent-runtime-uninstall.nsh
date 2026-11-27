@@ -5,7 +5,7 @@
 ; silent, no window, exits with a code).  This avoids inline registry
 ; parsing in NSIS and reuses the same safety logic as the app.
 ;
-; Reference in botapp/tauri.gbgov.conf.json -> bundle.windows.nsis:
+; Reference in botapp/tauri.gblite.conf.json -> bundle.windows.nsis:
 ;   "installerHooks": "nsis/agent-runtime-uninstall.nsh"
 ;
 ; The app binary must handle --agent-runtime-remove-silent as a hidden

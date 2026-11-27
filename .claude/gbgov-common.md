@@ -12,11 +12,11 @@ Know before you start (do not re-explore the repository):
   and `en.js`, `assistant.css`, `assistant-chat.css`). Identity: `botui/ui/suite/identity/` (`--id-*`
   tokens, `window.GBIdentity`). Wizard: `botui/ui/wizard/`. Legacy chat engine, for protocol reference
   only: `botui/ui/suite/chat/` (`messages/70_stream.js`, `chat-send.js`, `modules/40_consent_cards.js`).
-- Build profile: cargo feature `gbgov` (chat, drive, llm, vectordb, kb-extraction, security, directory,
+- Build profile: cargo feature `gblite` (chat, drive, llm, vectordb, kb-extraction, security, directory,
   settings, consent, agent-vm). NOT compiled: terminal, database tool, office apps, research/web search,
   integrations, mail, voice. The agent workspace (`agent-vm`) is compiled but on Windows the Incus
   backend is unavailable without WSL2; agent mode is off by default and disabled gracefully at runtime
-  when the backend is missing. Product file `botserver/.product.gbgov`.
+  when the backend is missing. Product file `botserver/.product.gblite`.
 - Private design references: `GBGOV/Refs/` (design system + two screenshots). Read-only.
 
 Hard rules:

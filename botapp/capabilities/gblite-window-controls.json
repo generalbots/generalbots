@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
-  "identifier": "gbgov-window-controls",
-  "description": "Window controls for the page-drawn header: drag, minimise, toggle-maximise, close and maximise state query. Granted to the sidecar origin so the remote page can drive the undecorated window. The permissions are harmless window-chrome operations; the window itself is only undecorated in gbgov builds.",
+  "identifier": "gblite-window-controls",
+  "description": "Window controls for the page-drawn header: drag, minimise, toggle-maximise, close and maximise state query. Granted to the sidecar origin so the remote page can drive the undecorated window. The permissions are harmless window-chrome operations; the window itself is only undecorated in gblite builds.",
   "local": true,
   "windows": ["main"],
   "remote": {

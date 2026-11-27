@@ -180,7 +180,7 @@ pub mod weather;
 #[cfg(feature = "telegram")]
 pub mod telegram;
 
-#[cfg(feature = "gbgov")]
+#[cfg(feature = "gblite")]
 pub mod boot_runtime_ctl;
 
 // Re-export commonly used types

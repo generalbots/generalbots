@@ -10,27 +10,27 @@
 //! git clone is absent — and a cleanup pass removes files the edition no longer
 //! ships (e.g. tools dropped between versions).
 
-#[cfg(feature = "gbgov")]
+#[cfg(feature = "gblite")]
 use rust_embed::RustEmbed;
 
 /// Embedded gbgov templates — `bottemplates/gbgov/` relative to botserver's
 /// `Cargo.toml`.  When the directory does not yet exist at compile time
 /// (another agent is still writing it), the embed is empty and
 /// `extract_edition_templates` logs a warning and returns early.
-#[cfg(feature = "gbgov")]
+#[cfg(feature = "gblite")]
 #[derive(RustEmbed)]
 #[folder = "../bottemplates/gbgov"]
 struct GbgovTemplates;
 
 /// Target directory where the embedded templates are extracted to.
-#[cfg(feature = "gbgov")]
+#[cfg(feature = "gblite")]
 const EDITION_TEMPLATES_DIR: &str = "work/templates/bots/gbgov";
 
 /// Extracts the edition's embedded templates to `work/templates/bots/gbgov/`
 /// and removes files that no longer ship with the edition.
 ///
 /// Returns `true` when at least one file was written.
-#[cfg(feature = "gbgov")]
+#[cfg(feature = "gblite")]
 pub fn extract_edition_templates() -> bool {
     use log::{debug, info, warn};
     use std::path::Path;
@@ -112,7 +112,7 @@ pub fn extract_edition_templates() -> bool {
     written > 0
 }
 
-#[cfg(not(feature = "gbgov"))]
+#[cfg(not(feature = "gblite"))]
 pub fn extract_edition_templates() -> bool {
     false
 }
@@ -120,11 +120,11 @@ pub fn extract_edition_templates() -> bool {
 /// Returns `true` when the build carries edition-specific templates that
 /// replace the upstream git repository.
 pub fn has_edition_templates() -> bool {
-    cfg!(feature = "gbgov")
+    cfg!(feature = "gblite")
 }
 
 /// Recursively collects all file paths under `dir`.
-#[cfg(any(feature = "gbgov", test))]
+#[cfg(any(feature = "gblite", test))]
 fn walk_dir_files(dir: &std::path::Path) -> std::io::Result<Vec<std::path::PathBuf>> {
     let mut result = Vec::new();
     if !dir.is_dir() {
@@ -148,7 +148,7 @@ mod tests {
 
     #[test]
     fn has_edition_templates_matches_feature() {
-        let expected = cfg!(feature = "gbgov");
+        let expected = cfg!(feature = "gblite");
         assert_eq!(has_edition_templates(), expected);
     }
 

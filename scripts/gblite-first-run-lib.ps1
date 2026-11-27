@@ -1,4 +1,4 @@
-# Helpers of scripts/gbgov-first-run.ps1 (dot-sourced by it; not run alone).
+# Helpers of scripts/gblite-first-run.ps1 (dot-sourced by it; not run alone).
 # They read $Stack and $AppDir of that script: the stack folder under test and
 # the staged app folder, the only two places whose programs are ever stopped.
 

@@ -268,7 +268,7 @@ fn handle_agent_runtime_remove_silent() -> i32 {
 fn run_agent_runtime_remove() -> i32 {
     let stack = crate::desktop::sidecar::Sidecar::stack_path();
 
-    #[cfg(all(target_os = "windows", feature = "gbgov"))]
+    #[cfg(all(target_os = "windows", feature = "gblite"))]
     {
         let host = crate::desktop::agent_runtime::host::SystemHost;
         match crate::desktop::agent_runtime::remove_runtime(&host, &stack, false) {
@@ -277,7 +277,7 @@ fn run_agent_runtime_remove() -> i32 {
             _ => 1,
         }
     }
-    #[cfg(not(all(target_os = "windows", feature = "gbgov")))]
+    #[cfg(not(all(target_os = "windows", feature = "gblite")))]
     {
         let _ = stack;
         0 // Nothing to remove on this platform/edition.

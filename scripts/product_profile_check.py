@@ -57,7 +57,7 @@ EXPECTED_ALWAYS = {
 # A slim edition advertises its own always-visible list instead of the 7.0
 # split above. The government desktop edition ships Chat and Drive only.
 EXPECTED_ALWAYS_BY_PROFILE = {
-    ".product.gbgov": {"chat", "drive"},
+    ".product.gblite": {"chat", "drive"},
 }
 
 

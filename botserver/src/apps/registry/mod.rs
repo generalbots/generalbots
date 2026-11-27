@@ -220,7 +220,7 @@ mod ownership;
 mod requires;
 
 #[cfg(test)]
-mod gbgov_profile_tests;
+mod gblite_profile_tests;
 #[cfg(test)]
 mod ownership_guard_tests;
 

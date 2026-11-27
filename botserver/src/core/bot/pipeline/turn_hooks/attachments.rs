@@ -255,9 +255,9 @@ async fn ingest_single_attachment(
         );
     }
     // Media analysis runs after the file is reachable in the inbox.
-    // #2561 — the gbgov edition ships without the BotModels media service;
+    // #2561 — the gblite edition ships without the BotModels media service;
     // skip the request entirely to avoid a connection-refused delay.
-    let media_note = if media && excerpt.is_none() && !cfg!(feature = "gbgov") {
+    let media_note = if media && excerpt.is_none() && !cfg!(feature = "gblite") {
         describe_media_locally(state, bot_uuid, &fname, &data).await
     } else {
         None

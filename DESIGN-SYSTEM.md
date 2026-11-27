@@ -17,7 +17,7 @@ Legenda de caminhos (todos sob `botui/ui/`):
 
 ## 0. O que é o General Bots Desktop (edição gbgov)
 
-O General Bots Desktop é um **assistente de inteligência artificial que roda no computador do próprio servidor público**, pensado para o setor público brasileiro: conversa (Chat) e arquivos (Drive), em que a organização decide para onde cada dado pode ir (`GBGOV/PLAN.md` §1). É uma edição reduzida da plataforma General Bots, que é de código aberto e escrita em Rust (`README.md`); nesta edição só Chat e Drive aparecem, e os outros aplicativos ficam ocultos (`botserver/.product.gbgov`, `apps=chat,drive`).
+O General Bots Desktop é um **assistente de inteligência artificial que roda no computador do próprio servidor público**, pensado para o setor público brasileiro: conversa (Chat) e arquivos (Drive), em que a organização decide para onde cada dado pode ir (`GBGOV/PLAN.md` §1). É uma edição reduzida da plataforma General Bots, que é de código aberto e escrita em Rust (`README.md`); nesta edição só Chat e Drive aparecem, e os outros aplicativos ficam ocultos (`botserver/.product.gblite`, `apps=chat,drive`).
 
 **O que ele faz**
 - Conversa com o assistente: a resposta aparece enquanto é escrita, com um cartão de "raciocínio" que pode ser aberto, formatação em Markdown, botão de parar e de gerar de novo (`GBGOV/MVP.md` §2).
@@ -27,7 +27,7 @@ O General Bots Desktop é um **assistente de inteligência artificial que roda n
   - **Neste computador**: modelo local; "Nada sai deste computador". Pede placa de vídeo com 6 GB ou mais e um download de 4 a 6 GB.
   - **Servidor ou chave própria**: o servidor da organização ou a chave de um provedor; os textos vão ao servidor indicado.
   - **Modelo gratuito**: hospedado fora do computador, sem chave e com limites de uso menores; "Tudo que você escrever e anexar é enviado a" esse provedor externo (`10_settings_model.js:17,47-49`).
-  - **Agente por assinatura**: a assinatura da pessoa (Claude, ChatGPT, Gemini…) "num espaço isolado neste computador" (`10c_settings_garage.js:19-20`). No Windows esse espaço depende de um invólucro WSL2; sem ele o modo agente é desligado (`botserver/.product.gbgov`, comentário inicial).
+  - **Agente por assinatura**: a assinatura da pessoa (Claude, ChatGPT, Gemini…) "num espaço isolado neste computador" (`10c_settings_garage.js:19-20`). No Windows esse espaço depende de um invólucro WSL2; sem ele o modo agente é desligado (`botserver/.product.gblite`, comentário inicial).
 - Pesquisa na web: opcional, a pessoa liga em Configurações, e só aparece se o produto a oferecer (`10b_settings_model_local.js:378-389`; `05b_model_picker.js:47-55`).
 
 **Soberania e privacidade.** Com o modelo local, as conversas ficam na máquina (`10_settings_model.js:54`). Os dados só saem quando a pessoa escolhe um motor externo, e o aplicativo pede confirmação antes ("O que você escrever e anexar será enviado a %h, fora deste computador. Continuar?"). Baixar um modelo também pede confirmação e mostra de onde ele vem (`10_settings_model.js:34-35`). O painel mostra sempre para onde vão os textos: "Ficam neste computador", "Ficam na rede da sua organização" ou "Vão a um provedor externo" (`10c_settings_garage.js:27`).

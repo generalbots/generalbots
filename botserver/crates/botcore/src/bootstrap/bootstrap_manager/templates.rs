@@ -2,7 +2,7 @@ use super::*;
 
 impl BootstrapManager {
     pub(super) fn templates_source_dir(&self) -> PathBuf {
-        // Edition builds (gbgov) extract their templates into a dedicated
+        // Edition builds (gblite) extract their templates into a dedicated
         // subtree. When present, it takes priority over the git-cloned
         // `work/templates` and the in-repo `bottemplates/bots`.
         let edition = PathBuf::from("work/templates/bots/gbgov");
@@ -119,7 +119,7 @@ impl BootstrapManager {
             // those two folders: knowledge and the person's files under the
             // same bot are never touched. On a regular build the copy is
             // additive, which is right for the cloned upstream templates.
-            if cfg!(feature = "gbgov") {
+            if cfg!(feature = "gblite") {
                 for owned in ["gbdialog", "gbot"] {
                     let stale = target.join(format!("{bot_name}.{owned}"));
                     if stale.is_dir() {

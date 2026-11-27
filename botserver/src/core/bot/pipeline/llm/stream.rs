@@ -144,10 +144,10 @@ async fn stream_llm_response_inner(
             let caps =
                 crate::core::bot::runs::caps_resolve::resolve_for_run(state, bot_uuid, user_id);
             let mut budget = crate::core::bot::runs::caps::RunBudget::start(caps);
-            #[cfg(feature = "gbgov")]
+            #[cfg(feature = "gblite")]
             let mut local_recovered = false;
             // Preflight: a dead local engine is noticed here, not after timeouts.
-            #[cfg(feature = "gbgov")]
+            #[cfg(feature = "gblite")]
             if engine_type == Some(botsettings::usage_engine::ENGINE_LOCAL) {
                 super::local_recovery::preflight(identity, state, &session_id_s).await;
             }
@@ -179,7 +179,7 @@ async fn stream_llm_response_inner(
                     AttemptOutcome::Failed { code, detail } => {
                         log::warn!("LLM attempt {}/{} failed: {code:?} — {detail}", attempt + 1, LLM_RETRY_MAX + 1);
                         // ModelUnreachable: inline recovery before normal retry.
-                        #[cfg(feature = "gbgov")]
+                        #[cfg(feature = "gblite")]
                         if matches!(code, super::error_classify::LlmErrorCode::ModelUnreachable)
                             && !local_recovered
                             && attempt < LLM_RETRY_MAX
@@ -192,7 +192,7 @@ async fn stream_llm_response_inner(
                             }
                         }
                         // Free-model 404: self-heal from the gateway list.
-                        #[cfg(feature = "gbgov")]
+                        #[cfg(feature = "gblite")]
                         match super::free_model_fallback::try_replace_if_free(
                             state, engine_type, &detail, llm_model,
                         ).await {
@@ -216,7 +216,7 @@ async fn stream_llm_response_inner(
                             continue;
                         }
                         // Last attempt: error to client, background recovery.
-                        #[cfg(feature = "gbgov")]
+                        #[cfg(feature = "gblite")]
                         if matches!(code, super::error_classify::LlmErrorCode::ModelUnreachable) {
                             super::local_recovery::maybe_recover(state);
                         }

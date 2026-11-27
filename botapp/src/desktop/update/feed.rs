@@ -13,7 +13,7 @@ use super::{parse_version, GitHubRelease, ParsedVersion};
 
 const REPOSITORY_API: &str = "https://api.github.com/repos/generalbots/generalbots";
 
-const EDITION_TAG_PREFIX: Option<&str> = if cfg!(feature = "gbgov") {
+const EDITION_TAG_PREFIX: Option<&str> = if cfg!(feature = "gblite") {
     Some("gbgov-v")
 } else {
     None

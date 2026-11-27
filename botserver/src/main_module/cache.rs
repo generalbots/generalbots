@@ -199,7 +199,7 @@ pub async fn init_redis() -> Option<Arc<redis::Client>> {
 /// removed from the payload), so the built-in cache is always used regardless
 /// of the `services_off` key.
 fn uses_built_in_cache() -> bool {
-    cfg!(all(windows, feature = "gbgov"))
+    cfg!(all(windows, feature = "gblite"))
 }
 
 async fn start_built_in_cache() -> Option<Arc<redis::Client>> {

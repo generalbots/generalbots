@@ -114,8 +114,8 @@ impl ProductConfig {
         // The edition's own product file wins over the desktop one, which
         // wins over the default profile.
         let mut names: Vec<&str> = Vec::new();
-        if cfg!(feature = "gbgov") {
-            names.push(".product.gbgov");
+        if cfg!(feature = "gblite") {
+            names.push(".product.gblite");
         }
         if cfg!(feature = "desktop-local") {
             names.push(".product.desktop-local");
@@ -164,7 +164,7 @@ impl ProductConfig {
         // child runs with cwd=stack and cannot see the installed resources
         // directly, but the shell passes BOTSERVER_INSTALLERS_PATH which
         // points at `<resource_dir>/installers`. Its parent is the resource
-        // dir where `tauri.gbgov.conf.json` places `.product.gbgov`.
+        // dir where `tauri.gblite.conf.json` places `.product.gblite`.
         let installers = std::env::var("BOTSERVER_INSTALLERS_PATH").ok();
         if let Some(ref dir) = installers {
             if let Some(resource_dir) = Path::new(dir).parent() {

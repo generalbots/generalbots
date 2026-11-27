@@ -41,7 +41,7 @@ pub mod single_instance;
 pub mod recovery;
 #[cfg(feature = "desktop-local")]
 pub mod sidecar;
-#[cfg(feature = "gbgov")]
+#[cfg(feature = "gblite")]
 pub mod stack_relocate;
 #[cfg(feature = "desktop-local")]
 pub mod stack_stop;

@@ -13,7 +13,7 @@ use std::path::{Path, PathBuf};
 pub const LEGACY_FOLDER: &str = "generalbots";
 
 /// This edition's folder under the per-user local data directory.
-pub const DATA_FOLDER: &str = if cfg!(feature = "gbgov") {
+pub const DATA_FOLDER: &str = if cfg!(feature = "gblite") {
     "GeneralBotsLite"
 } else {
     LEGACY_FOLDER
@@ -23,7 +23,7 @@ pub const STACK_FOLDER: &str = "stack";
 
 /// Product file the Lite edition keeps in its stack (the shell writes it at
 /// every sidecar start), and the one every other desktop build keeps.
-pub const LITE_MARKER: &str = ".product.gbgov";
+pub const LITE_MARKER: &str = ".product.gblite";
 pub const OTHER_MARKER: &str = ".product.desktop-local";
 
 /// Which edition a stack folder belongs to, read from its product files.
@@ -122,7 +122,7 @@ mod tests {
 
     #[test]
     fn the_folder_matches_the_edition() {
-        if cfg!(feature = "gbgov") {
+        if cfg!(feature = "gblite") {
             assert_eq!(DATA_FOLDER, "GeneralBotsLite");
         } else {
             assert_eq!(DATA_FOLDER, "generalbots");
@@ -159,7 +159,7 @@ mod tests {
         let root = std::env::temp_dir().join(format!("gb-data-root-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         let legacy = legacy_stack(&root);
-        if cfg!(feature = "gbgov") {
+        if cfg!(feature = "gblite") {
             assert_eq!(stack_under(&root), edition_stack(&root));
             std::fs::create_dir_all(&legacy).expect("legacy stack");
             std::fs::write(legacy.join(LITE_MARKER), "x").expect("marker");

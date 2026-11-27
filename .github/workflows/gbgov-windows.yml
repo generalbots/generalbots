@@ -25,7 +25,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GBGOV_FEATURES: gbgov
+  GBLITE_FEATURES: gblite
 
 jobs:
   build-test:
@@ -50,7 +50,7 @@ jobs:
           cache-scope: gbgov-windows
 
       - name: Build botserver (Chat + Drive profile, debug)
-        run: cargo build -p botserver --no-default-features --features ${{ env.GBGOV_FEATURES }}
+        run: cargo build -p botserver --no-default-features --features ${{ env.GBLITE_FEATURES }}
 
       - name: Prepare the smoke database
         shell: pwsh
@@ -67,9 +67,9 @@ jobs:
         env:
           BOTSERVER_STACK_PATH: ${{ runner.temp }}\gbgov-stack
           DATABASE_URL: postgres://gb:gb@127.0.0.1:5432/botserver
-        run: ./scripts/gbgov-smoke.ps1 -Binary target\debug\botserver.exe
+        run: ./scripts/gblite-smoke.ps1 -Binary target\debug\botserver.exe
 
-      # Includes the guard that pins .product.gbgov to Chat + Drive.
+      # Includes the guard that pins .product.gblite to Chat + Drive.
       - name: Unit tests (botserver, Chat + Drive profile)
         if: ${{ !cancelled() }}
         env:
@@ -81,7 +81,7 @@ jobs:
         # remove a line as soon as `main` fixes the test.
         run: >
           cargo test -p botserver --bin botserver --no-default-features
-          --features ${{ env.GBGOV_FEATURES }} --no-fail-fast --
+          --features ${{ env.GBLITE_FEATURES }} --no-fail-fast --
           --skip every_registry_app_has_a_verb_a_deep_link_and_a_ui_hint
           --skip every_command_targets_a_registered_app
           --skip every_registered_app_has_at_least_one_command
@@ -92,7 +92,7 @@ jobs:
       # First run of a brand-new install, without the desktop shell: the server
       # built above provisions an EMPTY stack from the offline payload, asked
       # the way the first-run wizard asks, with downloads forbidden, and then
-      # starts once on it (scripts/gbgov-first-run.ps1). The smoke test above
+      # starts once on it (scripts/gblite-first-run.ps1). The smoke test above
       # starts the server on a ready database and never runs the provisioner.
       #
       # The payload is staged here from the Windows pins in
@@ -122,8 +122,8 @@ jobs:
           $services = @(Get-Service -Name 'postgresql*' | Where-Object { $_.Status -eq 'Running' })
           $services | Stop-Service -Force
           try {
-            ./scripts/gbgov-first-run.ps1 -Binary target\debug\botserver.exe -Payload $payload `
-              -Stack (Join-Path $env:RUNNER_TEMP 'gbgov-first-run-stack')
+            ./scripts/gblite-first-run.ps1 -Binary target\debug\botserver.exe -Payload $payload `
+              -Stack (Join-Path $env:RUNNER_TEMP 'gblite-first-run-stack')
             $code = $LASTEXITCODE
           } finally {
             $services | Start-Service

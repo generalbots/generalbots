@@ -20,7 +20,7 @@ which team.
 |---|---|---|---|---|---|
 | Desktop-local | `.product.desktop-local` | Linux, Windows, macOS | **GA** | `desktop` | `desktop-local` |
 | Cloud | `.product` | Linux | **Supported** | `platform` | `default` |
-| Government desktop | `.product.gbgov` | Windows | **Preview** | `desktop` | `gbgov` |
+| Government desktop | `.product.gblite` | Windows | **Preview** | `desktop` | `gblite` |
 | Everything else | — | any | **Preview / best effort** | `community` | — |
 
 The blessed path is the desktop-local build plus the cloud server build. They
@@ -32,7 +32,7 @@ are the only visible apps, every other registry app is hidden, and the terminal,
 database tool, office apps and web lookup are not compiled. The agent workspace
 (`agent-vm`) is compiled but on Windows the Incus backend is unavailable
 without a WSL2 wrapper; agent mode is disabled gracefully at runtime.
-Build: `cargo build -p botserver --no-default-features --features gbgov`. It is
+Build: `cargo build -p botserver --no-default-features --features gblite`. It is
 built and smoke-tested on Windows by the `gbgov Windows` workflow.
 
 ## Apps per tier

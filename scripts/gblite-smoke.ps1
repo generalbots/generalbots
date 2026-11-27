@@ -1,12 +1,12 @@
 # Smoke test for the government desktop edition (Chat + Drive profile).
 #
-# Boots the `gbgov` build of botserver against an isolated stack directory and
+# Boots the `gblite` build of botserver against an isolated stack directory and
 # a local deterministic mock model, then checks that the product profile is
 # Chat + Drive only, that the suite shell is served, that the agent workspace
 # is compiled in and routed, and that a chat turn is answered by the mock.
 #
 # Usage (CI and local):
-#   pwsh scripts/gbgov-smoke.ps1 -Binary target\debug\botserver.exe
+#   pwsh scripts/gblite-smoke.ps1 -Binary target\debug\botserver.exe
 #
 # Needs: PostgreSQL reachable through DATABASE_URL, Python on PATH. No request
 # leaves the machine: the model endpoint is 127.0.0.1 and the secrets address is
@@ -21,7 +21,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $root = (Get-Location).Path
-$stack = if ($env:BOTSERVER_STACK_PATH) { $env:BOTSERVER_STACK_PATH } else { Join-Path $env:TEMP 'gbgov-smoke-stack' }
+$stack = if ($env:BOTSERVER_STACK_PATH) { $env:BOTSERVER_STACK_PATH } else { Join-Path $env:TEMP 'gblite-smoke-stack' }
 $base = "http://127.0.0.1:$Port"
 $mockBase = "http://127.0.0.1:$MockPort"
 
@@ -36,9 +36,9 @@ New-Item -ItemType Directory -Force $Evidence, "$stack\conf\system", "$stack\con
 
 # The smoke run has no identity service, so sign-in is switched off in its
 # copy of the product file. The shipped file keeps no_security=false.
-$product = Get-Content 'botserver\.product.gbgov'
-if (-not ($product -match '^no_security=false$')) { throw '.product.gbgov must ship with no_security=false' }
-$product -replace '^no_security=false$', 'no_security=true' | Set-Content "$stack\.product.gbgov"
+$product = Get-Content 'botserver\.product.gblite'
+if (-not ($product -match '^no_security=false$')) { throw '.product.gblite must ship with no_security=false' }
+$product -replace '^no_security=false$', 'no_security=true' | Set-Content "$stack\.product.gblite"
 
 $env:BOTSERVER_STACK_PATH = $stack
 $env:VAULT_ADDR = 'https://vault.smoke.invalid:8200'
@@ -145,9 +145,9 @@ try {
     Write-Host 'chat turn OK (answered by the local mock)'
 
     "status=ok`napps=$($apps -join ',')`nreply=$reply" | Set-Content "$Evidence/smoke-summary.txt"
-    Write-Host 'gbgov smoke OK'
+    Write-Host 'gblite smoke OK'
 } catch {
-    Write-Host "gbgov smoke FAILED: $($_.Exception.Message)"
+    Write-Host "gblite smoke FAILED: $($_.Exception.Message)"
     Show-Logs
     throw
 } finally {

@@ -27,7 +27,7 @@ const SITES_SHOWN: usize = 8;
 
 /// In this edition web search and page reads are always allowed: they are
 /// steps of the answer, never permission cards (owner's decision).
-pub(crate) const ALWAYS_ON: bool = cfg!(feature = "gbgov");
+pub(crate) const ALWAYS_ON: bool = cfg!(feature = "gblite");
 
 /// The step name for a web kind sent by an engine (`web_search`,
 /// `web_fetch`), or `None` for anything else.
