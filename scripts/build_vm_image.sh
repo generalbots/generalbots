@@ -151,7 +151,7 @@ network_diagnostics() {
             incus network show "$net" || true
             incus network list-leases "$net" || true
         fi
-        run sh -c 'ip a; ip route; cat /proc/net/route; cat /etc/resolv.conf; networkctl status --no-pager 2>/dev/null | head -40; systemctl --failed --no-pager 2>/dev/null; journalctl -u systemd-networkd -n 40 --no-pager 2>/dev/null' || true
+        run sh -c 'ip a; ip route; cat /proc/net/route; cat /etc/resolv.conf; systemctl is-system-running; systemctl --failed --no-pager; systemctl status systemd-networkd --no-pager 2>&1 | head -n 15; journalctl -u systemd-networkd -n 40 --no-pager' || true
         echo "--- end of network diagnostics ---"
     } >&2
 }
