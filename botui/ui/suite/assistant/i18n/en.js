@@ -266,5 +266,8 @@ window.GBAssistantLocales["en"] = {
     "assistant.agent-locked-tip": "The selected agent runs in the Virtual Machine; choose another model to turn it off",
     "assistant.agent-backend-off": "Subscription agents unavailable on this computer",
     "assistant.agent-locked-hint": "{agent} runs in the Virtual Machine, so the Agent stays on while it is selected. To turn it off, choose another model.",
-    "assistant.regenerate-older": "Regenerate from here: the messages after it leave the conversation"
+    "assistant.regenerate-older": "Regenerate from here: the messages after it leave the conversation",
+    "settings.agent-runtime":        "Agent Mode",
+    "assistant.requires-agent-mode": "Requires Agent Mode",
+    "assistant.agent-mode-disabled": "Agent Mode must be installed to use subscription agents."
 };

@@ -244,7 +244,8 @@
         selectModel(value);
     }
     function addAgentGroup(menu) {
-        var backendOff = !!(A.productConfig && A.productConfig.agent_backend_unavailable);
+        var runtimeMissing = typeof A.agentRuntimeReady === "function" && !A.agentRuntimeReady();
+        var backendOff = runtimeMissing || !!(A.productConfig && A.productConfig.agent_backend_unavailable);
         /* /api/chat/models lists each linked agent with its switched-on models;
            an older server only says which agents are linked. */
         if (!Array.isArray(A.subscriptions)) {
@@ -300,7 +301,10 @@
         });
         var list = document.createElement("div");
         list.className = "gb-model-group-list";
-        var backendReason = A.productConfig && A.productConfig.agent_backend_unavailable;
+        var runtimeOff = typeof A.agentRuntimeReady === "function" && !A.agentRuntimeReady();
+        var backendReason = runtimeOff
+            ? A.t("assistant.requires-agent-mode", "Requires Agent Mode")
+            : (A.productConfig && A.productConfig.agent_backend_unavailable);
         models.forEach(function (m) {
             var item = document.createElement("button");
             item.className = "gb-model-menu-item" + (isActive(m) ? " active" : "");
@@ -314,6 +318,13 @@
             }
             list.appendChild(item);
         });
+        if (runtimeOff && typeof A.openAgentRuntimeSettings === "function") {
+            var link = document.createElement("button");
+            link.className = "gb-model-menu-action";
+            link.innerHTML = '<span>' + esc(A.t("assistant.requires-agent-mode", "Requires Agent Mode")) + '</span>';
+            link.addEventListener("click", function () { closeModelMenu(); A.openAgentRuntimeSettings(); });
+            list.appendChild(link);
+        }
         group.appendChild(head);
         group.appendChild(list);
         var before = acc.id === "agents"

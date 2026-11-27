@@ -252,6 +252,8 @@
     font-size: 10px; border: 1px solid var(--id-line); background: var(--id-fill); color: var(--id-muted); }
 .gb-badge-active { background: var(--id-accent-soft); color: var(--id-accent-text); border-color: var(--id-accent); }
 .gb-badge-ok { background: var(--id-success-soft); color: var(--id-success-text); border-color: var(--id-success-line); }
+.gb-badge-warn { background: var(--id-warn-soft); color: var(--id-warn-text); border-color: var(--id-warn); }
+.gb-badge-danger { background: var(--id-danger-soft); color: var(--id-danger-text); border-color: var(--id-danger-line); }
 .gb-set-btn-sm {
     padding: var(--id-space-1) var(--id-space-3); border: 1px solid var(--id-line);
     border-radius: var(--id-radius-sm); background: var(--id-surface-solid);
@@ -369,3 +371,30 @@
 }
 .gb-set-toggle:checked { background: var(--id-accent); }
 .gb-set-toggle:checked::after { transform: translateX(16px); }
+
+/* == Agent runtime (10k_settings_agent_runtime.js) =================== */
+.gb-art-progress { margin-top: var(--id-space-3); }
+.gb-art-tech { margin-top: var(--id-space-2); font-size: var(--id-text-xs); color: var(--id-muted); cursor: pointer; }
+.gb-art-tech summary { font-weight: 500; }
+.gb-art-it-box {
+    margin-top: var(--id-space-3); padding: var(--id-space-3);
+    background: var(--id-fill); border-radius: var(--id-radius-sm); }
+.gb-art-it-text {
+    font-size: var(--id-text-xs); color: var(--id-text); line-height: 1.6;
+    margin: var(--id-space-2) 0; white-space: pre-wrap;
+    padding: var(--id-space-2); background: var(--id-surface-solid);
+    border: 1px solid var(--id-line); border-radius: var(--id-radius-sm);
+    user-select: all; }
+.gb-art-confirm {
+    margin-top: var(--id-space-3); padding: var(--id-space-3);
+    border: 1px solid var(--id-danger-line); border-radius: var(--id-radius-sm);
+    background: var(--id-danger-soft); }
+.gb-art-inline-err { margin-top: var(--id-space-2); }
+
+/* Agent toggle / picker disabled state */
+.gb-agent-toggle.gb-agent-needs-runtime,
+.gb-model-menu-item.gb-agent-needs-runtime {
+    opacity: .5; cursor: default; }
+.gb-agent-needs-runtime .gb-art-link {
+    font-size: var(--id-text-xs); color: var(--id-accent-text);
+    text-decoration: underline; cursor: pointer; margin-left: 4px; }
