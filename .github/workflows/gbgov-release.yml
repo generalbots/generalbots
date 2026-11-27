@@ -239,10 +239,10 @@ jobs:
       - name: Install the Tauri bundler
         run: cargo install tauri-cli --version "^2" --locked
 
-      # Product name and app identifier stay as today until the owner decides
-      # them (decision D1). TODO(D1): change `productName` and `identifier` in
-      # botapp/tauri.gbgov.conf.json before the first public release; changing
-      # them later breaks upgrades and moves the data folder.
+      # D1 decided: productName is "General Bots Lite" in both Tauri configs
+      # (botapp/tauri.conf.json:3, botapp/tauri.gbgov.conf.json:2). The bundle
+      # identifier stays org.generalbots.botapp: changing it breaks upgrades and
+      # moves the user-data folder. No further D1 change is pending.
       - name: Package the NSIS and MSI installers
         shell: pwsh
         working-directory: botapp

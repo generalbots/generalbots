@@ -1,5 +1,5 @@
 {
-  "productName": "General Bots",
+  "productName": "General Bots Lite",
   "identifier": "org.generalbots.botapp",
   "bundle": {
     "targets": [
@@ -35,7 +35,7 @@
         ]
       }
     },
-    "shortDescription": "General Bots — assistant with Chat and Drive",
+    "shortDescription": "General Bots Lite — assistant with Chat and Drive",
     "longDescription": "Desktop assistant with Chat and Drive that runs on the person's own computer.",
     "category": "Productivity",
     "copyright": "© 2026 Pragmatismo.cloud. All rights reserved.",

@@ -11,7 +11,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "General Bots",
+        "title": "General Bots Lite",
         "url": "suite/desktop.html",
         "visible": true
       }
