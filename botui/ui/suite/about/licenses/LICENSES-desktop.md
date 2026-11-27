@@ -246,6 +246,15 @@ The weights are downloaded only when the person chooses a local model. None
 is in the installer. Licences are those on the model cards; the files are
 quantised conversions of the original models.
 
+**Catalogue as shipped since 2026-11-27.** The app offers five files, each with
+its exact name, size and SHA-256 pinned in the catalogue:
+DeepSeek-R1-Distill-Qwen-7B Q4_K_M, Qwen3.5-9B Q4_K_M and Qwen3.8-27B in
+UD-Q3_K_XL, UD-Q4_K_XL and UD-Q6_K. GLM-4-9B, Qwen3.5-14B and "DeepSeek V3
+(bundled)" are no longer offered; the flags and rows about them below are
+kept as the record of why, and the GLM-4 licence text is no longer shipped.
+A model file a person already has keeps working and is listed as not in the
+catalogue.
+
 **Flags for a product offered to government offices** (2026-11-27):
 
 - **GLM-4-9B is not under a permissive licence.** Its card names "The
