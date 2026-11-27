@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 
+mod agent_env;
 mod binary;
 mod bootlog;
 mod paths;

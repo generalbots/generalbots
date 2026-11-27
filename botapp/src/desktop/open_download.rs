@@ -92,8 +92,7 @@ pub fn write_unique(folder: &Path, name: &str, bytes: &[u8]) -> std::io::Result<
 /// A message when the name is refused, the file is too large, Downloads is
 /// unknown, or writing or opening fails.
 #[tauri::command]
-pub async fn open_download(app: tauri::AppHandle, file_name: String, bytes: Vec<u8>) -> Result<String, String> {
-    use tauri_plugin_opener::OpenerExt;
+pub async fn open_download(file_name: String, bytes: Vec<u8>) -> Result<String, String> {
     let name = checked_name(&file_name).map_err(|refusal| match refusal {
         NameRefusal::Invalid => i18n::t("download-invalid-name"),
         NameRefusal::Runnable => i18n::t("download-blocked-type"),
@@ -111,8 +110,7 @@ pub async fn open_download(app: tauri::AppHandle, file_name: String, bytes: Vec<
     .map_err(|e| i18n::t_args("download-write-failed", &[("path", &folder.display().to_string()), ("error", &e.to_string())]))?
     .map_err(|e| i18n::t_args("download-write-failed", &[("path", &folder.display().to_string()), ("error", &e.to_string())]))?;
     let shown = path.to_string_lossy().to_string();
-    app.opener()
-        .open_path(shown.clone(), None::<&str>)
+    opener::open(&path)
         .map_err(|e| i18n::t_args("download-open-failed", &[("error", &e.to_string())]))?;
     Ok(shown)
 }
