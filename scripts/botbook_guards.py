@@ -64,7 +64,7 @@ SERVICES: dict[str, set[int]] = {
     "postgresql": {5432},
     "valkey": {6379},
     "redis": {6379},
-    "minio": {9000, 9100},
+    "otterio": {9000, 9100},
     "vault": {8200},
     "qdrant": {6333},
     "livekit": {7880},

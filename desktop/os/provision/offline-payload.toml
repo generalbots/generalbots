@@ -17,8 +17,7 @@
 # secrets. stage-offline-payload.sh cross-checks every sha256 below against
 # botserver/3rdparty.toml at staging time, so a stale pin fails the build.
 # Checksums that upstream does not publish are left empty and reported as
-# UNPINNED (MinIO is verified through the build script's `minio.sha256`
-# sidecar instead; botmodels publishes no digest at all).
+# UNPINNED (botmodels publishes no digest at all).
 #
 # `group` controls inclusion:
 #   core        always staged (the mandatory first-boot plan)
@@ -64,21 +63,17 @@ source = "component_plan.rs:cache; 3rdparty.toml:[components.cache]"
 id = "drive"
 key = "drive"
 section = "components"
-filename = "minio"
-# Upstream publishes no binary digest for the CVE-fixed source build.
-# scripts/build-minio-fixed.sh writes the digest of the compiled binary to
-# minio.sha256; that sidecar is the authoritative pin for this artifact.
-sha256 = ""
-sha256_sidecar = "minio.sha256"
+filename = "otterio"
+sha256 = "cd8cfcc59f31829665adba12abe70ec79308245a3f7b2bb46376917f617b3aa7"
 group = "core"
-source = "component_plan.rs:drive; 3rdparty.toml:[components.drive]; scripts/build-minio-fixed.sh"
+source = "component_plan.rs:drive; 3rdparty.toml:[components.drive]"
 
 [[payload]]
 id = "mc"
 key = "mc"
 section = "components"
-filename = "mc"
-sha256 = "01f866e9c5f9b87c2b09116fa5d7c06695b106242d829a8bb32990c00312e891"
+filename = "oc-RELEASE.2026-11-25T20-30-01Z-linux-amd64.tar.gz"
+sha256 = "b410af77b1473da1c14cf5cecf3684087162da150d50f0c59034c25b4a25794c"
 group = "core"
 source = "installer_regs/register_drive.rs:38 (drive data_download_list)"
 

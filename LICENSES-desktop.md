@@ -21,8 +21,8 @@ upstream binary and carry the same license as their non-cached counterpart.
 
 | component | name | version | license | source | text |
 |---|---|---|---|---|---|
-| `drive` | MinIO Object Storage | RELEASE.2025-10-15T17-29-55Z (built from source) | AGPL-3.0-or-later | https://github.com/minio/minio | payload `LICENSE` |
-| `mc` | MinIO Client (mc) | RELEASE.2025-08-13T08-35-41Z | AGPL-3.0-or-later | https://github.com/minio/mc | payload `LICENSE` |
+| `drive` | OtterIO Object Storage | RELEASE.2026-11-25T20-30-00Z | Apache-2.0 | https://github.com/soulteary/otterio | payload `LICENSE` |
+| `mc` | OC CLI (oc) | RELEASE.2026-11-25T20-30-01Z | Apache-2.0 | https://github.com/soulteary/oc | payload `LICENSE` |
 | `clamav` | ClamAV Antivirus Engine | 1.5.5 | GPL-2.0-or-later | https://github.com/Cisco-Talos/clamav | payload `copyright` |
 | `tables` | PostgreSQL Database | 18.6.1 | PostgreSQL | https://github.com/postgres/postgres | payload `COPYRIGHT` |
 | `tables_17_2_0_cached` | PostgreSQL Database (bundled cache copy) | 17.2.0 | PostgreSQL | https://github.com/postgres/postgres | payload `COPYRIGHT` |
@@ -39,7 +39,6 @@ upstream binary and carry the same license as their non-cached counterpart.
 | `webmail` | Roundcube Webmail | 1.7.5 | GPL-3.0-or-later | https://github.com/roundcube/roundcubemail | payload `LICENSE` |
 | `meet` | LiveKit Media Server | 1.13.11 | Apache-2.0 | https://github.com/livekit/livekit | payload `LICENSE` |
 | `libpq_win` | PostgreSQL Client Libraries (libpq) | 18.6-1 | PostgreSQL | https://github.com/postgres/postgres | payload `COPYRIGHT` |
-| `table_editor` | NocoDB | unpinned (get.nocodb.com) | AGPL-3.0-or-later | https://github.com/nocodb/nocodb | payload `LICENSE` |
 | `vector_db` | Qdrant Vector Database | 1.20.0 | Apache-2.0 | https://github.com/qdrant/qdrant | payload `LICENSE` |
 | `vector_db_1_12_0_cached` | Qdrant Vector Database (bundled cache copy) | 1.12.0 | Apache-2.0 | https://github.com/qdrant/qdrant | payload `LICENSE` |
 | `timeseries_db` | InfluxDB Time Series Database | 2.7.10 | MIT | https://github.com/influxdata/influxdb | payload `LICENSE` |
@@ -77,10 +76,12 @@ this record and at the per-component texts.
 
 ## Obligations that follow from the licenses
 
-- **AGPL-3.0** (`drive`, `mc`, `email`, `table_editor`): the image distributes
-  these binaries, so the corresponding source must be reachable from the
-  source URLs above and the offer must be documented next to the license texts.
-  Do not describe our own code as AGPL — only these notices are.
+- **AGPL-3.0** (`email`): the image distributes this binary, so the
+  corresponding source must be reachable from the source URLs above and the
+  offer must be documented next to the license texts. Do not describe our own
+  code as AGPL — only these notices are.
+- **Apache-2.0** (`drive`, `mc`): the image distributes these binaries with the
+  upstream license and NOTICE texts; attribution is retained in the payload.
 - **GPL-3.0** (`alm`, `alm_ci`, `webmail`): same source-availability rule.
 - **BUSL-1.1** (`vault_1_18_2_cached`): the legacy cached HashiCorp Vault copy
   is not an open-source license. Redistribution is allowed for non-production

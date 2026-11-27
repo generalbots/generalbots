@@ -17,9 +17,12 @@ repository.
 Several components are copyleft and their licenses require the corresponding
 source to remain available:
 
-    MinIO, MinIO Client (mc), Stalwart, NocoDB   AGPL-3.0
+    Stalwart                                    AGPL-3.0
     Forgejo, Forgejo Actions Runner, Roundcube   GPL-3.0
     HashiCorp Vault                              BUSL-1.1 (not open source)
+
+OtterIO and OC are Apache-2.0; their upstream license and NOTICE texts ship
+with the binaries.
 
 Their source is obtained from the URLs in LICENSES-desktop.md. None of this
 applies to General Bots' own code, which is MIT.

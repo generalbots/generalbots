@@ -202,11 +202,11 @@ def component_checksums(tmp: Path) -> Case:
     """Provenance gate: an unhashed component outside the allowlist must fail."""
     case = Case("component-checksums")
     toml = tmp / "3rdparty.toml"
-    toml.write_text('[components.minio]\nversion = "1"\nurl = "https://example.invalid/m"\nsha256 = ""\n', encoding="utf-8")
+    toml.write_text('[components.demo]\nversion = "1"\nurl = "https://example.invalid/m"\nsha256 = ""\n', encoding="utf-8")
     empty = tmp / "allow.txt"
     empty.write_text("# no acknowledged gaps\n", encoding="utf-8")
     acknowledged = tmp / "allow-ok.txt"
-    acknowledged.write_text("minio  upstream publishes no digest yet\n", encoding="utf-8")
+    acknowledged.write_text("demo  upstream publishes no digest yet\n", encoding="utf-8")
     case.expect(
         "unacknowledged", VIOLATION,
         _gate("check_component_checksums.py", ["--toml", str(toml), "--allowlist", str(empty)]),
@@ -218,7 +218,7 @@ def component_checksums(tmp: Path) -> Case:
     # #2611 — a plaintext download URL must fail unconditionally, even when the
     # component's empty checksum is otherwise allowlisted.
     plain = tmp / "3rdparty-plain.toml"
-    plain.write_text('[components.minio]\nversion = "1"\nurl = "http://example.invalid/m"\nsha256 = ""\n', encoding="utf-8")
+    plain.write_text('[components.demo]\nversion = "1"\nurl = "http://example.invalid/m"\nsha256 = ""\n', encoding="utf-8")
     case.expect(
         "plaintext-url", VIOLATION,
         _gate("check_component_checksums.py", ["--toml", str(plain), "--allowlist", str(acknowledged)]),
