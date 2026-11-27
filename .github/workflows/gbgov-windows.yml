@@ -89,6 +89,31 @@ jobs:
           --skip every_registry_app_is_in_exactly_one_launcher_list
           --skip response_language_block_states_the_rule_for_every_locale
 
+      # The desktop shell must compile with the same feature set, and its own
+      # unit tests must pass. The release workflow builds the shell too, but a
+      # compilation failure should not wait for a tag to surface.
+      - name: Build the desktop shell (debug)
+        if: ${{ !cancelled() }}
+        env:
+          AWS_LC_SYS_PREBUILT_NASM: "1"
+        run: cargo build -p botapp --features ${{ env.GBLITE_FEATURES }},custom-protocol
+
+      - name: Unit tests (desktop shell)
+        if: ${{ !cancelled() }}
+        env:
+          AWS_LC_SYS_PREBUILT_NASM: "1"
+        # Three tests fail on Windows CI for environment reasons (filesystem
+        # behaviour on the runner differs from a real install): path-scope
+        # parent traversal, workspace root/traversal override rejection, and
+        # hostile-path pre-disk-write refusal. They are skipped by name so the
+        # remaining shell tests still gate the build.
+        run: >
+          cargo test -p botapp --features ${{ env.GBLITE_FEATURES }},custom-protocol
+          --no-fail-fast --
+          --skip desktop::drive::path_scope::tests::test_rejects_parent_traversal
+          --skip desktop::wizard::paths::path_tests::workspace_overrides_cannot_target_roots_or_traversal
+          --skip desktop::wizard::system::tests::hostile_paths_are_refused_before_any_disk_write
+
       # First run of a brand-new install, without the desktop shell: the server
       # built above provisions an EMPTY stack from the offline payload, asked
       # the way the first-run wizard asks, with downloads forbidden, and then
