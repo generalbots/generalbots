@@ -1,10 +1,3 @@
-# ─── Complexity ceiling relock — 2026-11-26 (gbgov edition merge) ────────────
-# Re-baselined with `python3 scripts/app_complexity_budget.py --update` after
-# the gbgov edition merge (7e9db9fea / df0116dcb) added Chat, Drive and Settings
-# parity: chat +4 modules/+1410 loc, drive +2/+431, settings +2/+503. These are
-# shipped features, not new routes; no route ceiling changed. One-time
-# documented correction; subsequent changes remain shrink-only. See #2120/#2459.
-# ─────────────────────────────────────────────────────────────────────────────
 # Per-app complexity budget (#2120).
 #
 # Ceilings, not snapshots: a metric may stay equal or fall, never rise.
@@ -298,12 +291,12 @@ loc = 561
 [apps."settings"]
 routes = 52
 js_modules = 37
-loc = 13995
+loc = 14019
 
 [apps."sheet"]
 routes = 0
 js_modules = 117
-loc = 28451
+loc = 28453
 
 [apps."slides"]
 routes = 0

@@ -91,6 +91,39 @@ async def run(args) -> int:
     allow_403 = [v.strip() for v in os.environ.get(
         "GB_SMOKE_ALLOW_403", "/api/vibe/projects/,/api/collab/links").split(",") if v.strip()]
 
+    def benign_503(prefixes, server, console, allowed):
+        """Record an allowed optional backend's 503 as an environment note.
+
+        A resource load can surface only as a console error (no response event
+        with a URL), so the browser's message location is checked too. Only
+        503 is ever filtered, only when GB_SMOKE_ALLOW_503 is configured, and
+        every filtered entry is written to the report as a note.
+        """
+        if not prefixes:
+            return
+        urls = server["items"]
+        server["items"] = []
+        console_503 = [item for item in console["items"] if "503" in item["text"]]
+        console["items"] = [item for item in console["items"] if "503" not in item["text"]]
+        notes = [(url, "http.503") for url in urls
+                 if any(urlsplit(url).path.startswith(prefix) for prefix in prefixes)]
+        if urls and len(notes) != len(urls):
+            server["items"] = urls
+            console["items"].extend(console_503)
+            return
+        for item in console_503:
+            location = item.get("url", "")
+            if location and not any(
+                urlsplit(location).path.startswith(prefix) for prefix in prefixes
+            ):
+                console["items"].append(item)
+                continue
+            notes.append((location or "console.503 (browser did not expose a URL)", "console.503"))
+        allowed["items"].extend(
+            {"source": source + " (allowed by GB_SMOKE_ALLOW_503)", "text": text}
+            for text, source in notes
+        )
+
     def allowed_cross_owner_403():
         urls = forbidden_bucket["items"]
         forbidden_bucket["items"] = []
@@ -152,6 +185,7 @@ async def run(args) -> int:
                 console_bucket["items"].append({
                     "source": "console." + message.type,
                     "text": message.text[:500],
+                    "url": (getattr(message, "location", None) or {}).get("url", ""),
                 })
 
         def on_pageerror(error):
@@ -184,19 +218,7 @@ async def run(args) -> int:
             boot_404s = classify(bucket["items"])
             bucket["items"] = []
             results = [{"app": "<shell-boot>", "not_found": boot_404s}]
-            # A 503 from an explicitly allowed optional backend is recorded as
-            # an environment note; any OTHER console error still stops the sweep.
-            urls = server_bucket["items"]
-            server_bucket["items"] = []
-            benign_503 = bool(allow_503) and bool(urls) and all(
-                any(urlsplit(url).path.startswith(prefix) for prefix in allow_503)
-                for url in urls)
-            if benign_503:
-                allowed_bucket["items"] = [
-                    {"source": "http.503 (allowed by GB_SMOKE_ALLOW_503)", "text": url}
-                    for url in urls]
-                console_bucket["items"] = [item for item in console_bucket["items"]
-                                           if "503" not in item["text"]]
+            benign_503(allow_503, server_bucket, console_bucket, allowed_bucket)
             allowed_cross_owner_403()
             hits = console_bucket["items"]
             console_bucket["items"] = []
@@ -274,6 +296,7 @@ async def run(args) -> int:
                 print(f"[{index}/{len(apps)}] {app_id}: "
                       f"{'FAIL ' + ', '.join(not_found) if not_found else 'PASS'}")
 
+                benign_503(allow_503, server_bucket, console_bucket, allowed_bucket)
                 allowed_cross_owner_403()
                 hits = console_bucket["items"]
                 console_bucket["items"] = []
