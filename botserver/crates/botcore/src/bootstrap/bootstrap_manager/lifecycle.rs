@@ -81,6 +81,17 @@ impl BootstrapManager {
             return Ok(());
         }
 
+        // Stop leftover processes of services that the product file switches
+        // off. An older version may have left Redis, Qdrant, Zitadel or the
+        // embedding llama-server running from this stack; they hold ports and
+        // memory until the first normal close.
+        let leftover_count = crate::bootstrap::bootstrap_utils::stop_switched_off_leftovers(
+            crate::product::is_service_off,
+        );
+        if leftover_count > 0 {
+            info!("Stopped {leftover_count} leftover process(es) of switched-off services");
+        }
+
         let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone())?;
         let skip_local_directory = cfg!(windows)
             && std::env::var("GBO_SKIP_LOCAL_DIRECTORY")

@@ -44,6 +44,10 @@ pub fn get_processes_to_kill() -> Vec<(String, Vec<&'static str>)> {
 /// skipped, and the readiness probe waits out its whole window (#2022). On Unix
 /// the pattern is the stack path, so a cache installed elsewhere on the machine
 /// is never touched; on Windows the stack-scoped sysinfo kill is used instead.
+///
+/// On Windows the gbgov edition has no bundled cache service (the server uses a
+/// built-in RESP cache). The kill list still names `redis-server.exe` so that
+/// a leftover from an older version that bundled Redis gets stopped.
 pub fn component_process_patterns(component: &str) -> Vec<String> {
     if component != "cache" {
         return Vec::new();
@@ -143,7 +147,7 @@ fn kill_process(
 /// Resolve `<stack>/bin/` as an absolute, normalised, lower-case path for
 /// case-insensitive prefix matching on Windows.
 #[cfg(windows)]
-fn resolve_stack_bin_dir() -> String {
+pub(super) fn resolve_stack_bin_dir() -> String {
     let raw = format!("{}/bin/", get_stack_path());
     let path = std::path::Path::new(&raw);
     let abs = if path.is_absolute() {
@@ -310,3 +314,4 @@ fn sh_exec(command: &str) -> Result<std::process::Output, anyhow::Error> {
 pub fn dump_all_component_logs(component: &str) {
     info!("Dumping logs for component: {component}");
 }
+
