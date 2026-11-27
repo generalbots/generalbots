@@ -30,7 +30,8 @@
         ],
         "displayLanguageSelector": true,
         "installMode": "perMachine",
-        "installerIcon": "icons/icon.ico"
+        "installerIcon": "icons/icon.ico",
+        "installerHooks": "nsis/agent-runtime-uninstall.nsh"
       },
       "wix": {
         "language": [

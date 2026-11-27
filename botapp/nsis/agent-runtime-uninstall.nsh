@@ -12,8 +12,8 @@
 ; CLI switch (see botapp/src/desktop/agent_runtime/commands.rs).
 ; The switch must do nothing unless the argument is exactly that string.
 
-!macro customUninstall
-  ${If} $DeleteAppData == 1
+!macro NSIS_HOOK_PREUNINSTALL
+  ${If} $DeleteAppDataCheckboxState == 1
     ; Only attempt removal if wsl.exe exists (WSL may never have been
     ; installed on this machine).
     IfFileExists "$SYSDIR\wsl.exe" 0 +3
@@ -24,3 +24,4 @@
     RMDir /r "$LOCALAPPDATA\generalbots\stack\agent-runtime"
   ${EndIf}
 !macroend
+
