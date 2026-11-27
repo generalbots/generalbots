@@ -113,8 +113,10 @@ fn test_locale_catalogue_reports_full_metadata() {
         assert!(!meta.number_format.is_empty(), "number format for {code}");
     }
 
-    // The eight shipped locales are all present and named in their script.
-    for expected in ["en", "pt-BR", "es", "fr", "de", "ja", "ko", "zh-CN"] {
+    // The ten shipped locales are all present and named in their script.
+    for expected in [
+        "en", "pt-BR", "es", "fr", "de", "it", "ru", "ja", "ko", "zh-CN",
+    ] {
         let meta = metadata_for(expected);
         assert_eq!(meta.code, expected);
         assert_ne!(meta.native_name, expected, "native name for {expected}");

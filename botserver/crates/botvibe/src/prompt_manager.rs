@@ -6,7 +6,9 @@ pub const FALLBACK_LANG: &str = "en";
 /// Languages the platform recognizes (canonical keys). Prompt template files
 /// exist for the subset that has shipped (`en`, `pt-BR`); the rest are
 /// recognized so a request for them is not silently collapsed to English.
-pub const SUPPORTED_LANGS: &[&str] = &["en", "pt-BR", "es", "fr", "de", "ja", "ko", "zh-CN"];
+pub const SUPPORTED_LANGS: &[&str] = &[
+    "en", "pt-BR", "es", "fr", "de", "it", "ru", "ja", "ko", "zh-CN",
+];
 
 /// One fully-expanded set of prompt fragments for a (use_case, lang) pair.
 #[derive(Debug, Clone)]
@@ -44,6 +46,8 @@ pub fn normalize_lang(lang: &str) -> Option<String> {
         "es" | "es-es" | "es_es" | "spa" => "es",
         "fr" | "fr-fr" | "fr_fr" | "fra" => "fr",
         "de" | "de-de" | "de_de" | "deu" | "ger" => "de",
+        "it" | "it-it" | "it_it" | "ita" => "it",
+        "ru" | "ru-ru" | "ru_ru" | "rus" => "ru",
         "ja" | "ja-jp" | "ja_jp" | "jpn" => "ja",
         "ko" | "ko-kr" | "ko_kr" | "kor" => "ko",
         "zh" | "zh-cn" | "zh_cn" | "zhcn" | "zho" => "zh-CN",

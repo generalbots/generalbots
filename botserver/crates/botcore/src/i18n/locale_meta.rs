@@ -27,7 +27,7 @@ pub struct LocaleMetadata {
     pub number_format: String,
 }
 
-/// The eight locales the catalogue ships, in the order the picker shows them.
+/// The ten locales the catalogue ships, in the order the picker shows them.
 const SHIPPED: &[(&str, &str, &str, &str)] = &[
     // (code, native_name, date_format, number_format)
     ("en", "English", "MM/dd/yyyy", "#,##0.###"),
@@ -35,6 +35,8 @@ const SHIPPED: &[(&str, &str, &str, &str)] = &[
     ("es", "Español", "dd/MM/yyyy", "#.##0,###"),
     ("fr", "Français", "dd/MM/yyyy", "# ##0,###"),
     ("de", "Deutsch", "dd.MM.yyyy", "#.##0,###"),
+    ("it", "Italiano", "dd/MM/yyyy", "#.##0,###"),
+    ("ru", "Русский", "dd.MM.yyyy", "# ##0,###"),
     ("ja", "日本語", "yyyy/MM/dd", "#,##0.###"),
     ("ko", "한국어", "yyyy. MM. dd.", "#,##0.###"),
     ("zh-CN", "简体中文", "yyyy/M/d", "#,##0.###"),
@@ -102,7 +104,9 @@ pub fn metadata_all(codes: &[String]) -> Vec<LocaleMetadata> {
 mod tests {
     use super::{is_rtl, metadata_all, metadata_for};
 
-    const SHIPPED_CODES: [&str; 8] = ["en", "pt-BR", "es", "fr", "de", "ja", "ko", "zh-CN"];
+    const SHIPPED_CODES: [&str; 10] = [
+        "en", "pt-BR", "es", "fr", "de", "it", "ru", "ja", "ko", "zh-CN",
+    ];
 
     #[test]
     fn every_shipped_locale_has_native_name_and_formats() {
@@ -126,6 +130,8 @@ mod tests {
         assert_eq!(metadata_for("ko").native_name, "한국어");
         assert_eq!(metadata_for("zh-CN").native_name, "简体中文");
         assert_eq!(metadata_for("de").native_name, "Deutsch");
+        assert_eq!(metadata_for("it").native_name, "Italiano");
+        assert_eq!(metadata_for("ru").native_name, "Русский");
     }
 
     #[test]
@@ -159,7 +165,7 @@ mod tests {
             assert!(is_rtl(rtl), "{rtl} is rtl");
             assert_eq!(metadata_for(rtl).dir, "rtl", "direction for {rtl}");
         }
-        for ltr in ["en", "pt-BR", "zh-CN", "ja", ""] {
+        for ltr in ["en", "pt-BR", "zh-CN", "ja", "it", "ru", ""] {
             assert!(!is_rtl(ltr), "{ltr} is ltr");
         }
     }

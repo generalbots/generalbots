@@ -202,8 +202,10 @@ fn locale_parsing_stays_within_budget() {
 fn locale_negotiation_stays_within_budget() {
     let requested = Locale::new("pt-BR").expect("pt-BR parses");
     let fallback = Locale::default();
-    let available: Vec<Locale> = ["en", "pt-BR", "es", "fr", "de", "ja", "ko", "zh-CN"]
-        .into_iter()
+    let available: Vec<Locale> = [
+        "en", "pt-BR", "es", "fr", "de", "it", "ru", "ja", "ko", "zh-CN",
+    ]
+    .into_iter()
         .filter_map(Locale::new)
         .collect();
     assert!(!available.is_empty(), "the catalogue must offer locales");
@@ -247,8 +249,10 @@ fn regex_cache_lookup_stays_within_budget() {
 fn emits_the_hotpath_snapshot() {
     let locale = Locale::new("pt-BR").expect("pt-BR parses");
     let fallback = Locale::default();
-    let available: Vec<Locale> = ["en", "pt-BR", "es", "fr", "de", "ja", "ko", "zh-CN"]
-        .into_iter()
+    let available: Vec<Locale> = [
+        "en", "pt-BR", "es", "fr", "de", "it", "ru", "ja", "ko", "zh-CN",
+    ]
+    .into_iter()
         .filter_map(Locale::new)
         .collect();
     let pattern = "^slo-budget-[0-9]+$";

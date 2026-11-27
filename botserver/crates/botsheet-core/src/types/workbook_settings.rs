@@ -22,6 +22,10 @@ pub enum FormulaLocale {
     Fr,
     #[serde(rename = "de")]
     De,
+    #[serde(rename = "it")]
+    It,
+    #[serde(rename = "ru")]
+    Ru,
     #[serde(rename = "ja")]
     Ja,
     #[serde(rename = "ko")]
@@ -31,12 +35,14 @@ pub enum FormulaLocale {
 }
 
 impl FormulaLocale {
-    pub const ALL: [FormulaLocale; 8] = [
+    pub const ALL: [FormulaLocale; 10] = [
         FormulaLocale::En,
         FormulaLocale::PtBr,
         FormulaLocale::Es,
         FormulaLocale::Fr,
         FormulaLocale::De,
+        FormulaLocale::It,
+        FormulaLocale::Ru,
         FormulaLocale::Ja,
         FormulaLocale::Ko,
         FormulaLocale::ZhCn,
@@ -49,6 +55,8 @@ impl FormulaLocale {
             "es" => FormulaLocale::Es,
             "fr" => FormulaLocale::Fr,
             "de" => FormulaLocale::De,
+            "it" => FormulaLocale::It,
+            "ru" => FormulaLocale::Ru,
             "ja" => FormulaLocale::Ja,
             "ko" => FormulaLocale::Ko,
             "zh-cn" => FormulaLocale::ZhCn,
@@ -63,6 +71,8 @@ impl FormulaLocale {
             FormulaLocale::Es => "es",
             FormulaLocale::Fr => "fr",
             FormulaLocale::De => "de",
+            FormulaLocale::It => "it",
+            FormulaLocale::Ru => "ru",
             FormulaLocale::Ja => "ja",
             FormulaLocale::Ko => "ko",
             FormulaLocale::ZhCn => "zh-CN",
@@ -73,7 +83,12 @@ impl FormulaLocale {
     pub fn decimal_separator(&self) -> char {
         if matches!(
             self,
-            FormulaLocale::PtBr | FormulaLocale::Es | FormulaLocale::Fr | FormulaLocale::De
+            FormulaLocale::PtBr
+            | FormulaLocale::Es
+            | FormulaLocale::Fr
+            | FormulaLocale::De
+            | FormulaLocale::It
+            | FormulaLocale::Ru
         ) {
             ','
         } else {
@@ -84,8 +99,8 @@ impl FormulaLocale {
     /// Thousands/grouping mark used by the preview for this locale.
     pub fn group_separator(&self) -> char {
         match self {
-            FormulaLocale::PtBr | FormulaLocale::Es | FormulaLocale::De => '.',
-            FormulaLocale::Fr => ' ',
+            FormulaLocale::PtBr | FormulaLocale::Es | FormulaLocale::De | FormulaLocale::It => '.',
+            FormulaLocale::Fr | FormulaLocale::Ru => ' ',
             _ => ',',
         }
     }

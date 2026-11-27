@@ -36,7 +36,9 @@ pub const LOCALE_HEADER: &str = "x-locale";
 
 /// Locales the catalogue is guaranteed to ship. Used only before the bundles
 /// are loaded (e.g. during early boot or in unit tests without initialisation).
-const BUNDLED_LOCALES: &[&str] = &["en", "pt-BR", "es", "zh-CN", "fr", "de", "ja", "ko"];
+const BUNDLED_LOCALES: &[&str] = &[
+    "en", "pt-BR", "es", "zh-CN", "fr", "de", "it", "ru", "ja", "ko",
+];
 
 pub struct RequestLocale(pub Locale);
 

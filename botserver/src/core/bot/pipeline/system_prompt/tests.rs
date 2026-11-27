@@ -81,8 +81,10 @@ mod prompt_assembly_tests {
     #[test]
     fn response_language_block_states_the_rule_for_every_locale() {
         // #2096 — the rule is a platform property: it must name no locale of its
-        // own, so all eight shipped locales get the same instruction.
-        for locale in ["en", "pt-BR", "es", "fr", "de", "ja", "ko", "zh-CN"] {
+        // own, so all ten shipped locales get the same instruction.
+        for locale in [
+            "en", "pt-BR", "es", "fr", "de", "it", "ru", "ja", "ko", "zh-CN",
+        ] {
             let block = response_language_block(locale);
             assert!(block.starts_with("RESPONSE LANGUAGE"), "locale {locale}");
             assert!(
