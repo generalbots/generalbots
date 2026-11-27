@@ -233,6 +233,108 @@ jobs:
           python scripts/stage_windows_installers.py --check
           if ($LASTEXITCODE -ne 0) { throw "offline payload check failed with exit code $LASTEXITCODE" }
 
+      # First run of a brand-new install, without the desktop shell: the
+      # release server provisions an EMPTY stack from the payload staged above,
+      # asked the way the first-run wizard asks, with downloads forbidden, and
+      # then starts once on it (scripts/gblite-first-run.ps1). The smoke test
+      # above never runs the provisioner, so only this step sees a payload or a
+      # product file that a new install cannot use.
+      #
+      # NOT BLOCKING YET: the check has never run on a runner, and a wrong
+      # assumption in it must not stop a release build. Remove
+      # `continue-on-error` from this step once it has passed twice here.
+      #
+      # The runner's own PostgreSQL (the smoke database) holds port 5432, the
+      # port of the stack's database: it is stopped for the check and started
+      # again afterwards.
+      - name: First run on an empty stack, offline (not blocking yet)
+        continue-on-error: true
+        timeout-minutes: 30
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $services = @(Get-Service -Name 'postgresql*' | Where-Object { $_.Status -eq 'Running' })
+          $services | Stop-Service -Force
+          try {
+            ./scripts/gblite-first-run.ps1 -Binary target\release\botserver.exe `
+              -Payload botserver\botserver-installers `
+              -Stack (Join-Path $env:RUNNER_TEMP 'gblite-first-run-stack')
+            $code = $LASTEXITCODE
+          } finally {
+            $services | Start-Service
+          }
+          exit $code
+
+      # The installers install for the whole machine (`installMode` in
+      # botapp/tauri.gblite.conf.json), so the person who runs the app cannot
+      # write to, or move files out of, the app folder. The same check with
+      # that folder locked. Not blocking, for the same reason as above; make it
+      # blocking once it has passed twice.
+      - name: First run on an empty stack, app folder read-only (not blocking yet)
+        continue-on-error: true
+        timeout-minutes: 30
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $services = @(Get-Service -Name 'postgresql*' | Where-Object { $_.Status -eq 'Running' })
+          $services | Stop-Service -Force
+          try {
+            ./scripts/gblite-first-run.ps1 -Binary target\release\botserver.exe `
+              -Payload botserver\botserver-installers -ReadOnlyApp `
+              -Stack (Join-Path $env:RUNNER_TEMP 'gblite-first-run-locked-stack') `
+              -Evidence first-run-artifacts-read-only
+            $code = $LASTEXITCODE
+          } finally {
+            $services | Start-Service
+          }
+          exit $code
+
+      # The agent workspace on Windows runs Incus inside WSL through the
+      # `incus.exe` wrapper (desktop/windows/incus-wsl). The binary ships as
+      # installers/incus.exe so the shell can find it at runtime
+      # (botapp/src/desktop/sidecar/agent_env.rs).
+      - name: Build and test the WSL Incus wrapper
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          cargo build --release --manifest-path desktop\windows\incus-wsl\Cargo.toml
+          if ($LASTEXITCODE -ne 0) { throw "incus-wsl build failed with exit code $LASTEXITCODE" }
+          cargo test --release --manifest-path desktop\windows\incus-wsl\Cargo.toml
+          if ($LASTEXITCODE -ne 0) { throw "incus-wsl tests failed with exit code $LASTEXITCODE" }
+          $exe = Get-Item 'desktop\windows\incus-wsl\target\release\incus.exe' -ErrorAction Stop
+          Copy-Item $exe.FullName 'botserver\botserver-installers\incus.exe' -Force
+          Write-Host "incus.exe staged ($([math]::Round($exe.Length / 1KB, 1)) KB)"
+
+      # Sign incus.exe separately: it is not part of the Tauri bundle so the
+      # bundler's signing configuration does not reach it.
+      - name: Sign incus.exe (when the certificate is present)
+        if: env.HAS_WINDOWS_CERT == 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $incus = 'botserver\botserver-installers\incus.exe'
+          if (-not (Test-Path $incus)) { throw 'incus.exe was not staged' }
+          $cert = Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert | Select-Object -First 1
+          if (-not $cert) { throw 'no code-signing certificate in the store' }
+          Set-AuthenticodeSignature -FilePath $incus -Certificate $cert `
+            -HashAlgorithm SHA256 -TimestampServer 'http://timestamp.digicert.com'
+          $status = (Get-AuthenticodeSignature $incus).Status
+          if ($status -ne 'Valid') { throw "incus.exe signature status: $status" }
+          Write-Host "incus.exe signed ($status)"
+
+      - name: Verify incus.exe is inside the bundle payload
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $incus = 'botserver\botserver-installers\incus.exe'
+          if (-not (Test-Path $incus)) { throw 'incus.exe is missing from the installers folder' }
+          $conf = Get-Content 'botapp/tauri.gblite.conf.json' -Raw | ConvertFrom-Json
+          $resources = $conf.bundle.resources.PSObject.Properties
+          if (-not ($resources.Name -contains '../botserver/botserver-installers/*')) {
+            throw 'tauri config does not glob botserver-installers/*; incus.exe would not be bundled'
+          }
+          Write-Host "incus.exe is covered by the installers/* resource glob"
+
       - name: Stage the server sidecar
         shell: pwsh
         run: |
@@ -278,6 +380,49 @@ jobs:
           cargo tauri build --features "$env:GBLITE_FEATURES,custom-protocol" @configs --bundles msi
           if ($LASTEXITCODE -ne 0) { throw "cargo tauri build failed with exit code $LASTEXITCODE" }
 
+      # Gate: the built MSI must carry the licence files, the NOTICE and the
+      # source offer. The MSI is extracted to a temp directory via an
+      # administrative install and the contents are checked.
+      - name: Verify licence files in the MSI bundle
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $bundles = @('target\release\bundle', 'botapp\target\release\bundle')
+          $msi = Get-ChildItem ($bundles | ForEach-Object { "$_\msi\*.msi" }) -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $msi) { throw 'no MSI installer found' }
+          $extractDir = Join-Path $env:RUNNER_TEMP 'msi-extract'
+          New-Item -ItemType Directory -Force $extractDir | Out-Null
+          $proc = Start-Process -FilePath 'msiexec.exe' `
+            -ArgumentList @('/a', "`"$($msi.FullName)`"", '/qn', "TARGETDIR=`"$extractDir`"") `
+            -Wait -PassThru -WindowStyle Hidden
+          if ($proc.ExitCode -ne 0) { throw "msiexec /a failed with exit code $($proc.ExitCode)" }
+          $listing = Get-ChildItem $extractDir -Recurse -File | ForEach-Object {
+            $_.FullName.Substring($extractDir.Length + 1)
+          }
+          # The interface carries its own copies under ui\suite\about\licenses;
+          # they do not count. The bundle's licenses folder is what is checked.
+          $shipped = @($listing | Where-Object { $_ -notmatch '(^|\\)ui\\' })
+          $required = @(
+            'licenses\LICENSES-desktop.md',
+            'licenses\NOTICE',
+            'licenses\SOURCE-OFFER.md',
+            'licenses\LICENSE-General-Bots.txt'
+          )
+          $missing = @()
+          foreach ($name in $required) {
+            if (-not ($shipped | Where-Object { $_.EndsWith($name, [System.StringComparison]::OrdinalIgnoreCase) })) {
+              $missing += $name
+            }
+          }
+          if (-not ($shipped | Where-Object { $_ -match '(^|\\)licenses\\[^\\]+-(LICENSE|COPYRIGHT|COPYING)\.txt$' })) {
+            $missing += 'licenses\<upstream-text>.txt (no licence text files found)'
+          }
+          if ($missing.Count -gt 0) {
+            foreach ($m in $missing) { Write-Host "::error::missing in MSI bundle: $m" }
+            throw "the MSI is missing $($missing.Count) licence file(s)"
+          }
+          Write-Host "licence files verified in the MSI bundle"
+
       - name: Collect the release files
         shell: pwsh
         run: |
@@ -297,6 +442,15 @@ jobs:
             $out = Get-Item "dist\$name"
             if ($out.Length -lt 1MB) { throw "$($out.Name) is suspiciously small ($($out.Length) bytes)" }
             Write-Host "MSI: $($out.Name) ($([math]::Round($out.Length / 1MB, 1)) MB)"
+          }
+          # incus.exe is not part of the Tauri bundle signing: check it here.
+          $incus = Get-Item 'botserver\botserver-installers\incus.exe' -ErrorAction SilentlyContinue
+          if ($incus) {
+            $status = (Get-AuthenticodeSignature $incus.FullName).Status
+            Write-Host "signature incus.exe: $status"
+            if ($env:HAS_WINDOWS_CERT -eq 'true' -and $status -ne 'Valid') {
+              throw 'incus.exe is not signed but a signing certificate is configured'
+            }
           }
 
       - name: Software bill of materials (CycloneDX)
@@ -344,6 +498,8 @@ jobs:
             mock-llm.log
             mock-llm.log.err
             smoke-artifacts/**
+            first-run-artifacts/**
+            first-run-artifacts-read-only/**
           if-no-files-found: warn
 
   publish:
