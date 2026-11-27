@@ -137,6 +137,25 @@ trap cleanup EXIT
 
 run() { incus exec "$BUILDER" -- "$@"; }
 
+# Printed only when the builder never gets a default route: the bridge, its
+# DHCP leases and the container's own view of the network, so the log tells a
+# host firewall or a missing dnsmasq from a guest that never asked for a
+# lease. Best effort: no command here can fail the build.
+network_diagnostics() {
+    local net
+    net=$(incus config show --expanded "$BUILDER" 2>/dev/null | awk '$1 == "network:" {print $2; exit}') || net=
+    {
+        echo "--- network diagnostics: builder $BUILDER, network ${net:-unknown} ---"
+        incus list "$BUILDER" || true
+        if [ -n "$net" ]; then
+            incus network show "$net" || true
+            incus network list-leases "$net" || true
+        fi
+        run sh -c 'ip a; ip route; cat /proc/net/route; cat /etc/resolv.conf; networkctl status --no-pager 2>/dev/null | head -40; systemctl --failed --no-pager 2>/dev/null; journalctl -u systemd-networkd -n 40 --no-pager 2>/dev/null' || true
+        echo "--- end of network diagnostics ---"
+    } >&2
+}
+
 # Pin the base image by fingerprint: a remote alias such as images:debian/13
 # moves daily, and the build must record exactly what it started from.
 LAUNCH_IMAGE=$BASE_IMAGE
@@ -164,7 +183,10 @@ for _ in $(seq 1 60); do
     if run sh -c 'grep -q "^[^[:space:]]*[[:space:]]00000000[[:space:]]" /proc/net/route'; then net_ready=1; break; fi
     sleep 2
 done
-[ "$net_ready" -eq 1 ] || die "the builder container has no default route after 120 s"
+if [ "$net_ready" -ne 1 ]; then
+    network_diagnostics
+    die "the builder container has no default route after 120 s"
+fi
 if ! run sh -c 'getent hosts deb.debian.org >/dev/null 2>&1'; then
     run sh -c 'GW=$(ip route | awk "/^default/ {print \$3; exit}"); { [ -n "$GW" ] && echo "nameserver $GW"; echo "nameserver 1.1.1.1"; } > /etc/resolv.conf'
 fi

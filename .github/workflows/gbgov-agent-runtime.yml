@@ -204,6 +204,54 @@ jobs:
             echo "- base $(fact BASE_IMAGE) \`$(fact BASE_FINGERPRINT)\`, chromium: $(fact CHROMIUM)"
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # Runs only after a failed step. The build script deletes its builder on
+      # exit, so this prints the host side (bridge, DHCP, firewall) and boots a
+      # throw-away container on the same bridge to watch it ask for a lease.
+      - name: Network diagnostics
+        if: ${{ failure() }}
+        run: |
+          set +e +o pipefail
+          show() { printf '\n##### %s\n' "$*"; "$@" 2>&1 | head -n 250; }
+          show uname -a
+          show sudo incus info
+          show sudo incus network list
+          show sudo incus network show incusbr0
+          show sudo incus network list-leases incusbr0
+          show sudo incus profile show default
+          show ip -4 addr
+          show ip route
+          show sysctl net.ipv4.ip_forward net.bridge.bridge-nf-call-iptables
+          show sudo ss -ulpn
+          show pgrep -a dnsmasq
+          show sudo ufw status verbose
+          show sudo iptables --version
+          show sudo iptables -S
+          show sudo iptables -t nat -S
+          show sudo nft list ruleset
+          show cat /etc/docker/daemon.json
+          show sudo journalctl -u incus -n 80 --no-pager
+          show sudo sh -c 'dmesg | grep -i "apparmor.*denied" | tail -n 40'
+
+          printf '\n##### probe container on incusbr0\n'
+          sudo apt-get install -y -q --no-install-recommends tcpdump >/dev/null 2>&1
+          sudo timeout 45 tcpdump -lnei incusbr0 -c 24 'udp port 67 or udp port 68' 2>&1 | sed 's/^/tcpdump: /' &
+          sleep 3
+          sudo incus launch images:debian/13 gb-net-probe
+          sleep 40
+          wait
+          show sudo incus list
+          show sudo incus network list-leases incusbr0
+          show sudo incus exec gb-net-probe -- sh -c 'ip a; ip route; cat /etc/resolv.conf; ls -l /etc/systemd/network; cat /etc/systemd/network/*; systemctl is-system-running; systemctl --failed --no-pager; systemctl status systemd-networkd --no-pager -l; networkctl status --no-pager; journalctl -b -u systemd-networkd -n 60 --no-pager'
+          show sudo incus exec gb-net-probe -- journalctl -b -p warning -n 60 --no-pager
+          show sudo incus info gb-net-probe --show-log
+          # With a hand-set address: does the bridge itself pass traffic, to
+          # the gateway (dnsmasq on :53) and through NAT to the internet?
+          gw=$(sudo incus network get incusbr0 ipv4.address); gw=${gw%/*}
+          show sudo incus exec gb-net-probe -- sh -c "ip addr add ${gw%.*}.250/24 dev eth0; ip link set eth0 up; ip route replace default via $gw; timeout 5 bash -c 'echo > /dev/tcp/$gw/53' && echo 'static: tcp to the gateway works' || echo 'static: no tcp to the gateway'; timeout 8 bash -c 'echo > /dev/tcp/1.1.1.1/443' && echo 'static: tcp to the internet works' || echo 'static: no tcp to the internet'"
+          show sudo sh -c 'dmesg | tail -n 60'
+          sudo incus delete --force gb-net-probe
+          exit 0
+
       - name: Keep the workspace image
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
