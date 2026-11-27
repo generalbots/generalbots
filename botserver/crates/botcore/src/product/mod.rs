@@ -104,6 +104,10 @@ pub struct ProductConfig {
     /// Bundled local services this edition does without (`services_off=`,
     /// see `services.rs`): never installed, started or awaited.
     pub services_off: HashSet<String>,
+
+    /// The file path the configuration was loaded from, if any.  `None`
+    /// means the built-in defaults were used (no `.product` file found).
+    pub source_path: Option<String>,
 }
 
 /// Error type for product configuration
