@@ -108,6 +108,7 @@ impl ProductConfig {
     /// Search order (first hit wins):
     /// 1. CWD-relative paths (legacy dev layout)
     /// 2. `BOTSERVER_STACK_PATH` / `GBO_STACK_PATH` (desktop sidecar)
+    /// 2b. Parent of `BOTSERVER_INSTALLERS_PATH` (Tauri resource dir)
     /// 3. Next to the running executable (packaged install)
     pub fn load() -> Result<Self, ProductConfigError> {
         // The edition's own product file wins over the desktop one, which
@@ -155,6 +156,29 @@ impl ProductConfig {
                         candidate.display()
                     );
                     return Self::parse(&content);
+                }
+            }
+        }
+
+        // Phase 2b: inside the Tauri resource directory. The provisioner
+        // child runs with cwd=stack and cannot see the installed resources
+        // directly, but the shell passes BOTSERVER_INSTALLERS_PATH which
+        // points at `<resource_dir>/installers`. Its parent is the resource
+        // dir where `tauri.gbgov.conf.json` places `.product.gbgov`.
+        let installers = std::env::var("BOTSERVER_INSTALLERS_PATH").ok();
+        if let Some(ref dir) = installers {
+            if let Some(resource_dir) = Path::new(dir).parent() {
+                for name in &names {
+                    let candidate = resource_dir.join(name);
+                    if candidate.exists() {
+                        let content =
+                            fs::read_to_string(&candidate).map_err(ProductConfigError::IoError)?;
+                        info!(
+                            "Loaded product configuration from resource dir: {}",
+                            candidate.display()
+                        );
+                        return Self::parse(&content);
+                    }
                 }
             }
         }

@@ -6,7 +6,12 @@ use super::*;
 /// (Forgejo, the Forgejo runner, NocoDB) or fell back to the Linux archive
 /// (Roundcube). A Windows install must refuse them with a reason instead of
 /// downloading a broken URL or the wrong platform's binary.
-const NO_WINDOWS_BUILD: &[&str] = &["alm", "alm_ci", "table_editor", "webmail"];
+/// `cache` (Valkey): no Windows build exists. The desktop server provides a
+/// built-in RESP cache on the loopback interface (`embedded_cache.rs`), so
+/// the external binary is never needed. Without this guard the installer
+/// downloads the Linux tarball and waits forever for a process that cannot
+/// start.
+const NO_WINDOWS_BUILD: &[&str] = &["alm", "alm_ci", "cache", "table_editor", "webmail"];
 
 pub(super) fn get_thirdparty_config() -> &'static ThirdPartyConfig {
     THIRDPARTY_CONFIG.get_or_init(|| {
