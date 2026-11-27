@@ -79,16 +79,15 @@ sha256_win = "fbe23da234ee31547bf8a36d29dfd81e82b849df2d2b78d2eecb43d360252f8c"
 name = "Valkey Cache (Redis-compatible)"
 url = "https://download.valkey.io/releases/valkey-9.1.3-jammy-x86_64.tar.gz"
 filename = "valkey-9.1.3-jammy-x86_64.tar.gz"
-url_win = "https://github.com/microsoftarchive/redis/releases/download/win-3.0.504/Redis-x64-3.0.504.zip"
-filename_win = "Redis-x64-3.0.504.zip"
+# Windows: no bundled cache service. The server provides a built-in RESP cache
+# on the loopback interface (main_module/embedded_cache.rs). An external
+# Redis/Valkey is used only when CACHE_URL/REDIS_URL/VALKEY_URL is set.
 # The upstream arm64 tarball is spelled "arm64" (not "aarch64"); its checksum
 # is published as valkey-9.1.3-jammy-arm64.tar.gz.sha256.
 url_arm64 = "https://download.valkey.io/releases/valkey-9.1.3-jammy-arm64.tar.gz"
 filename_arm64 = "valkey-9.1.3-jammy-arm64.tar.gz"
-note = "Windows: Uses Microsoft Redis port. For production, use Memurai or Docker."
 sha256 = "939667f38a99972af6d4ad7045a97876d6db6c4f331f6609290dab2e354fff1e"
 sha256_arm64 = "33e0ac674548424746528b947ef65538d624ef69478445158d690d02ce6c8e36"
-sha256_win = "5f761367601ca31f6c8969e427cacc0da4f428712954a66aab303f83e390566e"
 
 # #1966 — the `cache_win` entry (Memurai MSI from a personal fork) was never
 # referenced by the installer and its URL answers 404. Windows uses the
@@ -184,11 +183,16 @@ sha256_win = "5d071ea43339f0140d24a66f0b2ff8a7bf6c4d0dceb19b30abca835670213667"
 
 [components.libpq_win]
 name = "PostgreSQL Client Libraries (libpq for Diesel)"
-url = "https://get.enterprisedb.com/postgresql/postgresql-18.6-1-windows-x64-binaries.zip"
+# The release workflow and the developer setup (C:\pgsql) both use the 17.4-1
+# EDB binaries zip. The hash is from the workflow step "PostgreSQL client
+# libraries" in .github/workflows/gbgov-release.yml, which verifies it on
+# every build.
+url = "https://get.enterprisedb.com/postgresql/postgresql-17.4-1-windows-x64-binaries.zip"
 url_win = "https://get.enterprisedb.com/postgresql/postgresql-17.4-1-windows-x64-binaries.zip"
-filename = "postgresql-18.6-1-windows-x64-binaries.zip"
-filename_win = "postgresql-18.6-1-windows-x64-binaries.zip"
-sha256 = ""
+filename = "postgresql-17.4-1-windows-x64-binaries.zip"
+filename_win = "postgresql-17.4-1-windows-x64-binaries.zip"
+sha256 = "80bb49e80df0100dd52e7b3c647896f8d8cfde760b6473e5180819c8df4b23c4"
+sha256_win = "80bb49e80df0100dd52e7b3c647896f8d8cfde760b6473e5180819c8df4b23c4"
 
 [components.table_editor]
 name = "NocoDB"

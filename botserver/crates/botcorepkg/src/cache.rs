@@ -390,3 +390,55 @@ fn sha256_hex(data: &[u8]) -> String {
     let result = hasher.finalize();
     hex::encode(result)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The provisioner finds a bundled file when its filename matches the
+    /// `3rdparty.toml` entry. This test creates a fake cache directory with
+    /// the expected filename and proves `resolve_component_url` returns
+    /// `Cached` instead of `Download`.
+    #[test]
+    fn bundled_archive_is_found_by_its_configured_filename() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let cache_dir = dir.path().join("botserver-installers");
+        std::fs::create_dir_all(&cache_dir).unwrap();
+        let config: ThirdPartyConfig = {
+            let content = include_str!("../../../3rdparty.toml");
+            toml::from_str(content).expect("embedded 3rdparty.toml must parse")
+        };
+        // On Windows the `tables` component resolves to its `filename_win`;
+        // on other platforms the default `filename` is used. Both must hit
+        // the cache when the file exists.
+        let tables = config.components.get("tables").expect("tables entry");
+        let filename = tables.effective_filename();
+        std::fs::write(cache_dir.join(filename), b"placeholder").unwrap();
+        let cache = DownloadCache::new(dir.path()).expect("cache");
+        let url = tables.effective_url();
+        let result = cache.resolve_component_url("tables", url);
+        assert!(
+            result.is_cached(),
+            "the provisioner must find '{filename}' in the cache directory and not download it"
+        );
+    }
+
+    /// Every component required by the Lite edition (vault, tables, drive)
+    /// has a pinned SHA-256 for its Windows archive.
+    #[test]
+    fn required_lite_components_have_a_windows_checksum() {
+        let config: ThirdPartyConfig = {
+            let content = include_str!("../../../3rdparty.toml");
+            toml::from_str(content).expect("embedded 3rdparty.toml must parse")
+        };
+        for name in ["openbao", "tables", "drive", "mc"] {
+            let entry = config.components.get(name).unwrap_or_else(|| {
+                panic!("3rdparty.toml must have a '{name}' entry")
+            });
+            assert!(
+                !entry.sha256_win.is_empty(),
+                "component '{name}' has no sha256_win; bundled files would not be verified"
+            );
+        }
+    }
+}

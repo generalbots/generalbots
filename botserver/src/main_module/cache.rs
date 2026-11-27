@@ -171,11 +171,13 @@ pub async fn init_redis() -> Option<Arc<redis::Client>> {
 }
 
 /// Whether this build serves the cache from inside the server instead of an
-/// external Redis/Valkey; CACHE_URL, REDIS_URL or VALKEY_URL still win. The
-/// product file's `services_off=cache` is the source of truth; on Windows it
-/// must also be the gbgov edition.
+/// external Redis/Valkey; CACHE_URL, REDIS_URL or VALKEY_URL still win.
+///
+/// On Windows the gbgov edition has no bundled cache binary at all (Redis was
+/// removed from the payload), so the built-in cache is always used regardless
+/// of the `services_off` key.
 fn uses_built_in_cache() -> bool {
-    cfg!(all(windows, feature = "gbgov")) && botcore::product::uses_builtin_cache()
+    cfg!(all(windows, feature = "gbgov"))
 }
 
 async fn start_built_in_cache() -> Option<Arc<redis::Client>> {

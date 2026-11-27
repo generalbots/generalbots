@@ -36,7 +36,7 @@ This record states what the licences say. It is not legal advice. Items marked
 | OpenBao (`bao.exe`, component `vault`) | 2.7.3 | MPL-2.0 | github.com/openbao/openbao/blob/v2.7.3/LICENSE | `LICENSE` (inside the zip) | 969e4872b21eeee7c9b4cd312e77027e624528ca7bc9dc2361311b97e34e6e90 | Keep the licence. MPL-2.0 §3.2: whoever distributes the executable must tell recipients how to get its source (the upstream tag is enough while it stays online). Unmodified, so no own files to publish |
 | MinIO server (`minio.exe`) | RELEASE.2025-10-15T17-29-55Z, built from the unmodified source tag (fixes CVE-2025-62506) | AGPL-3.0-or-later | github.com/minio/minio/blob/RELEASE.2025-10-15T17-29-55Z/LICENSE (+ `NOTICE`) | none (single `.exe`) | e63f9c4ac8b8697ca679d4864497688c3486aa9ac9370c3569203420c25e5799 (release `drive-bin-v4` of generalbots/generalbots, built by `.github/workflows/drive-bin-v4.yml` on `main`) | See "AGPL" below. Ship the licence text and the upstream `NOTICE` |
 | MinIO client (`mc.exe`) | RELEASE.2025-08-13T08-35-41Z | AGPL-3.0-or-later | github.com/minio/mc/blob/RELEASE.2025-08-13T08-35-41Z/LICENSE (+ `NOTICE`) | none (single `.exe`) | c8db13ebeda31497f354c0e950809db0ae9b2a2a69b8afee68c128c37300c157 | As MinIO server |
-| Redis for Windows (Microsoft Open Technologies port) | 3.0.504 | BSD-3-Clause | github.com/microsoftarchive/redis/blob/win-3.0.504/license.txt | none | 5f761367601ca31f6c8969e427cacc0da4f428712954a66aab303f83e390566e | Reproduce both copyright lines (Salvatore Sanfilippo; Microsoft Open Technologies), the conditions and the disclaimer in the documentation. Do not use the name "Redis" to endorse the product. The sources also carry `deps/`: jemalloc and jemalloc-win (BSD-2-Clause), hiredis (BSD-3-Clause), Lua 5.1 (MIT), linenoise (BSD). Which of them are linked into `redis-server.exe`: NOT VERIFIED; ship their notices to be safe |
+| ~~Redis for Windows~~ | — | — | — | — | — | Removed: Windows uses the built-in RESP cache inside the server; no external Redis binary is shipped or downloaded |
 | Qdrant (`qdrant.exe`) | 1.20.0 | Apache-2.0 | github.com/qdrant/qdrant/blob/v1.20.0/LICENSE | none (zip holds only `qdrant.exe`) | 6d13553584fd0411f00637519e293331ff0aa1fb79bd9e30db45839bb75de2be | Ship the Apache-2.0 text. Upstream has no `NOTICE` at this tag. The notices of the Rust crates compiled into the binary are not published by upstream: NOT VERIFIED |
 | Zitadel (`zitadel.exe`) | 4.20.1 | AGPL-3.0-only; `proto/`, `apps/docs/` Apache-2.0; `apps/login/`, `packages/zitadel-client/`, `packages/zitadel-proto/` MIT | github.com/zitadel/zitadel/blob/v4.20.1/LICENSE and `LICENSING.md` | `LICENSE` (inside the tar.gz) | dd38db24626a3f24f9e22244163f4ba50527378a4237cd19f0f6578b61c39405 | See "AGPL" below, plus the MIT notice for the login UI. Upstream `LICENSING.md` itself recommends legal counsel |
 | Caddy (`caddy.exe`) | 2.11.9 | Apache-2.0 | github.com/caddyserver/caddy/blob/v2.11.9/LICENSE | `LICENSE` (inside the zip) | ad93112d335ee687100c4c9f11bced16ca590377976b7fe7883882b9e797e472 (the workflow checks the SHA-512 from upstream) | Keep the licence. No `NOTICE` upstream |
@@ -51,14 +51,14 @@ This record states what the licences say. It is not legal advice. Items marked
 
 Notes:
 
-- The client DLLs come from EDB 17.4-1, but `3rdparty.toml` `[components.libpq_win]`
-  names `postgresql-18.6-1-…zip` as `filename_win`, points `url_win` at 17.4-1
-  and has an empty `sha256`. The record above follows the workflow.
+- The client DLLs come from EDB 17.4-1; `3rdparty.toml` `[components.libpq_win]`
+  now names `postgresql-17.4-1-…zip` for all variants with the workflow's
+  verified checksum `80bb49…23c4`.
 - The CUDA 13.1 llama.cpp archive (b7345) and the two model files that an
   earlier draft listed as shipped are not in the release workflow. They are
   downloaded (section 2).
-- The workflow skips `incus.exe` (agent workspace on WSL) while its source is not
-  in the repository. Nothing to record yet.
+- `incus.exe` (agent workspace on WSL) is built from `desktop/windows/incus-wsl`
+  and shipped as `installers/incus.exe`. The source is MIT (see its Cargo.toml).
 
 ## 2. Downloaded on first run
 
@@ -100,13 +100,13 @@ Kept in the six-column form that `scripts/check_third_party_licenses.py` on
 | `openbao` | OpenBao secrets server (component id `vault`) | 2.7.3 | MPL-2.0 | https://github.com/openbao/openbao | `licenses/openbao-LICENSE.txt`; Edition: shipped, started |
 | `drive` | MinIO Object Storage | RELEASE.2025-10-15T17-29-55Z (built from source; Windows) | AGPL-3.0-or-later | https://github.com/minio/minio | `licenses/minio-LICENSE.txt`, `minio-NOTICE.txt`; Edition: shipped, started |
 | `mc` | MinIO Client (mc) | RELEASE.2025-08-13T08-35-41Z | AGPL-3.0-or-later | https://github.com/minio/mc | `licenses/mc-LICENSE.txt`, `mc-NOTICE.txt`; Edition: shipped |
-| `cache` | Redis for Windows (Windows `url_win`; Valkey 9.1.3 elsewhere) | 3.0.504 | BSD-3-Clause | https://github.com/microsoftarchive/redis | `licenses/redis-license.txt` and `redis-*` deps; Edition: shipped |
+| `cache` | Valkey Cache (Linux/macOS; Windows uses a built-in RESP cache, no external binary) | 9.1.3 | BSD-3-Clause | https://download.valkey.io/ | not used on Windows (built-in cache) |
 | `vector_db` | Qdrant Vector Database | 1.20.0 | Apache-2.0 | https://github.com/qdrant/qdrant | `licenses/qdrant-LICENSE.txt`; Edition: shipped |
 | `directory` | Zitadel Identity Provider | 4.20.1 | AGPL-3.0-only | https://github.com/zitadel/zitadel | `licenses/zitadel-LICENSE.txt`, `zitadel-LICENSING.md`, `zitadel-login-LICENSE.txt`; Edition: shipped |
 | `caddy` | Caddy Web Server | 2.11.9 | Apache-2.0 | https://github.com/caddyserver/caddy | `licenses/caddy-LICENSE.txt`; Edition: shipped |
 | `proxy` | Caddy (same archive as `caddy`) | 2.11.9 | Apache-2.0 | https://github.com/caddyserver/caddy | `licenses/caddy-LICENSE.txt` |
 | `tables` | PostgreSQL Database (EDB binaries on Windows) | 18.6-1 | PostgreSQL | https://github.com/postgres/postgres | zip `COPYRIGHT` (NOT VERIFIED); Edition: downloaded |
-| `libpq_win` | PostgreSQL client libraries | 17.4-1 (workflow) | PostgreSQL | https://github.com/postgres/postgres | `licenses/postgresql-COPYRIGHT.txt`; the other DLLs of the zip: see section 1; Edition: shipped |
+| `libpq_win` | PostgreSQL client libraries | 17.4-1 | PostgreSQL | https://github.com/postgres/postgres | `licenses/postgresql-COPYRIGHT.txt`; the other DLLs of the zip: see section 1; Edition: shipped |
 | `llm_win_cpu_x64` | llama.cpp (Windows x64 CPU) | b12483 | MIT | https://github.com/ggml-org/llama.cpp | `licenses/llama.cpp-LICENSE.txt`; Edition: downloaded |
 | `llm_win_cpu_arm64` | llama.cpp (Windows ARM64 CPU) | b12483 | MIT | https://github.com/ggml-org/llama.cpp | as above |
 | `llm_win_cuda12` | llama.cpp (Windows CUDA 12.4) | b12483 | MIT | https://github.com/ggml-org/llama.cpp | as above |
@@ -158,8 +158,8 @@ From the earlier draft; not re-read on 2026-11-26.
 - **MPL-2.0** (OpenBao). Ship the licence and say where the source of v2.7.3 is.
 - **LGPL** (libiconv, libintl). Ship the text, keep the DLLs replaceable, give
   or offer the source of the exact build. Versions not yet identified.
-- **BSD / MIT / Zlib** (Redis and its deps, winpthreads, lz4, zstd, zlib,
-  llama.cpp). Reproduce the copyright lines and texts in the documentation.
+- **BSD / MIT / Zlib** (winpthreads, lz4, zstd, zlib, llama.cpp). Reproduce
+  the copyright lines and texts in the documentation.
 - **Apache-2.0** (Qdrant, Caddy, OpenSSL, the Qwen base). Ship the text and
   any upstream `NOTICE` (none found for Qdrant, Caddy).
 - **Proprietary** (CUDA runtime, WebView2 Runtime). Downloaded from the vendor
@@ -178,9 +178,9 @@ From the earlier draft; not re-read on 2026-11-26.
    (libiconv, libintl) in the EDB zip. **Lawyer:** whether links to upstream
    tags satisfy AGPL-3.0 §6 and MPL-2.0 §3.2.
 3. MinIO now ships RELEASE.2025-10-15T17-29-55Z (CVE-2025-62506 fixed), built
-   from source. Redis 3.0.504 is from 2016, archived, with unpatched CVEs.
-4. Pin the SHA-256 of both models and of the `libpq_win` archive in
-   `3rdparty.toml`, and make `libpq_win` agree with the workflow (17.4-1).
+   from source. Redis 3.0.504 removed from the Windows payload.
+4. `libpq_win` in `3rdparty.toml` now agrees with the workflow (17.4-1) and
+   carries the verified SHA-256. Pin the SHA-256 of both models.
 5. The release downloads PostgreSQL, llama.cpp, the models and possibly
    WebView2 on first run. That contradicts "no downloads at first boot" in
    `AGENTS.md` and fails on an offline machine.
