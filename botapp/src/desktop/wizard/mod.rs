@@ -37,6 +37,12 @@ pub(crate) use paths::{
 };
 pub(crate) use progress::{context, write_progress, ProgressMarker};
 
+/// Cancel a running provisioning child and mark the wizard as cancelled.
+/// Called from the exit handler when the wizard window is closed mid-setup.
+pub(crate) fn cancel_provision(state: &WizardState) {
+    let _ = provision::cancel(state);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

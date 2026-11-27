@@ -401,33 +401,40 @@ fn main() {
             app.run(move |app, event| {
                 #[cfg(feature = "desktop-local")]
                 if let tauri::RunEvent::ExitRequested { api, .. } = &event {
-                    // #1826 — an explicit Quit from the tray must terminate the
-                    // process even when the suite window still exists. The
-                    // tray handler stops the sidecar and sets this flag before
-                    // requesting exit.
-                    if desktop::tray::quit_requested() {
-                        info!("quitting from the tray: stopping the sidecar");
-                        sidecar.stop();
-                        desktop::stack_stop::stop_stack();
-                    } else if app.get_webview_window("main").is_some() {
-                        // Closing the wizard must not take the suite down with it:
-                        // the main window is already answering, so keep the
-                        // process (and the sidecar) alive until it is gone.
-                        info!("keeping the app alive: the suite window still exists");
-                        api.prevent_exit();
-                    } else if desktop::activity::is_busy() {
-                        // #1620 — a reply is still being generated. Killing the
-                        // sidecar here truncated real answers (and the tool
-                        // call that writes a PDF). Keep the process alive and
-                        // bring the suite back so the result is visible.
-                        info!(
-                            "a reply is in progress: keeping the app alive and reopening the suite"
-                        );
-                        api.prevent_exit();
-                        desktop::wizard::ensure_suite_window(app);
-                    } else {
-                        sidecar.stop();
-                        desktop::stack_stop::stop_stack();
+                    use desktop::exit_decision::{on_exit_requested, ExitAction};
+                    let main_visible = app
+                        .get_webview_window("main")
+                        .and_then(|w| w.is_visible().ok())
+                        .unwrap_or(false);
+                    let action = on_exit_requested(
+                        desktop::tray::quit_requested(),
+                        main_visible,
+                        desktop::activity::is_busy(),
+                    );
+                    match action {
+                        ExitAction::Exit => {
+                            info!("quitting: stopping the sidecar");
+                            sidecar.stop();
+                            desktop::stack_stop::stop_stack();
+                        }
+                        ExitAction::KeepAlive => {
+                            info!("keeping the app alive: the suite window is visible");
+                            api.prevent_exit();
+                        }
+                        ExitAction::KeepAliveAndRecreate => {
+                            // #1620 — a reply is still being generated.
+                            info!("a reply is in progress: keeping the app alive and reopening the suite");
+                            api.prevent_exit();
+                            desktop::wizard::ensure_suite_window(app);
+                        }
+                        ExitAction::CancelAndExit => {
+                            // The wizard was the last visible window, or it
+                            // was closed during first-run setup.
+                            info!("no visible window remains: cancelling setup and exiting");
+                            desktop::wizard::cancel_provision(&app.state::<WizardState>());
+                            sidecar.stop();
+                            desktop::stack_stop::stop_stack();
+                        }
                     }
                 }
                 let _ = (&app, &event);

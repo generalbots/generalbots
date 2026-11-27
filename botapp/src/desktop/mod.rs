@@ -1,6 +1,8 @@
 #[cfg(feature = "desktop-local")]
 pub mod activity;
 #[cfg(feature = "desktop-local")]
+pub(crate) mod exit_decision;
+#[cfg(feature = "desktop-local")]
 pub mod boot_guard;
 #[cfg(feature = "desktop-local")]
 pub mod boot_steps;
