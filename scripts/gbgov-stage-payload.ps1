@@ -3,7 +3,7 @@
 #
 # The files are the ones the release installer carries
 # (.github/workflows/gbgov-release.yml, "Stage the offline payload"): OpenBao,
-# the PostgreSQL server, MinIO and its client. Address, file name and SHA-256
+# the PostgreSQL server, OtterIO and the OC client. Address, file name and SHA-256
 # of each come from the Windows pins in botserver/3rdparty.toml (`url_win`,
 # `filename_win`, `sha256_win`), so a pin changed there is followed here. A
 # component with no Windows build pinned stops the script.

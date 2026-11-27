@@ -78,7 +78,7 @@ $Api = 'http://127.0.0.1:8080/api/product'
 $Base = @(
     @{ Id = 'vault'; Label = 'secrets store'; Program = 'bin\vault\bao.exe'; Port = 8200 },
     @{ Id = 'tables'; Label = 'database'; Program = 'bin\tables\bin\postgres.exe'; Port = 5432 },
-    @{ Id = 'drive'; Label = 'file store'; Program = 'bin\drive\minio.exe'; Port = 9100 }
+    @{ Id = 'drive'; Label = 'file store'; Program = 'bin\drive\otterio.exe'; Port = 9100 }
 )
 $Off = @(
     @{ Id = 'cache'; Ports = @(6379) },
@@ -280,7 +280,7 @@ function Test-BaseServices {
             if ($null -eq $code) { $answer = 'pg_isready on 5432 could not run or gave no answer in 20 s' }
         } else {
             $url = 'http://127.0.0.1:8200/v1/sys/health?standbyok=true'
-            if ($service.Id -eq 'drive') { $url = 'http://127.0.0.1:9100/minio/health/live' }
+            if ($service.Id -eq 'drive') { $url = 'http://127.0.0.1:9100/otterio/health/live' }
             $status = Get-HttpStatus $url
             $up = $status -ge 200 -and $status -lt 400; $answer = "$url -> $status"
         }
