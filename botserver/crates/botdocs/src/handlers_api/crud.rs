@@ -319,7 +319,7 @@ pub async fn handle_delete_document(
 
 /// Open an arbitrary file from the Drive (any bucket) inside the docs editor.
 ///
-/// Reads the object bytes from MinIO/S3 and converts binary office formats
+/// Reads the object bytes from OtterIO/S3 and converts binary office formats
 /// (.docx/.doc/.odt/.rtf) to HTML so the content is editable. Plain text
 /// files (.txt/.md/.html) are used as-is.
 pub async fn handle_open_from_drive(

@@ -58,7 +58,7 @@ pub(super) async fn rotate_all_secrets() -> Result<()> {
     drive.insert("secret".to_string(), drive_secret.clone());
     manager.put_secret(SecretPaths::DRIVE, drive).await?;
     println!(
-        "✓ drive: mc admin user add myminio {} [REDACTED]",
+        "✓ drive: oc admin user add myotterio {} [REDACTED]",
         drive_accesskey
     );
 

@@ -46,7 +46,7 @@ pub mod linux {
     pub const PACKAGE_MANAGER: &str = "apt";
     pub const POSTGRES_BIN: &str = "pg_ctlcluster";
     pub const REDIS_BIN: &str = "redis-server";
-    pub const MINIO_BIN: &str = "minio";
+    pub const OTTERIO_BIN: &str = "otterio";
 }
 
 #[cfg(target_os = "macos")]
@@ -55,7 +55,7 @@ pub mod macos {
     pub const PACKAGE_MANAGER: &str = "brew";
     pub const POSTGRES_BIN: &str = "pg_ctl";
     pub const REDIS_BIN: &str = "redis-server";
-    pub const MINIO_BIN: &str = "minio";
+    pub const OTTERIO_BIN: &str = "otterio";
 }
 
 #[cfg(target_os = "windows")]
@@ -64,7 +64,7 @@ pub mod windows {
     pub const PACKAGE_MANAGER: &str = "choco";
     pub const POSTGRES_BIN: &str = "pg_ctl.exe";
     pub const REDIS_BIN: &str = "redis-server.exe";
-    pub const MINIO_BIN: &str = "minio.exe";
+    pub const OTTERIO_BIN: &str = "otterio.exe";
 }
 
 /// Documents the cross-platform build matrix for the workspace. The

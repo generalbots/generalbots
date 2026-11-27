@@ -338,7 +338,7 @@ impl TlsRegistry {
             .push(ServiceTlsConfig::new("postgres", 5433).with_mtls());
 
         self.services
-            .push(ServiceTlsConfig::new("minio", 9001).with_mtls());
+            .push(ServiceTlsConfig::new("otterio", 9001).with_mtls());
 
         self.services
             .push(ServiceTlsConfig::new("directory", 8443).with_mtls());

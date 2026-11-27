@@ -1,6 +1,6 @@
 //! Drive object seeding for the fiscal test scenarios (issues #722/#723/#724).
 //!
-//! Writes real MinIO objects into the default bot's bucket so the chat/API
+//! Writes real OtterIO objects into the default bot's bucket so the chat/API
 //! flows can discover them exactly like a production user's Drive:
 //!
 //!   * `faturas/`  — invoice folder used by the guided upload flow (#723)

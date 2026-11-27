@@ -110,7 +110,7 @@ Quick reference for all crates in `botserver/crates/`. For full rules, see root 
 | Crate | Description |
 |-------|-------------|
 | `botdatabase` | Database query routes and storage |
-| `botdrive` | Drive file repository, S3/MinIO, vectordb, streaming |
+| `botdrive` | Drive file repository, S3/OtterIO, vectordb, streaming |
 | `botdocs` | Document processing, collaboration, conversion |
 | `botsheet` | Spreadsheet engine (collaboration, formulas, PDF export) |
 | `botsheet-core` | Sheet core — types, formulas, state |

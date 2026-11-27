@@ -29,7 +29,7 @@ const INTERNAL_ADMIN_HOSTS: &[&str] = &[
     "admin",
     "console",
     "vault",
-    "minio",
+    "otterio",
     "kubernetes",
 ];
 

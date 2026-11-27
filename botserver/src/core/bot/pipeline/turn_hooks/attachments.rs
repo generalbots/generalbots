@@ -352,7 +352,7 @@ async fn ingest_single_attachment(
     }
 }
 
-/// MinIO answers a full disk with HTTP 507 and `XMinioStorageFull`; the
+/// OtterIO answers a full disk with HTTP 507 and `XOtterioStorageFull`; the
 /// store error carries the status and the body.
 fn is_storage_full(raw: &str) -> bool {
     raw.contains("StorageFull") || raw.contains("HTTP 507") || raw.contains("Insufficient Storage")
@@ -365,7 +365,7 @@ mod store_failure_tests {
     #[test]
     fn a_full_disk_is_recognised_from_the_store_error() {
         assert!(is_storage_full(
-            "Got HTTP 507 with content '<?xml version=\"1.0\"?><Error><Code>XMinioStorageFull</Code></Error>'"
+            "Got HTTP 507 with content '<?xml version=\"1.0\"?><Error><Code>XOtterioStorageFull</Code></Error>'"
         ));
         assert!(is_storage_full("HTTP 507 Insufficient Storage"));
         assert!(!is_storage_full("Got HTTP 403 with content 'AccessDenied'"));

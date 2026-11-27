@@ -29,7 +29,7 @@ const QUOTA_TTL: Duration = Duration::from_secs(60);
 /// How many buckets the quota sweep lists at once.
 ///
 /// The sweep walked the buckets strictly one after another; 32 sequential
-/// LISTs cost 114s in prod. A bounded pool keeps MinIO and the CPU budget busy
+/// LISTs cost 114s in prod. A bounded pool keeps OtterIO and the CPU budget busy
 /// without opening one connection per bucket at once.
 const QUOTA_SWEEP_CONCURRENCY: usize = 8;
 

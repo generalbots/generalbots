@@ -122,7 +122,7 @@ impl VectorScope {
 }
 
 /// Current ACL check for a document, supplied by the caller from a trusted
-/// source (Drive/MinIO object + `drive_shares`, or the KB group tables). It
+/// source (Drive/OtterIO object + `drive_shares`, or the KB group tables). It
 /// receives the trusted scope plus the candidate document's path and bucket so
 /// a process-wide verifier can still decide per user.
 pub type AccessVerifier = dyn Fn(&VectorScope, &str, &str) -> bool + Send + Sync;

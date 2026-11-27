@@ -151,7 +151,7 @@ impl PackageManager {
         });
         let expected = botcorepkg::checksum::pin_or_empty(pin);
         // #2001 — hash the file actually unpacked (bundled installers use stable
-        // names such as `minio`) and apply the shared policy: mismatches are fatal,
+        // names such as `otterio`) and apply the shared policy: mismatches are fatal,
         // a missing pin warns or aborts under GB_REQUIRE_CHECKSUMS.
         botcorepkg::checksum::verify_download(&source_file, &expected, component)?;
 

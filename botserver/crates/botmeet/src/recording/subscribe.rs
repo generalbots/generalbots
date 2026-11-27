@@ -222,7 +222,7 @@ impl RecordingService {
         // 4. Upload to cloud storage
         // 5. Update database with URLs
 
-        // The recording object is streamed by the server from MinIO drive at
+        // The recording object is streamed by the server from OtterIO drive at
         // `meet/recordings/{recording_id}.webm`; the file/download URLs point
         // at the authenticated server routes (see recording_routes.rs) so the
         // client never touches storage credentials directly.

@@ -85,7 +85,7 @@ pub async fn run_integration_tests(config: &RunnerConfig) -> Result<TestResults>
 
     info!("Test harness ready:");
     info!("  PostgreSQL: {}", ctx.database_url());
-    info!("  MinIO: {}", ctx.minio_endpoint());
+    info!("  OtterIO: {}", ctx.otterio_endpoint());
     info!("  Redis: {}", ctx.redis_url());
     info!("  Mock Zitadel: {}", ctx.zitadel_url());
     info!("  Mock LLM: {}", ctx.llm_url());
@@ -108,8 +108,8 @@ pub async fn run_integration_tests(config: &RunnerConfig) -> Result<TestResults>
         ("DIRECTORY_URL", &directory_url),
         ("ZITADEL_CLIENT_ID", "test-client-id"),
         ("ZITADEL_CLIENT_SECRET", "test-client-secret"),
-        ("DRIVE_ACCESSKEY", "minioadmin"),
-        ("DRIVE_SECRET", "minioadmin"),
+        ("DRIVE_ACCESSKEY", "otterio-admin"),
+        ("DRIVE_SECRET", "otterio-admin"),
     ];
 
     match run_cargo_test(
@@ -269,8 +269,8 @@ pub async fn run_e2e_tests(config: &RunnerConfig) -> Result<TestResults> {
         ("DIRECTORY_URL", &directory_url),
         ("ZITADEL_CLIENT_ID", "test-client-id"),
         ("ZITADEL_CLIENT_SECRET", "test-client-secret"),
-        ("DRIVE_ACCESSKEY", "minioadmin"),
-        ("DRIVE_SECRET", "minioadmin"),
+        ("DRIVE_ACCESSKEY", "otterio-admin"),
+        ("DRIVE_SECRET", "otterio-admin"),
         ("BOTSERVER_URL", &server_url),
         ("HEADED", headed),
         ("CHROME_BINARY", &chrome_binary),

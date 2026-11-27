@@ -1,6 +1,6 @@
 //! Cross-platform service controller abstraction. Each platform provides a
 //! `ServiceBackend` implementation that can start, stop and check the
-//! status of background services (PostgreSQL, Redis, MinIO, etc.) without
+//! status of background services (PostgreSQL, Redis, OtterIO, etc.) without
 //! relying on Linux-only tooling like `pg_ctl`, `initdb` or `systemctl`.
 //!
 //! Concrete backends (Windows Service Control Manager, launchd, etc.) are

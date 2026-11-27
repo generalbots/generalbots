@@ -11,7 +11,7 @@ declare -A container_limits=(
      ["*proxy*"]="2048MB:100ms/100ms"
      ["*directory*"]="1024MB:50ms/100ms"
      ["*drive*"]="4096MB:100ms/100ms"
-     ["*minio*"]="4096MB:100ms/100ms"      # MinIO alternative
+     ["*otterio*"]="4096MB:100ms/100ms"      # OtterIO alternative
      ["*email*"]="4096MB:100ms/100ms"
      ["*webmail*"]="4096MB:100ms/100ms"
      ["*bot*"]="2048MB:25ms/100ms"
@@ -34,8 +34,8 @@ declare -A container_priority=(
     ["*alm-ci*"]="10"           # HIGHEST PRIORITY - all sources for alm-ci
     ["*tables*"]="9"            # High priority - PostgreSQL
     ["*postgre*"]="9"           # High priority - PostgreSQL alternative
-    ["*drive*"]="8"             # High priority - MinIO
-    ["*minio*"]="8"             # High priority - MinIO alternative
+    ["*drive*"]="8"             # High priority - OtterIO
+    ["*otterio*"]="8"             # High priority - OtterIO alternative
     ["*directory*"]="7"         # Medium priority - Zitadel
     ["*dns*"]="5"               # Normal priority
     ["*proxy*"]="5"             # Normal priority
@@ -50,7 +50,7 @@ declare -A container_priority=(
 )
 
 # Get all containers once
-containers=$(lxc list -c n --format csv)
+containers=$(incus list -c n --format csv)
 
 echo "Starting container configuration with priority levels..."
 echo "========================================================="
@@ -79,8 +79,8 @@ for container in $containers; do
                 cpu_count=2  # More CPUs for alm-ci
             elif [[ $pattern == "*tables*" ]] || [[ $pattern == "*postgre*" ]]; then
                 cpu_count=1  # More CPUs for PostgreSQL
-            elif [[ $pattern == "*drive*" ]] || [[ $pattern == "*minio*" ]]; then
-                cpu_count=1  # More CPUs for MinIO
+            elif [[ $pattern == "*drive*" ]] || [[ $pattern == "*otterio*" ]]; then
+                cpu_count=1  # More CPUs for OtterIO
             else
                 cpu_count=1
             fi
@@ -102,16 +102,16 @@ for container in $containers; do
     echo "  → CPU Allowance: $cpu_allowance"
     echo "  → CPU Priority: $cpu_priority/10"
 
-    lxc config set "$container" limits.memory "$memory"
-    lxc config set "$container" limits.cpu.allowance "$cpu_allowance"
-    lxc config set "$container" limits.cpu "$cpu_count"
-    lxc config set "$container" limits.cpu.priority "$cpu_priority"
+    incus config set "$container" limits.memory "$memory"
+    incus config set "$container" limits.cpu.allowance "$cpu_allowance"
+    incus config set "$container" limits.cpu "$cpu_count"
+    incus config set "$container" limits.cpu.priority "$cpu_priority"
 
     echo "  → Restarting $container..."
-    lxc restart "$container" --timeout=30
+    incus restart "$container" --timeout=30
 
     echo "  → Current config:"
-    lxc config show "$container" | grep -E "memory|cpu" | sed 's/^/    /'
+    incus config show "$container" | grep -E "memory|cpu" | sed 's/^/    /'
     echo ""
 done
 
@@ -121,7 +121,7 @@ echo ""
 echo "PRIORITY SUMMARY:"
 echo "1. alm-ci (build-run) → Priority 10/10, 200ms/100ms, 8GB RAM, 4 CPUs"
 echo "2. tables/postgre → Priority 9/10, 100ms/100ms, 4GB RAM, 4 CPUs"
-echo "3. drive/minio → Priority 8/10, 100ms/100ms, 4GB RAM, 3 CPUs"
+echo "3. drive/otterio → Priority 8/10, 100ms/100ms, 4GB RAM, 3 CPUs"
 echo "4. directory → Priority 7/10, 50ms/100ms, 1GB RAM, 2 CPUs"
 echo "5. All others → Priority 5/10, default values (balanced for 10 users)"
 echo "========================================================="

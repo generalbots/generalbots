@@ -93,7 +93,7 @@ async fn test_harness_quick() {
 async fn test_harness_minimal() {
     let ctx = TestHarness::minimal().await.unwrap();
     assert!(ctx.postgres().is_none());
-    assert!(ctx.minio().is_none());
+    assert!(ctx.otterio().is_none());
     assert!(ctx.redis().is_none());
     assert!(ctx.mock_llm().is_none());
     assert!(ctx.mock_zitadel().is_none());

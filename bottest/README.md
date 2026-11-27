@@ -33,7 +33,7 @@ For comprehensive documentation, see **[docs.generalbots.org](https://docs.gener
 
 E2E tests use `USE_BOTSERVER_BOOTSTRAP=1` mode. The botserver handles all service installation during bootstrap.
 
-<a href="../.github/svg/diagram-bottest-bootstrap.svg"><img src="../.github/svg/diagram-bottest-bootstrap.svg" alt="Test bootstrap: TestHarness::full allocates unique ports and a temporary directory, then starts the mock servers and botserver with a stack path, which auto-installs PostgreSQL, MinIO and Redis before returning a TestContext" width="820"></a>
+<a href="../.github/svg/diagram-bottest-bootstrap.svg"><img src="../.github/svg/diagram-bottest-bootstrap.svg" alt="Test bootstrap: TestHarness::full allocates unique ports and a temporary directory, then starts the mock servers and botserver with a stack path, which auto-installs PostgreSQL, OtterIO and Redis before returning a TestContext" width="820"></a>
 
 ---
 
@@ -265,7 +265,7 @@ The integration suite exercises the applications below end to end. Icons match t
 | <img src="../.github/svg/auth.svg" width="20"> | **Auth / Identity**<br><sub>Core Platform</sub> | OAuth 2.0, OpenID Connect, JWT validation and session management, with role-based access control on every endpoint. SSO-ready. |
 | <img src="../.github/svg/database.svg" width="20"> | **Shared / Database**<br><sub>Core Platform</sub> | PostgreSQL with managed schema definitions, shared models and common utilities used across every application. |
 | <img src="../.github/svg/ai-engine.svg" width="20"> | **AI Engine**<br><sub>Core Platform</sub> | LLM provider orchestration across DeepSeek, Qwen, GLM, Kimi, MiniMax, Yi or any OpenAI-compatible API. Automatic failover, token counting, streaming and cost tracking. |
-| <img src="../.github/svg/drive.svg" width="20"> | **Drive / Storage**<br><sub>Core Platform</sub> | S3-compatible object storage with upload, download, versioning and automatic indexing for search and RAG. Works with MinIO, AWS S3 and Wasabi. |
+| <img src="../.github/svg/drive.svg" width="20"> | **Drive / Storage**<br><sub>Core Platform</sub> | S3-compatible object storage with upload, download, versioning and automatic indexing for search and RAG. Works with OtterIO, AWS S3 and Wasabi. |
 | <img src="../.github/svg/dashboards.svg" width="20"> | **Dashboards / Analytics**<br><sub>Core Platform</sub> | Real-time dashboards covering system health, business KPIs and custom visualisations. Exportable and embeddable. |
 | <img src="../.github/svg/ai-search.svg" width="20"> | **AI Search**<br><sub>Capabilities</sub> | Retrieval-augmented generation over PDFs, Word and Excel with sub-second semantic retrieval and cited answers. |
 | <img src="../.github/svg/bot-factory.svg" width="20"> | **Bot Factory**<br><sub>Capabilities</sub> | Rapid prototyping and multi-bot orchestration. Run many bots with distinct personalities from one dashboard. |

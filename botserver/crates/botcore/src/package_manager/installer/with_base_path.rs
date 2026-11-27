@@ -384,7 +384,7 @@ impl PackageManager {
         }
         // A component bound to its declared port is running even when the
         // bundled check command assumes a different scheme (for example a
-        // development MinIO serving HTTP on the same port). Without this
+        // development OtterIO serving HTTP on the same port). Without this
         // fallback the first-run wizard would try to start a duplicate.
         component.ports.iter().any(|port| {
             std::net::TcpStream::connect_timeout(

@@ -8,7 +8,7 @@
 //!    with a reason when no botserver is reachable.
 //! 2. `test_events_contract_*` is a pure, offline contract test of the same
 //!    semantics through `botevents`' process-wide runtime types. It always
-//!    runs and needs no server, database, MinIO or LLM.
+//!    runs and needs no server, database, OtterIO or LLM.
 
 use std::time::Duration;
 

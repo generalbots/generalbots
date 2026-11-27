@@ -38,8 +38,8 @@ pub struct DriveConfig {
     pub access_key: String,
     pub secret_key: String,
     pub server: String,
-    /// Which object-storage backend the endpoint belongs to: `minio`, `b2`,
-    /// `wasabi` or `r2` (#1468). Empty means `minio`.
+    /// Which object-storage backend the endpoint belongs to: `otterio`, `b2`,
+    /// `wasabi` or `r2` (#1468). Empty means `otterio`.
     pub backend: String,
     /// Secondary endpoint used for read failover. Empty disables failover.
     pub fallback_endpoint: String,

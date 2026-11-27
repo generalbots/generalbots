@@ -126,7 +126,7 @@ impl S3Repository {
     }
 
     /// Create bucket via manually signed AWS SigV4 PUT request.
-    /// Uses path-style addressing and no XML body (MinIO compatible).
+    /// Uses path-style addressing and no XML body (OtterIO compatible).
     async fn create_bucket_signed(&self, bucket: &str) -> Result<()> {
         let region = self.bucket.region().clone();
         let endpoint = region.host();

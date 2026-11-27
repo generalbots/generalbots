@@ -8,7 +8,7 @@ use super::*;
 #[test]
 fn backend_names_round_trip() {
     for backend in [
-        StorageBackend::Minio,
+        StorageBackend::Otterio,
         StorageBackend::BackblazeB2,
         StorageBackend::Wasabi,
         StorageBackend::CloudflareR2,
@@ -40,17 +40,17 @@ fn vendor_spellings_resolve_to_the_same_backend() {
 }
 
 #[test]
-fn an_unknown_name_falls_back_to_minio_rather_than_failing_the_boot() {
-    assert_eq!(StorageBackend::from_name("nonsense"), StorageBackend::Minio);
-    assert_eq!(StorageBackend::from_name(""), StorageBackend::Minio);
-    assert_eq!(StorageBackend::from_name("   "), StorageBackend::Minio);
+fn an_unknown_name_falls_back_to_otterio_rather_than_failing_the_boot() {
+    assert_eq!(StorageBackend::from_name("nonsense"), StorageBackend::Otterio);
+    assert_eq!(StorageBackend::from_name(""), StorageBackend::Otterio);
+    assert_eq!(StorageBackend::from_name("   "), StorageBackend::Otterio);
 }
 
 #[test]
 fn b2_and_r2_get_a_default_region_because_they_require_one() {
     assert!(StorageBackend::BackblazeB2.requires_explicit_region());
     assert!(StorageBackend::CloudflareR2.requires_explicit_region());
-    assert!(!StorageBackend::Minio.requires_explicit_region());
+    assert!(!StorageBackend::Otterio.requires_explicit_region());
 
     let selection = StorageSelection::new(
         "b2",
@@ -75,23 +75,23 @@ fn an_explicit_region_is_never_overridden() {
 }
 
 #[test]
-fn minio_keeps_the_conventional_auto_region() {
-    let selection = StorageSelection::new("minio", "http://127.0.0.1:9100", "", "acme.gbai", None);
+fn otterio_keeps_the_conventional_auto_region() {
+    let selection = StorageSelection::new("otterio", "http://127.0.0.1:9100", "", "acme.gbai", None);
     assert_eq!(selection.region, "auto");
 }
 
 #[test]
 fn endpoints_are_normalised() {
-    let selection = StorageSelection::new("minio", "http://127.0.0.1:9100/", "", "acme.gbai", None);
+    let selection = StorageSelection::new("otterio", "http://127.0.0.1:9100/", "", "acme.gbai", None);
     assert_eq!(selection.endpoint, "http://127.0.0.1:9100");
 }
 
 #[test]
 fn an_empty_fallback_endpoint_is_treated_as_absent() {
-    let with_blank = StorageSelection::new("minio", "http://a", "", "b", Some("  ".to_string()));
+    let with_blank = StorageSelection::new("otterio", "http://a", "", "b", Some("  ".to_string()));
     assert!(!with_blank.has_fallback());
     let with_real =
-        StorageSelection::new("minio", "http://a", "", "b", Some("http://c/".to_string()));
+        StorageSelection::new("otterio", "http://a", "", "b", Some("http://c/".to_string()));
     assert!(with_real.has_fallback());
     assert_eq!(with_real.fallback_endpoint.as_deref(), Some("http://c"));
 }
@@ -100,7 +100,7 @@ fn an_empty_fallback_endpoint_is_treated_as_absent() {
 fn wasabi_is_flagged_as_unsuitable_for_a_runtime_bucket() {
     assert!(!StorageBackend::Wasabi.suits_runtime_buckets());
     assert!(StorageBackend::Wasabi.runtime_warning().is_some());
-    assert!(StorageBackend::Minio.suits_runtime_buckets());
+    assert!(StorageBackend::Otterio.suits_runtime_buckets());
     assert!(StorageBackend::BackblazeB2.suits_runtime_buckets());
     assert!(StorageBackend::Wasabi.minimum_billable_gb() == 1_024);
     assert_eq!(StorageBackend::Wasabi.minimum_retention_days(), 90);
@@ -108,10 +108,10 @@ fn wasabi_is_flagged_as_unsuitable_for_a_runtime_bucket() {
 
 #[test]
 fn the_minimum_billing_floor_is_documented_only_for_wasabi() {
-    assert_eq!(StorageBackend::Minio.minimum_billable_gb(), 0);
+    assert_eq!(StorageBackend::Otterio.minimum_billable_gb(), 0);
     assert_eq!(StorageBackend::BackblazeB2.minimum_billable_gb(), 0);
     assert_eq!(StorageBackend::CloudflareR2.minimum_billable_gb(), 0);
-    assert_eq!(StorageBackend::Minio.minimum_retention_days(), 0);
+    assert_eq!(StorageBackend::Otterio.minimum_retention_days(), 0);
 }
 
 #[test]
@@ -155,5 +155,5 @@ fn backends_with_unmetered_egress_report_nothing() {
         meter.billable_egress(StorageBackend::CloudflareR2, 1_000),
         0
     );
-    assert_eq!(meter.billable_egress(StorageBackend::Minio, 1_000), 0);
+    assert_eq!(meter.billable_egress(StorageBackend::Otterio, 1_000), 0);
 }

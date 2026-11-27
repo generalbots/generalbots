@@ -180,7 +180,7 @@ impl TlsIntegration {
         );
 
         services.insert(
-            "minio".to_string(),
+            "otterio".to_string(),
             ServiceUrls {
                 original: format!("https://{}", drive_host),
                 secure: format!("https://{}", drive_host),
@@ -382,7 +382,7 @@ impl TlsIntegration {
         if cert.is_file() && key.is_file() {
             for service in [
                 "api", "botserver", "llm", "embedding", "vectordb", "qdrant", "postgres",
-                "tables", "redis", "cache", "minio", "drive", "directory", "vault", "alm",
+                "tables", "redis", "cache", "otterio", "drive", "directory", "vault", "alm",
                 "meet",
             ] {
                 self.load_client_cert(service, &cert, &key)?;

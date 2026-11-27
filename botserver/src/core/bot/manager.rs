@@ -109,9 +109,9 @@ pub struct BotManager {
 
 impl BotManager {
     pub fn new(
-        _minio_endpoint: &str,
-        _minio_access_key: &str,
-        _minio_secret_key: &str,
+        _otterio_endpoint: &str,
+        _otterio_access_key: &str,
+        _otterio_secret_key: &str,
         _database_url: &str,
         templates_dir: PathBuf,
     ) -> Self {
@@ -236,7 +236,7 @@ END IF
         let org_slug = self.get_org_slug_from_db(conn, request.org_id);
         let bucket_name = format!("{}_{}", org_slug, bot_name);
 
-        self.create_minio_bucket(&bucket_name).await?;
+        self.create_otterio_bucket(&bucket_name).await?;
 
         let bot_id = Uuid::new_v4();
         let now = Utc::now();

@@ -7,7 +7,7 @@ ALTER TABLE drive_files ADD COLUMN IF NOT EXISTS path TEXT;
 ALTER TABLE drive_files ADD COLUMN IF NOT EXISTS name TEXT;
 ALTER TABLE drive_files ADD COLUMN IF NOT EXISTS mime_type VARCHAR(50);
 
--- Backfill: set path = file_path for existing rows (they store the full MinIO key)
+-- Backfill: set path = file_path for existing rows (they store the full OtterIO key)
 UPDATE drive_files SET path = file_path WHERE path IS NULL;
 UPDATE drive_files SET name = split_part(file_path, '/', array_length(string_to_array(file_path, '/'), 1)) WHERE name IS NULL;
 UPDATE drive_files SET mime_type = file_type WHERE mime_type IS NULL;

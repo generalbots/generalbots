@@ -170,8 +170,8 @@ pub fn llm_health_check() -> bool {
 
 pub fn drive_health_check() -> bool {
     let urls = [
-        "http://127.0.0.1:9100/minio/health/live",
-        "https://127.0.0.1:9100/minio/health/live",
+        "http://127.0.0.1:9100/otterio/health/live",
+        "https://127.0.0.1:9100/otterio/health/live",
     ];
 
     for url in &urls {

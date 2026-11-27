@@ -84,15 +84,15 @@ pub async fn rotate_secret(component: &str) -> Result<()> {
                 .await
                 .unwrap_or_else(empty_vault_secrets);
 
-            println!("⚠️ WARNING: You must update MinIO with the new credentials!");
+            println!("⚠️ WARNING: You must update OtterIO with the new credentials!");
             println!();
             println!("Run these commands:");
             println!(
-                " mc admin user add myminio {} [REDACTED — see Vault secret/gbo/drive]",
+                " oc admin user add myotterio {} [REDACTED — see Vault secret/gbo/drive]",
                 new_accesskey
             );
             println!(
-                " mc admin policy attach myminio readwrite --user {}",
+                " oc admin policy attach myotterio readwrite --user {}",
                 new_accesskey
             );
             println!();
@@ -317,7 +317,7 @@ pub async fn rotate_all_secrets() -> Result<()> {
     drive.insert("secret".to_string(), drive_secret.clone());
     manager.put_secret(SecretPaths::DRIVE, drive).await?;
     println!(
-        "✓ drive: mc admin user add myminio {} [REDACTED]",
+        "✓ drive: oc admin user add myotterio {} [REDACTED]",
         drive_accesskey
     );
 

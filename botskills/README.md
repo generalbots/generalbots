@@ -122,7 +122,7 @@ Selection criteria, in order:
 
 1. **Fit to the General Bots workflow** — skills that map to real daily work
    in this repo: Rust + Rhai development, HTMX frontends, browser testing via
-   CDP, MinIO/Vault/PostgreSQL operations, and CI/CD discipline.
+   CDP, OtterIO/Vault/PostgreSQL operations, and CI/CD discipline.
 2. **No external accounts required** — every skill works out of the box;
    the only network-dependent ones (context7, exa, firecrawl, Sentry) degrade
    to documented manual procedures when the service is unreachable.

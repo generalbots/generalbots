@@ -1,7 +1,7 @@
 //! First-run wizard for the desktop edition (issues #1586-#1591).
 //!
 //! The wizard is a separate static webview that runs *before* the local stack
-//! exists. It never depends on botserver, botui, Vault, PostgreSQL, MinIO or the
+//! exists. It never depends on botserver, botui, Vault, PostgreSQL, OtterIO or the
 //! network: detection is a marker file, and provisioning is delegated to
 //! `botserver --provision-stack` so the component order and offline rules stay
 //! in one place.

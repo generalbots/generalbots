@@ -90,12 +90,12 @@ mod tests {
     fn component() -> ComponentDownload {
         ComponentDownload {
             name: "drive".to_string(),
-            url: "https://example.com/minio-linux-amd64".to_string(),
-            filename: "minio".to_string(),
-            url_win: Some("https://example.com/minio-windows-amd64.exe".to_string()),
-            filename_win: Some("minio.exe".to_string()),
-            url_arm64: Some("https://example.com/minio-linux-arm64".to_string()),
-            filename_arm64: Some("minio-arm64".to_string()),
+            url: "https://example.com/otterio-linux-amd64".to_string(),
+            filename: "otterio".to_string(),
+            url_win: Some("https://example.com/otterio-windows-amd64.exe".to_string()),
+            filename_win: Some("otterio.exe".to_string()),
+            url_arm64: Some("https://example.com/otterio-linux-arm64".to_string()),
+            filename_arm64: Some("otterio-arm64".to_string()),
             sha256: "x86".to_string(),
             sha256_arm64: "arm".to_string(),
             sha256_win: "win".to_string(),
@@ -108,8 +108,8 @@ mod tests {
         assert_eq!(
             c.variant(false, true),
             (
-                "https://example.com/minio-linux-arm64",
-                "minio-arm64",
+                "https://example.com/otterio-linux-arm64",
+                "otterio-arm64",
                 "arm"
             )
         );
@@ -123,7 +123,7 @@ mod tests {
         c.sha256_arm64 = String::new();
         assert_eq!(
             c.variant(false, true),
-            ("https://example.com/minio-linux-amd64", "minio", "x86")
+            ("https://example.com/otterio-linux-amd64", "otterio", "x86")
         );
     }
 
@@ -133,8 +133,8 @@ mod tests {
         assert_eq!(
             c.variant(true, true),
             (
-                "https://example.com/minio-windows-amd64.exe",
-                "minio.exe",
+                "https://example.com/otterio-windows-amd64.exe",
+                "otterio.exe",
                 "win"
             )
         );
@@ -143,9 +143,9 @@ mod tests {
     #[test]
     fn checksums_follow_the_url_in_use() {
         let c = component();
-        assert_eq!(c.sha256_for_url("https://example.com/minio-linux-amd64"), Some("x86"));
-        assert_eq!(c.sha256_for_url("https://example.com/minio-linux-arm64"), Some("arm"));
-        assert_eq!(c.sha256_for_url("https://example.com/minio-windows-amd64.exe"), Some("win"));
+        assert_eq!(c.sha256_for_url("https://example.com/otterio-linux-amd64"), Some("x86"));
+        assert_eq!(c.sha256_for_url("https://example.com/otterio-linux-arm64"), Some("arm"));
+        assert_eq!(c.sha256_for_url("https://example.com/otterio-windows-amd64.exe"), Some("win"));
     }
 
     #[test]
@@ -153,19 +153,19 @@ mod tests {
         let mut c = component();
         c.sha256_win.clear();
         assert_eq!(c.variant(true, false).2, "");
-        assert_eq!(c.sha256_for_url("https://example.com/minio-windows-amd64.exe"), Some(""));
+        assert_eq!(c.sha256_for_url("https://example.com/otterio-windows-amd64.exe"), Some(""));
     }
 
     #[test]
     fn bundled_names_satisfy_upstream_urls() {
         let c = component();
         assert_eq!(
-            c.filename_for_url("https://example.com/minio-windows-amd64.exe"),
-            Some("minio.exe")
+            c.filename_for_url("https://example.com/otterio-windows-amd64.exe"),
+            Some("otterio.exe")
         );
         assert_eq!(
-            c.filename_for_url("https://example.com/minio-linux-arm64"),
-            Some("minio-arm64")
+            c.filename_for_url("https://example.com/otterio-linux-arm64"),
+            Some("otterio-arm64")
         );
     }
 }

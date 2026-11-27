@@ -60,12 +60,12 @@ botserver vault put gbo/tables host={} port=5432 database=botserver username=gbu
         }
         "drive" => {
             format!(
-                r"MinIO Object Storage:
+                r"OtterIO Object Storage:
 API: https://{}:9100
 Console: https://{}:9101
 
 Store credentials in Vault:
-botserver vault put gbo/drive server={} port=9100 accesskey=minioadmin secret=<your-secret>",
+botserver vault put gbo/drive server={} port=9100 accesskey=otterio-admin secret=<your-secret>",
                 ip, ip, ip
             )
         }

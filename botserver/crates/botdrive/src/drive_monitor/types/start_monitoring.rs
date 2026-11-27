@@ -29,10 +29,10 @@ impl DriveMonitor {
         log::trace!("DriveMonitor: Starting scan of bucket {}", self.bucket_name);
         let start = std::time::Instant::now();
 
-        // TODO(#506): Auto-create bot here — se o bucket {bot}.gbai existe no MinIO
+        // TODO(#506): Auto-create bot here — se o bucket {bot}.gbai existe no OtterIO
         // mas não há registro na tabela `bots`, criar automaticamente.
         // Usar: ensure_bot_exists(bot_name) → INSERT INTO bots (id, name, ...)
-        // Isto garante que bots criados via upload direto ao MinIO são auto-registrados.
+        // Isto garante que bots criados via upload direto ao OtterIO são auto-registrados.
 
         if let Some(s3) = &self.state.drive {
             let list_prefix = self.s3_prefix.as_deref();

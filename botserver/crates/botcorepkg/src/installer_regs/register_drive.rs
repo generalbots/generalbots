@@ -1,6 +1,11 @@
 use super::*;
 
 pub fn register_drive(components: &mut HashMap<String, ComponentConfig>) {
+    // OC ships per-platform archives (`*.tar.gz` / `*.zip`), not a raw binary.
+    // Extract the `oc` member into BIN_PATH so every caller can invoke it by
+    // name; the component key stays `mc` in 3rdparty.toml for compatibility.
+    let extract_oc = "oc_archive=$(ls {{DATA_PATH}}/oc-*.tar.gz 2>/dev/null | head -1); if [ -z \"$oc_archive\" ]; then oc_archive=$(ls {{DATA_PATH}}/oc-* 2>/dev/null | head -1); fi; if [ -n \"$oc_archive\" ]; then oc_tmp=$(mktemp -d); tar -xzf \"$oc_archive\" -C \"$oc_tmp\" 2>/dev/null; oc_bin=$(find \"$oc_tmp\" -type f -name oc -print -quit); if [ -n \"$oc_bin\" ]; then cp \"$oc_bin\" {{BIN_PATH}}/oc && chmod +x {{BIN_PATH}}/oc; fi; rm -rf \"$oc_tmp\"; fi".to_string();
+    let extract_oc_windows = "powershell -NoProfile -Command \"$z = Get-ChildItem '{{DATA_PATH}}\\oc-*.zip' -ErrorAction SilentlyContinue | Select-Object -First 1; if ($z) { $d = '{{DATA_PATH}}\\oc-extract'; Expand-Archive -Path $z.FullName -DestinationPath $d -Force; $b = Get-ChildItem -Path $d -Filter oc.exe -Recurse -File | Select-Object -First 1; if ($b) { Copy-Item -Path $b.FullName -Destination '{{BIN_PATH}}\\oc.exe' -Force } }\"".to_string();
     components.insert(
         "drive".to_string(),
         ComponentConfig {
@@ -11,34 +16,27 @@ pub fn register_drive(components: &mut HashMap<String, ComponentConfig>) {
             macos_packages: Vec::new(),
             windows_packages: Vec::new(),
             download_url: get_component_url("drive"),
-            binary_name: Some("minio".to_string()),
+            binary_name: Some("otterio".to_string()),
             pre_install_cmds_linux: Vec::new(),
-            post_install_cmds_linux: vec![
-                // The mc data file is cached under its configured filename
-                // (`mc`, from 3rdparty.toml), not the upstream URL basename;
-                // copy it to BIN_PATH/mc and keep the glob idempotent.
-                "mc_src=$(ls {{DATA_PATH}}/mc* 2>/dev/null | head -1); if [ -n \"$mc_src\" ]; then cp \"$mc_src\" {{BIN_PATH}}/mc && chmod +x {{BIN_PATH}}/mc; fi".to_string(),
-            ],
+            post_install_cmds_linux: vec![extract_oc.clone()],
             pre_install_cmds_macos: Vec::new(),
-            post_install_cmds_macos: Vec::new(),
+            post_install_cmds_macos: vec![extract_oc],
             pre_install_cmds_windows: vec![
                 "if not exist {{DATA_PATH}} mkdir {{DATA_PATH}}".to_string(),
                 "if not exist {{LOGS_PATH}} mkdir {{LOGS_PATH}}".to_string(),
-                // #1964 — Windows runs MinIO in plain HTTP: no `--certs-dir`
+                // #1964 — Windows runs OtterIO in plain HTTP: no `--certs-dir`
                 // and no CA is provisioned, so there is no certs directory.
             ],
-            post_install_cmds_windows: vec![
-                "copy /Y {{DATA_PATH}}\\mc.exe {{BIN_PATH}}\\mc.exe".to_string(),
-            ],
+            post_install_cmds_windows: vec![extract_oc_windows],
             env_vars: HashMap::from([
-                ("MINIO_ROOT_USER".to_string(), "$DRIVE_ACCESSKEY".to_string()),
-                ("MINIO_ROOT_PASSWORD".to_string(), "$DRIVE_SECRET".to_string()),
+                ("OTTERIO_ROOT_USER".to_string(), "$DRIVE_ACCESSKEY".to_string()),
+                ("OTTERIO_ROOT_PASSWORD".to_string(), "$DRIVE_SECRET".to_string()),
             ]),
             data_download_list: get_component_url("mc").map(|url| vec![url]).unwrap_or_else(Vec::new),
-            exec_cmd: "nohup {{BIN_PATH}}/minio server {{DATA_PATH}} --address 127.0.0.1:9100 --console-address 127.0.0.1:9101 --certs-dir {{CONF_PATH}}/drive/certs > {{LOGS_PATH}}/minio.log 2>&1 &".to_string(),
-            check_cmd: "curl -sf --cacert {{CONF_PATH}}/drive/certs/CAs/ca.crt https://127.0.0.1:9100/minio/health/live >/dev/null 2>&1".to_string(),
-            exec_cmd_windows: Some("start /B {{BIN_PATH}}\\minio.exe server {{DATA_PATH}} --address 127.0.0.1:9100 --console-address 127.0.0.1:9101 > {{LOGS_PATH}}\\minio.log 2>&1".to_string()),
-            check_cmd_windows: Some("curl -sf --connect-timeout 2 -m 5 http://127.0.0.1:9100/minio/health/live >NUL 2>&1".to_string()),
+            exec_cmd: "nohup {{BIN_PATH}}/otterio server {{DATA_PATH}} --address 127.0.0.1:9100 --console-address 127.0.0.1:9101 --certs-dir {{CONF_PATH}}/drive/certs > {{LOGS_PATH}}/otterio.log 2>&1 &".to_string(),
+            check_cmd: "curl -sf --cacert {{CONF_PATH}}/drive/certs/CAs/ca.crt https://127.0.0.1:9100/otterio/health/live >/dev/null 2>&1".to_string(),
+            exec_cmd_windows: Some("start /B {{BIN_PATH}}\\otterio.exe server {{DATA_PATH}} --address 127.0.0.1:9100 --console-address 127.0.0.1:9101 > {{LOGS_PATH}}\\otterio.log 2>&1".to_string()),
+            check_cmd_windows: Some("curl -sf --connect-timeout 2 -m 5 http://127.0.0.1:9100/otterio/health/live >NUL 2>&1".to_string()),
             container: None,
         },
     );
@@ -292,6 +290,29 @@ pub fn register_proxy(components: &mut HashMap<String, ComponentConfig>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn drive_component_uses_otterio_binary_and_oc_archive_extraction() {
+        let mut components = HashMap::new();
+        register_drive(&mut components);
+        let registered = components.get("drive").is_some_and(|drive| {
+            drive.binary_name.as_deref() == Some("otterio")
+                && drive.env_vars.contains_key("OTTERIO_ROOT_USER")
+                && drive.env_vars.contains_key("OTTERIO_ROOT_PASSWORD")
+                && drive.check_cmd.contains("/otterio/health/live")
+                && drive.exec_cmd.contains("{{BIN_PATH}}/otterio server")
+                && drive.post_install_cmds_linux.iter().any(|c| {
+                    c.contains("tar -xzf") && c.contains("name oc")
+                })
+                && drive.post_install_cmds_windows.iter().any(|c| {
+                    c.contains("Expand-Archive") && c.contains("oc.exe")
+                })
+                // The installer key is stable even though the payload is now
+                // the OC archive.
+                && !drive.data_download_list.is_empty()
+        });
+        assert!(registered, "drive component must use OtterIO and OC");
+    }
 
     /// #2562 — the cache ships as `valkey-server` (Linux) / `redis-server.exe`
     /// (Windows). `windows_binary_name_from_exec` must return the Windows name

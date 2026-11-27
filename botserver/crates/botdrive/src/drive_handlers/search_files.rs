@@ -8,7 +8,7 @@ pub async fn search_files(
     Query(params): Query<SearchQueryParams>,
 ) -> Result<Json<Vec<FileListItem>>, (StatusCode, Json<serde_json::Value>)> {
     // #1801 — local backend search: walk the allowlisted root on the server's
-    // filesystem instead of MinIO. Without this, the toolbar search in the
+    // filesystem instead of OtterIO. Without this, the toolbar search in the
     // Home tab (and any local root) returned no matches / an error even
     // though the files were visible in the listing.
     if crate::local_fs::is_local_backend(params.backend.as_deref(), params.bucket.as_deref()) {

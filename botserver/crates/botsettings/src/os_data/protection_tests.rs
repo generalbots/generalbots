@@ -289,7 +289,7 @@ fn drive_descriptor_key_is_bounded_logical_and_deterministic() {
     // endpoint or account identifier.
     let key_lower = key.to_ascii_lowercase();
     for forbidden in [
-        "/var/lib", "minio", "s3://", "http://", "https://", "bucket",
+        "/var/lib", "otterio", "s3://", "http://", "https://", "bucket",
     ] {
         assert!(
             !key_lower.contains(forbidden),

@@ -33,7 +33,7 @@ fn cld6_keeps_leading_and_trailing_dashes() {
 #[test]
 fn cld6_preserves_unicode_letters() {
     // Bucket risk: `is_alphanumeric()` is Unicode-aware, so an accented or
-    // CJK name keeps those characters in the slug. MinIO accepts them, but a
+    // CJK name keeps those characters in the slug. OtterIO accepts them, but a
     // name and its ASCII transliteration are DIFFERENT buckets. Changing this
     // rule would orphan every existing bucket, so it stays as documented.
     assert_eq!(slugify("Ação"), "ação");

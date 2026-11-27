@@ -1,67 +1,67 @@
-//! Split from `minio.rs` (#1504).
+//! Split from `otterio.rs` (#1504).
 
 use super::*;
 
-impl MinioService {
-    pub const DEFAULT_ACCESS_KEY: &'static str = "minioadmin";
+impl OtterioService {
+    pub const DEFAULT_ACCESS_KEY: &'static str = "otterio-admin";
 
-    pub const DEFAULT_SECRET_KEY: &'static str = "minioadmin";
+    pub const DEFAULT_SECRET_KEY: &'static str = "otterio-admin";
 
-    pub(crate) fn find_minio_binary() -> Result<PathBuf> {
+    pub(crate) fn find_otterio_binary() -> Result<PathBuf> {
         if let Ok(stack_path) = std::env::var("BOTSERVER_STACK_PATH") {
-            let minio_path = PathBuf::from(&stack_path).join("bin/drive/minio");
-            if minio_path.exists() {
+            let otterio_path = PathBuf::from(&stack_path).join("bin/drive/otterio");
+            if otterio_path.exists() {
                 log::info!(
-                    "Using MinIO from BOTSERVER_STACK_PATH: {}",
-                    minio_path.display()
+                    "Using OtterIO from BOTSERVER_STACK_PATH: {}",
+                    otterio_path.display()
                 );
-                return Ok(minio_path);
+                return Ok(otterio_path);
             }
         }
 
         let cwd = std::env::current_dir().unwrap_or_default();
         let relative_paths = [
-            "../botserver/botserver-stack/bin/drive/minio",
-            "botserver/botserver-stack/bin/drive/minio",
-            "botserver-stack/bin/drive/minio",
+            "../botserver/botserver-stack/bin/drive/otterio",
+            "botserver/botserver-stack/bin/drive/otterio",
+            "botserver-stack/bin/drive/otterio",
         ];
 
         for rel_path in &relative_paths {
-            let minio_path = cwd.join(rel_path);
-            if minio_path.exists() {
-                log::info!("Using MinIO from botserver-stack: {}", minio_path.display());
-                return Ok(minio_path);
+            let otterio_path = cwd.join(rel_path);
+            if otterio_path.exists() {
+                log::info!("Using OtterIO from botserver-stack: {}", otterio_path.display());
+                return Ok(otterio_path);
             }
         }
 
         let system_paths = [
-            "/usr/local/bin/minio",
-            "/usr/bin/minio",
-            "/opt/minio/minio",
-            "/opt/homebrew/bin/minio",
+            "/usr/local/bin/otterio",
+            "/usr/bin/otterio",
+            "/opt/otterio/otterio",
+            "/opt/homebrew/bin/otterio",
         ];
 
         for path in &system_paths {
-            let minio_path = PathBuf::from(path);
-            if minio_path.exists() {
-                log::info!("Using system MinIO from: {}", minio_path.display());
-                return Ok(minio_path);
+            let otterio_path = PathBuf::from(path);
+            if otterio_path.exists() {
+                log::info!("Using system OtterIO from: {}", otterio_path.display());
+                return Ok(otterio_path);
             }
         }
 
-        if let Ok(minio_path) = which::which("minio") {
-            log::info!("Using MinIO from PATH: {}", minio_path.display());
-            return Ok(minio_path);
+        if let Ok(otterio_path) = which::which("otterio") {
+            log::info!("Using OtterIO from PATH: {}", otterio_path.display());
+            return Ok(otterio_path);
         }
 
-        anyhow::bail!("MinIO not found. Install MinIO or set BOTSERVER_STACK_PATH env var")
+        anyhow::bail!("OtterIO not found. Install OtterIO or set BOTSERVER_STACK_PATH env var")
     }
 
     pub async fn start(api_port: u16, data_dir: &str) -> Result<Self> {
-        let bin_path = Self::find_minio_binary()?;
-        log::info!("Using MinIO from: {}", bin_path.display());
+        let bin_path = Self::find_otterio_binary()?;
+        log::info!("Using OtterIO from: {}", bin_path.display());
 
-        let data_path = PathBuf::from(data_dir).join("minio");
+        let data_path = PathBuf::from(data_dir).join("otterio");
         ensure_dir(&data_path)?;
 
         let console_port = api_port + 1000;
@@ -88,10 +88,10 @@ impl MinioService {
         access_key: &str,
         secret_key: &str,
     ) -> Result<Self> {
-        let bin_path = Self::find_minio_binary()?;
-        log::info!("Using MinIO from: {}", bin_path.display());
+        let bin_path = Self::find_otterio_binary()?;
+        log::info!("Using OtterIO from: {}", bin_path.display());
 
-        let data_path = PathBuf::from(data_dir).join("minio");
+        let data_path = PathBuf::from(data_dir).join("otterio");
         ensure_dir(&data_path)?;
 
         let console_port = api_port + 1000;
@@ -114,7 +114,7 @@ impl MinioService {
 
     pub(crate) fn start_server(&mut self) -> Result<()> {
         log::info!(
-            "Starting MinIO on port {} (console: {})",
+            "Starting OtterIO on port {} (console: {})",
             self.api_port,
             self.console_port
         );
@@ -128,27 +128,27 @@ impl MinioService {
                 "--console-address",
                 &format!("127.0.0.1:{}", self.console_port),
             ])
-            .env("MINIO_ROOT_USER", &self.access_key)
-            .env("MINIO_ROOT_PASSWORD", &self.secret_key)
+            .env("OTTERIO_ROOT_USER", &self.access_key)
+            .env("OTTERIO_ROOT_PASSWORD", &self.secret_key)
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .spawn()
-            .context("Failed to start MinIO")?;
+            .context("Failed to start OtterIO")?;
 
         self.process = Some(child);
         Ok(())
     }
 
     pub(crate) async fn wait_ready(&self) -> Result<()> {
-        log::info!("Waiting for MinIO to be ready...");
+        log::info!("Waiting for OtterIO to be ready...");
 
         wait_for(HEALTH_CHECK_TIMEOUT, HEALTH_CHECK_INTERVAL, || async {
             check_tcp_port("127.0.0.1", self.api_port).await
         })
         .await
-        .context("MinIO failed to start in time")?;
+        .context("OtterIO failed to start in time")?;
 
-        let health_url = format!("http://127.0.0.1:{}/minio/health/live", self.api_port);
+        let health_url = format!("http://127.0.0.1:{}/otterio/health/live", self.api_port);
         for _ in 0..30 {
             if let Ok(resp) = reqwest::get(&health_url).await {
                 if resp.status().is_success() {
@@ -164,9 +164,9 @@ impl MinioService {
     pub async fn create_bucket(&self, name: &str) -> Result<()> {
         log::info!("Creating bucket '{name}'");
 
-        if let Ok(mc) = Self::find_mc_binary() {
+        if let Ok(oc) = Self::find_oc_binary() {
             let alias_name = format!("test{}", self.api_port);
-            let _ = Command::new(&mc)
+            let _ = Command::new(&oc)
                 .args([
                     "alias",
                     "set",
@@ -177,7 +177,7 @@ impl MinioService {
                 ])
                 .output();
 
-            let output = Command::new(&mc)
+            let output = Command::new(&oc)
                 .args(["mb", "--ignore-existing", &format!("{alias_name}/{name}")])
                 .output()?;
 
@@ -361,8 +361,8 @@ impl MinioService {
         config
     }
 
-    pub(crate) fn find_mc_binary() -> Result<PathBuf> {
-        let common_paths = ["/usr/local/bin/mc", "/usr/bin/mc", "/opt/homebrew/bin/mc"];
+    pub(crate) fn find_oc_binary() -> Result<PathBuf> {
+        let common_paths = ["/usr/local/bin/oc", "/usr/bin/oc", "/opt/homebrew/bin/oc"];
 
         for path in common_paths {
             let p = PathBuf::from(path);
@@ -371,12 +371,12 @@ impl MinioService {
             }
         }
 
-        which::which("mc").context("mc binary not found")
+        which::which("oc").context("oc binary not found")
     }
 
     pub async fn stop(&mut self) -> Result<()> {
         if let Some(ref mut child) = self.process {
-            log::info!("Stopping MinIO...");
+            log::info!("Stopping OtterIO...");
 
             #[cfg(unix)]
             {
@@ -419,7 +419,7 @@ impl MinioService {
     }
 }
 
-impl Drop for MinioService {
+impl Drop for OtterioService {
     fn drop(&mut self) {
         if let Some(ref mut child) = self.process {
             #[cfg(unix)]

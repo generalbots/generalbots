@@ -1,6 +1,6 @@
 //! Stack provisioning driven by the wizard.
 //!
-//! The wizard does not know how to start PostgreSQL, Vault or MinIO. It spawns
+//! The wizard does not know how to start PostgreSQL, Vault or OtterIO. It spawns
 //! `botserver --provision-stack`, which owns the component order and the
 //! offline/checksum rules, and forwards each `GBWIZARD:` progress line to the
 //! window. When the components are ready the sidecar starts and the wizard waits

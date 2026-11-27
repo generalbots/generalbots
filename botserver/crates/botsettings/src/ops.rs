@@ -74,7 +74,7 @@ pub async fn ops_services_health(State(state): State<Arc<AppState>>) -> impl Int
         ("api", db_ok, "HTTP API"),
         ("database", db_ok, "PostgreSQL"),
         ("cache", cache_ok, "Valkey"),
-        ("drive", drive_ok, "MinIO"),
+        ("drive", drive_ok, "OtterIO"),
     ];
 
     let mut html = String::new();

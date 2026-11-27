@@ -215,7 +215,7 @@ pub(super) fn seed_drive(conn: &mut diesel::PgConnection, s: &Scopes) -> Result<
 ///   * `bot_configuration` overrides (`tax-*` keys) so the per-bot config
 ///     path of the tax engine is exercisable;
 ///   * `drive_files` index rows mirroring the invoice/finance objects that
-///     `drive::seed_drive_objects` writes to MinIO.
+///     `drive::seed_drive_objects` writes to OtterIO.
 pub(super) fn seed_fiscal(conn: &mut diesel::PgConnection, s: &Scopes) -> Result<(), String> {
     let org = s.org_id;
     let branch = s.branch_id;

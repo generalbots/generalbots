@@ -110,8 +110,8 @@ pub(crate) async fn start_drive_monitors(
                             if consecutive_failures >= 10 && !unhealthy_logged {
                                 error!(
                                     "Drive is UNHEALTHY after {} consecutive ListBuckets failures: {}. \
-                                     Check MinIO credentials (VAULT_TOKEN / MINIO_ACCESS_KEY / \
-                                     MINIO_SECRET_KEY). No further alerts until recovery.",
+                                     Check OtterIO credentials (VAULT_TOKEN / OTTERIO_ACCESS_KEY / \
+                                     OTTERIO_SECRET_KEY). No further alerts until recovery.",
                                     consecutive_failures, e
                                 );
                                 unhealthy_logged = true;

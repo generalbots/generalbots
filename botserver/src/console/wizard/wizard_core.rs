@@ -66,7 +66,7 @@ pub enum ComponentChoice {
 impl std::fmt::Display for ComponentChoice {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Drive => write!(f, "Drive (MinIO) - File storage"),
+            Self::Drive => write!(f, "Drive (OtterIO) - File storage"),
             Self::Email => write!(f, "Email Server - Send/receive emails"),
             Self::Meet => write!(f, "Meet (LiveKit) - Video meetings"),
             Self::Tables => write!(f, "Database (PostgreSQL) - Required"),

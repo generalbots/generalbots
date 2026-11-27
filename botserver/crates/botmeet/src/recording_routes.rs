@@ -384,7 +384,7 @@ pub async fn delete_recording(
 
 /// `GET /api/meet/recordings/{recording_id}/file`
 ///
-/// Streams the recording file. The object lives in MinIO drive at
+/// Streams the recording file. The object lives in OtterIO drive at
 /// `meet/recordings/{recording_id}.webm` (per-org bucket) when the egress has
 /// uploaded it; until then the recording is still processing and a 409 is
 /// returned so the UI can poll.

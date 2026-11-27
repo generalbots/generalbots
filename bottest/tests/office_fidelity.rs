@@ -18,7 +18,7 @@
 //! (chart, drawing, media, comments, theme, styles) so the per-part assertion
 //! is deterministic.
 //!
-//! This target runs with no database, no Drive, no MinIO and no LLM. It drives
+//! This target runs with no database, no Drive, no OtterIO and no LLM. It drives
 //! the public APIs the per-format fixes added: `botslides::pptx::preserve_*`,
 //! `botdocs::storage::{persist_original_docx, docx_bytes_with_fidelity}` and
 //! `botsheet::storage::{plan_for, produce_xlsx}`.

@@ -194,7 +194,7 @@ pub async fn get_from_bucket(
     _file_path: &str,
     _bot_id: uuid::Uuid,
 ) -> Result<String, Box<dyn Error + Send + Sync>> {
-    Err("S3 drive is not enabled. Configure MinIO to use this feature.".into())
+    Err("S3 drive is not enabled. Configure OtterIO to use this feature.".into())
 }
 
 #[cfg(test)]

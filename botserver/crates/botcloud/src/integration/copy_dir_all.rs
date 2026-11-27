@@ -42,41 +42,43 @@ pub(super) fn copy_dir_all(src: &Path, dst: &Path) -> std::io::Result<()> {
     }
     Ok(())
 }
-/// Resolves the MinIO client binary. Bare `mc` is dangerous: GNU Midnight
-/// Commander installs as /usr/bin/mc on some images, and invoking it instead
-/// of the MinIO client silently broke bucket provisioning at signup (the
-/// wrong binary printed its help text and no `.gborg` bucket was created).
+/// Resolves the OC client binary. Bare `oc` on PATH is dangerous: an unrelated
+/// tool can own that name on some images, and invoking it instead of the OC
+/// client silently broke bucket provisioning at signup (the wrong binary
+/// printed its help text and no `.gborg` bucket was created).
 /// Preference order: the configured path, then the standard stack locations.
-pub fn resolve_mc_binary(configured: &str) -> String {
-    for cand in [configured, "/opt/gbo/bin/mc", "/tmp/mc", "/usr/local/bin/mc"] {
+pub fn resolve_oc_binary(configured: &str) -> String {
+    for cand in [configured, "/opt/gbo/bin/oc", "/tmp/oc", "/usr/local/bin/oc"] {
         if Path::new(cand).exists() {
             return cand.to_string();
         }
     }
     configured.to_string()
 }
-/// Creates MinIO `.gborg` bucket for the org and uploads bot files.
+/// Creates OtterIO `.gborg` bucket for the org and uploads bot files.
 /// If a `template` path is provided (e.g. "core/default.gbai"), copies the
 /// corresponding directory from `config.templates_dir` into the bucket and
 /// renames internal directories to match the new bot name.
 /// Otherwise creates a generic `start.bas` with the bot name.
 /// Structure: {org_slug}.gborg / {bot_slug}.gbai / {bot_slug}.gbdialog / ...
-/// Requires mc alias to be pre-configured (e.g., via Vault credentials).
+/// Requires oc alias to be pre-configured (e.g., via Vault credentials).
 pub fn create_bot_bucket(
     config: &SaasConfig, org_slug: &str, bot_slug: &str, bot_name: &str,
     template: Option<&str>,
 ) -> Result<(), String> {
+    // SaasConfig keeps its legacy field names; both values now carry the OC
+    // alias and the resolved path of the `oc` binary.
     let alias = &config.mc_alias;
-    let mc = resolve_mc_binary(&config.mc_path);
+    let oc = resolve_oc_binary(&config.mc_path);
     let org_bucket = format!("{alias}/{org_slug}.gborg");
 
-    let mb = SafeCommand::new(&mc)
+    let mb = SafeCommand::new(&oc)
         .and_then(|c| c.arg("mb"))
         .and_then(|c| c.arg(&org_bucket))
         .and_then(|c| c.arg("--ignore-existing"))
-        .map_err(|e| format!("mc mb guard: {e}"))?
+        .map_err(|e| format!("oc mb guard: {e}"))?
         .execute()
-        .map_err(|e| format!("mc mb failed: {e}"))?;
+        .map_err(|e| format!("oc mb failed: {e}"))?;
 
     if !mb.status.success() {
         let stderr = String::from_utf8_lossy(&mb.stderr);
@@ -137,15 +139,15 @@ pub fn create_bot_bucket(
                         }
                     }
                 }
-                // Upload recursively via mc cp
-                let cp = SafeCommand::new(&mc)
+                // Upload recursively via oc cp
+                let cp = SafeCommand::new(&oc)
                     .and_then(|c| c.arg("cp"))
                     .and_then(|c| c.arg("--recursive"))
                     .and_then(|c| c.arg(&tmpdir))
                     .and_then(|c| c.arg(format!("{org_bucket}/{bot_slug}.gbai/")))
-                    .map_err(|e| format!("mc cp guard: {e}"))?
+                    .map_err(|e| format!("oc cp guard: {e}"))?
                     .execute()
-                    .map_err(|e| format!("mc cp failed: {e}"))?;
+                    .map_err(|e| format!("oc cp failed: {e}"))?;
                 if let Err(e) = std::fs::remove_dir_all(&tmpdir) {
                     tracing::warn!("create_bot_bucket: template temp dir cleanup failed: {e}");
                 }
@@ -153,7 +155,7 @@ pub fn create_bot_bucket(
                     return Ok(());
                 }
                 let stderr = String::from_utf8_lossy(&cp.stderr);
-                tracing::warn!("mc cp template failed, falling back to generic: {stderr}");
+                tracing::warn!("oc cp template failed, falling back to generic: {stderr}");
             }
         } else {
             tracing::warn!("Template {template_path} not found at {templates_dir}, using generic");
@@ -171,13 +173,13 @@ pub fn create_bot_bucket(
         .map_err(|e| format!("Failed to write temp file: {e}"))?;
     drop(f);
 
-    let cp = SafeCommand::new(&mc)
+    let cp = SafeCommand::new(&oc)
         .and_then(|c| c.arg("cp"))
         .and_then(|c| c.arg(&tmpfile))
         .and_then(|c| c.arg(&remote_path))
-        .map_err(|e| format!("mc cp guard: {e}"))?
+        .map_err(|e| format!("oc cp guard: {e}"))?
         .execute()
-        .map_err(|e| format!("mc cp failed: {e}"))?;
+        .map_err(|e| format!("oc cp failed: {e}"))?;
 
     if let Err(e) = std::fs::remove_file(&tmpfile) {
         tracing::warn!("create_bot_bucket: temp start.bas cleanup failed: {e}");

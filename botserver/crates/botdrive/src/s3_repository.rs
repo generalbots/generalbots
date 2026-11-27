@@ -73,7 +73,7 @@ impl S3Repository {
     /// Create new S3 repository against the self-hosted default.
     pub fn new(endpoint: &str, access_key: &str, secret_key: &str, bucket: &str) -> Result<Self> {
         Self::from_selection(
-            &StorageSelection::new("minio", endpoint, "", bucket, None),
+            &StorageSelection::new("otterio", endpoint, "", bucket, None),
             access_key,
             secret_key,
         )

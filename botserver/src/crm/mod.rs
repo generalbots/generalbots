@@ -18,7 +18,7 @@
 //! ## Stack
 //! - Backend: Rust/Axum
 //! - Banco: PostgreSQL (via Diesel)
-//! - Armazenamento: MinIO (Drive)
+//! - Armazenamento: OtterIO (Drive)
 //! - Cache: Valkey (Redis)
 //! - Cache vetorial: Qdrant
 //! - Frontend: HTMX + WebSocket

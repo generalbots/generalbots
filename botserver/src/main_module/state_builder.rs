@@ -40,7 +40,7 @@ pub async fn create_app_state(
                 if let Err(e) = client.create_bucket_if_not_exists("default.gborg").await {
                     warn!("Failed to create default.gborg bucket: {}", e);
                 }
-                super::ensure_vendor_files_in_minio(&client).await;
+                super::ensure_vendor_files_in_otterio(&client).await;
                 Some(std::sync::Arc::new(client)
                     as std::sync::Arc<dyn botlib::traits::DriveRepository>)
             }
@@ -50,7 +50,7 @@ pub async fn create_app_state(
             }
         }
     } else {
-        info!("Drive credentials not configured — skipping MinIO/Drive initialization");
+        info!("Drive credentials not configured — skipping OtterIO/Drive initialization");
         None
     };
 

@@ -220,7 +220,7 @@ pub fn dump_all_component_logs(log_dir: &Path) {
             "stderr.log",
             "postgres.log",
             "vault.log",
-            "minio.log",
+            "otterio.log",
         ];
 
         for log_file in log_files {

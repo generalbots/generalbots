@@ -12,7 +12,7 @@
 //!    (no `BOTSERVER_URL` and the local harness cannot start one).
 //! 2. `test_events_stream_contract_*` is an offline contract test of the same
 //!    push/cursor semantics through `botevents`' public runtime. It always runs
-//!    and needs no server, database, MinIO or LLM.
+//!    and needs no server, database, OtterIO or LLM.
 
 use std::time::{Duration, Instant};
 

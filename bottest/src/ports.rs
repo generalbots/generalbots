@@ -46,7 +46,7 @@ impl PortAllocator {
 #[derive(Debug)]
 pub struct TestPorts {
     pub postgres: u16,
-    pub minio: u16,
+    pub otterio: u16,
     pub redis: u16,
     pub botserver: u16,
     pub mock_zitadel: u16,
@@ -57,7 +57,7 @@ impl TestPorts {
     pub fn allocate() -> Self {
         Self {
             postgres: PortAllocator::allocate(),
-            minio: PortAllocator::allocate(),
+            otterio: PortAllocator::allocate(),
             redis: PortAllocator::allocate(),
             botserver: PortAllocator::allocate(),
             mock_zitadel: PortAllocator::allocate(),
@@ -71,8 +71,8 @@ impl Drop for TestPorts {
         if self.postgres >= 15000 {
             PortAllocator::release(self.postgres);
         }
-        if self.minio >= 15000 {
-            PortAllocator::release(self.minio);
+        if self.otterio >= 15000 {
+            PortAllocator::release(self.otterio);
         }
         if self.redis >= 15000 {
             PortAllocator::release(self.redis);
@@ -105,7 +105,7 @@ mod tests {
     #[test]
     fn test_ports_struct() {
         let ports = TestPorts::allocate();
-        assert_ne!(ports.postgres, ports.minio);
+        assert_ne!(ports.postgres, ports.otterio);
         assert_ne!(ports.redis, ports.botserver);
     }
 }

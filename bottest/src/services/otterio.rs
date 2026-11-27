@@ -10,7 +10,7 @@ use std::process::{Child, Command, Stdio};
 use std::time::Duration;
 use tokio::time::sleep;
 
-pub struct MinioService {
+pub struct OtterioService {
     api_port: u16,
     console_port: u16,
     data_dir: PathBuf,
@@ -28,11 +28,11 @@ mod tests {
 
     #[test]
     fn test_endpoint_format() {
-        let service = MinioService {
+        let service = OtterioService {
             api_port: 9000,
             console_port: 10000,
             data_dir: PathBuf::from("/tmp/test"),
-            bin_path: PathBuf::from("/tmp/minio"),
+            bin_path: PathBuf::from("/tmp/otterio"),
             process: None,
             access_key: "test".to_string(),
             secret_key: "secret".to_string(),
@@ -44,11 +44,11 @@ mod tests {
 
     #[test]
     fn test_credentials() {
-        let service = MinioService {
+        let service = OtterioService {
             api_port: 9000,
             console_port: 10000,
             data_dir: PathBuf::from("/tmp/test"),
-            bin_path: PathBuf::from("/tmp/minio"),
+            bin_path: PathBuf::from("/tmp/otterio"),
             process: None,
             access_key: "mykey".to_string(),
             secret_key: "mysecret".to_string(),
@@ -61,11 +61,11 @@ mod tests {
 
     #[test]
     fn test_s3_config() {
-        let service = MinioService {
+        let service = OtterioService {
             api_port: 9000,
             console_port: 10000,
             data_dir: PathBuf::from("/tmp/test"),
-            bin_path: PathBuf::from("/tmp/minio"),
+            bin_path: PathBuf::from("/tmp/otterio"),
             process: None,
             access_key: "access".to_string(),
             secret_key: "secret".to_string(),

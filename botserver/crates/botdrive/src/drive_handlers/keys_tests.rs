@@ -2,7 +2,7 @@
 //!
 //! These functions decide which object a request touches and what the Drive UI
 //! shows for it. They are pure string/`HashMap` work, so the tenant-boundary
-//! rules can be pinned without MinIO.
+//! rules can be pinned without OtterIO.
 
 use super::cached_quota::{build_file_list_items, normalize_path, scoped_key};
 use super::list_files::guess_mime;

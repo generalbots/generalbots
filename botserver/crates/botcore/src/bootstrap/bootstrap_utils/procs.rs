@@ -26,7 +26,7 @@ pub fn get_processes_to_kill() -> Vec<(String, Vec<&'static str>)> {
         ("forgejo".to_string(), vec!["-9", "-f"]),
         ("caddy".to_string(), vec!["-9", "-f"]),
         ("postgres".to_string(), vec!["-9", "-f"]),
-        ("minio".to_string(), vec!["-9", "-f"]),
+        ("otterio".to_string(), vec!["-9", "-f"]),
         ("redis-server".to_string(), vec!["-9", "-f"]),
         ("zitadel".to_string(), vec!["-9", "-f"]),
         ("llama-server".to_string(), vec!["-9", "-f"]),

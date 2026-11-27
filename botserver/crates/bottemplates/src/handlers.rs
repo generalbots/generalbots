@@ -77,7 +77,7 @@ pub struct DeployRequest {
 /// `POST /api/templates/deploy/:id` — stage the template's `.gbai` directory
 /// into the caller org's Drive work tree (`{work}/{org}.gborg/{bot}.gbai/…`).
 ///
-/// The drive monitor uploads that tree to MinIO and registers the bot — the same
+/// The drive monitor uploads that tree to OtterIO and registers the bot — the same
 /// mechanism bootstrap uses for the shipped catalog — and the org layout is what
 /// every runtime resolver keys on (#1355). Before this the endpoint only inserted
 /// a row and deployed nothing (#1354).
@@ -204,7 +204,7 @@ fn validate_bot_name(bot_name: &str) -> Result<(), (StatusCode, String)> {
 }
 
 /// The `bots` row for `bot_name`, created by the drive monitor after the staged
-/// tree reaches MinIO.
+/// tree reaches OtterIO.
 fn resolve_bot_id(conn: &mut diesel::PgConnection, bot_name: &str) -> Option<Uuid> {
     #[derive(diesel::QueryableByName)]
     struct BotRow {

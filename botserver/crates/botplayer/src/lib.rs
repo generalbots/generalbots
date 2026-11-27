@@ -1,6 +1,6 @@
 //! Media player backend: drive streaming plus persisted playlists.
 //!
-//! Streaming routes read media bytes from the bot's MinIO drive bucket
+//! Streaming routes read media bytes from the bot's OtterIO drive bucket
 //! (`{bot_id}.gbai/{bot_id}.gbdrive/...`) through `AppState.drive`. Playlist
 //! routes persist playlists/items and playback analytics in Postgres via
 //! `AppState.conn`.

@@ -5,7 +5,7 @@ pub async fn list_files(
     Extension(user): Extension<AuthenticatedUser>,
     Query(params): Query<ListFilesParams>,
 ) -> Result<Json<Vec<FileListItem>>, (StatusCode, Json<serde_json::Value>)> {
-    // #1801 — one file API over local FS and MinIO. A desktop request sets
+    // #1801 — one file API over local FS and OtterIO. A desktop request sets
     // backend=local (or passes a `local:<root>` bucket) and never reaches S3.
     if crate::local_fs::is_local_backend(params.backend.as_deref(), params.bucket.as_deref()) {
         let root =
@@ -36,7 +36,7 @@ pub async fn list_files(
 
     // One LIST carries key + size, so the second, identical listing was pure
     // waste: `list_objects` is just `list_objects_with_metadata` mapped to
-    // keys, meaning every folder navigation hit MinIO twice for the same
+    // keys, meaning every folder navigation hit OtterIO twice for the same
     // prefix. `create_bucket_if_not_exists` moved to the error path too — the
     // HEAD it performs on every listing only matters when the bucket is
     // actually missing (a user's personal bucket), and paying for it on every

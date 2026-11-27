@@ -112,7 +112,7 @@ pub(super) async fn merge_governance(
                     });
                 }
 
-                // MinIO / Drive
+                // OtterIO / Drive
                 if let Some(drive) = self.app_state.drive.as_ref() {
                     let start = Instant::now();
                     let healthy = tokio::task::block_in_place(|| {
@@ -122,7 +122,7 @@ pub(super) async fn merge_governance(
                     });
                     let latency = start.elapsed().as_secs_f64() * 1000.0;
                     deps.push(crate::monitoring::DependencyStatus {
-                        name: "MinIO",
+                        name: "OtterIO",
                         host: "drive".to_string(),
                         healthy,
                         latency_ms: latency,

@@ -21,7 +21,7 @@
 //!
 //! Mirroring is deliberately **metadata-only**: rows carry name, path, size,
 //! type and revision, and the bytes are streamed from the provider on demand.
-//! Duplicating whole accounts into MinIO would double the storage and re-create
+//! Duplicating whole accounts into OtterIO would double the storage and re-create
 //! the sync conflicts the native change feeds exist to avoid.
 
 pub mod config;

@@ -152,7 +152,7 @@ mod tests {
             assert!(!lower.contains(marker), "object key leaked {marker}");
         }
         // No host path, bucket, endpoint or account identifier either.
-        for forbidden in ["/var/lib", "minio", "bucket", "s3", "http", "https"] {
+        for forbidden in ["/var/lib", "otterio", "bucket", "s3", "http", "https"] {
             assert!(!lower.contains(forbidden), "object key leaked {forbidden}");
         }
     }
