@@ -450,9 +450,18 @@ fn main() {
                     // is the main window closing after first run completed.
                     tauri::RunEvent::ExitRequested { api, .. } => {
                         use desktop::exit_decision::{on_exit_requested, ExitAction};
+                        // Visible, not merely present: when this fires after
+                        // the main window was closed, its handle can still be
+                        // registered, and "present" kept the process alive
+                        // with no window (seen in a rehearsal on a second
+                        // launch). A window that was closed is not visible.
+                        let main_visible = app
+                            .get_webview_window("main")
+                            .and_then(|w| w.is_visible().ok())
+                            .unwrap_or(false);
                         let action = on_exit_requested(
                             desktop::tray::quit_requested(),
-                            app.get_webview_window("main").is_some(),
+                            main_visible,
                             desktop::activity::is_busy(),
                         );
                         match action {

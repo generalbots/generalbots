@@ -59,18 +59,18 @@ pub enum ExitAction {
 /// Decide what to do when `ExitRequested` fires.
 ///
 /// * `quit_from_tray` — the tray's Quit action was selected.
-/// * `main_window_exists` — the main window still exists (tray-quit fires
+/// * `main_window_visible` — the main window still exists (tray-quit fires
 ///   while it does).
 /// * `reply_in_progress` — a model reply is still being generated.
 pub fn on_exit_requested(
     quit_from_tray: bool,
-    main_window_exists: bool,
+    main_window_visible: bool,
     reply_in_progress: bool,
 ) -> ExitAction {
     if quit_from_tray {
         return ExitAction::Exit;
     }
-    if main_window_exists {
+    if main_window_visible {
         return ExitAction::KeepAlive;
     }
     if reply_in_progress {
@@ -147,7 +147,7 @@ mod tests {
     }
 
     #[test]
-    fn main_window_exists_keeps_the_process_alive() {
+    fn main_window_visible_keeps_the_process_alive() {
         assert_eq!(
             on_exit_requested(false, true, false),
             ExitAction::KeepAlive
