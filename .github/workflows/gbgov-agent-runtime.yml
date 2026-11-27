@@ -166,7 +166,9 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update -q
-          sudo apt-get install -y -q --no-install-recommends incus
+          # dnsmasq-base: `incus admin init --auto` creates the bridge incusbr0,
+          # which needs dnsmasq; it is only a recommended package of incus.
+          sudo apt-get install -y -q --no-install-recommends incus dnsmasq-base
           sudo incus admin init --auto
           # Docker on the runner sets the FORWARD policy to DROP, which cuts
           # the builder container off the network behind incusbr0.
