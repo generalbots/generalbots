@@ -7,12 +7,12 @@ name: gbgov Windows
 on:
   workflow_dispatch:
   push:
-    branches: ["gbgov"]
+    branches: ["gbgov", "gblite"]
     paths-ignore:
       - "botbook/**"
       - "**/*.md"
   pull_request:
-    branches: ["gbgov"]
+    branches: ["gbgov", "gblite"]
     paths-ignore:
       - "botbook/**"
       - "**/*.md"
