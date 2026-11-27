@@ -285,6 +285,39 @@ A.blockGeneric = function (ev) {
         summary: JSON.stringify(s).substring(0, 80), status: mapStatus(ev.status), activityId: ev.id });
 };
 
+/* File the assistant created and saved to Drive. */
+A.blockFileGenerated = function (ev) {
+    var s = ev.summary || ev.data || ev;
+    var name = s.name || s.file || "";
+    var drivePath = s.drive_path || "";
+    var el = block({ kind: "file-out", icon: "file", title: t("Arquivo gerado", "Generated file"),
+        summary: name, status: mapStatus(ev.status), activityId: ev.id, open: true,
+        bodyHtml: '<div class="gb-block-out">' +
+            '<span class="gb-block-out-icon">' + I(fileIcon(name), 16) + '</span>' +
+            '<div class="gb-block-out-text"><span class="gb-block-out-name">' + esc(name) + '</span>' +
+            (s.detail ? '<span class="gb-block-out-meta">' + esc(s.detail) + '</span>' : "") + '</div>' +
+            (drivePath ? '<button type="button" class="gb-block-btn" data-act="open">' + esc(t("Abrir", "Open")) + '</button>' +
+                '<button type="button" class="gb-block-btn gb-block-btn--acc" data-act="drive">' + esc(t("Ver no Drive", "Show in Drive")) + '</button>' : "") +
+            '</div>' });
+    var open = el.querySelector('[data-act="open"]');
+    if (open && typeof A.makeAttachClickable === "function" && name) {
+        A.makeAttachClickable(open, { name: name, size: s.size }, { drivePath: drivePath });
+    }
+    var drive = el.querySelector('[data-act="drive"]');
+    if (drive) { drive.addEventListener("click", function () { if (A.switchView) A.switchView("drive"); }); }
+    return el;
+};
+
+/* A recurring task the assistant set up. */
+A.blockTaskScheduled = function (ev) {
+    var s = ev.summary || ev.data || ev;
+    return block({ kind: "schedule", icon: "clock", title: t("Tarefa agendada", "Scheduled task"),
+        summary: s.name || "", status: mapStatus(ev.status), activityId: ev.id, open: true,
+        bodyHtml: (s.when ? row(t("Quando", "When"), s.when) : "") +
+            (s.does ? row(t("Faz", "Does"), s.does) : "") +
+            (s.where ? row(t("Onde", "Where"), s.where) : "") });
+};
+
 function row(label, value) {
     return '<div class="gb-block-row"><span class="gb-block-row-label">' + esc(label) + '</span><span class="gb-block-row-value">' + esc(value||"") + '</span></div>';
 }
@@ -294,6 +327,20 @@ function updateBlockStatus(el, newStatus) {
     var chip = el.querySelector(".gb-block-chip");
     if (chip) { chip.className = "gb-block-chip gb-block-chip--" + newStatus; chip.textContent = { running: t("Executando","Running"), done: t("Concluído","Done"), failed: t("Falhou","Failed") }[newStatus] || newStatus; }
 }
+
+/* Shared helpers for the split block modules (12b_block_live, 12d_block_vm). */
+A._blk = {
+    esc: esc, t: t, fmtBytes: fmtBytes, mapStatus: mapStatus,
+    block: block, row: row, chipHtml: chipHtml,
+    fileIcon: fileIcon, updateStatus: updateBlockStatus
+};
+
+/* Update a permission block's status when consent is resolved. */
+A.setPermissionActivityStatus = function (requestId, status) {
+    document.querySelectorAll(".gb-block[data-permission-id]").forEach(function (el) {
+        if (el.dataset.permissionId === requestId) { updateBlockStatus(el, status); }
+    });
+};
 
 /* ---- Render a stack of blocks ---- */
 A.renderBlockStack = function (events) {
@@ -313,10 +360,12 @@ function renderSingleBlock(ev) {
         "drive_read": A.blockDriveRead, "kb_search": A.blockKbSearch,
         "api_command": A.blockApiCommand, "tool_run": A.blockToolRun,
         "permission": A.blockPermission, "notice": A.blockNotice, "error": A.blockError,
+        "file_generated": A.blockFileGenerated, "task_scheduled": A.blockTaskScheduled
     };
     var fn = R[kind]; if (fn) return fn(ev);
     return A.blockGeneric(ev);
 }
+A.renderSingleBlock = renderSingleBlock;
 
 /* ---- Live activity event handler (from WS gb_event frames) ---- */
 var pendingActivities = []; /* accumulate during a turn */
@@ -386,63 +435,5 @@ A.onActivityEvent = function (frame) {
     if (!A.isUserScrolledUp || !A.isUserScrolledUp()) { A.scrollToBottom(false); }
 };
 
-/* ---- Attachment card ---- */
-function truncMiddle(s, max) { if (!s || s.length <= max) return s; var h = Math.floor((max-3)/2); return s.substring(0,h) + "..." + s.substring(s.length-h); }
-
-A.attachCard = function (file, opts) {
-    opts = opts || {};
-    var name = file.name || (typeof file === "string" ? file : "");
-    var size = file.size || file.size_bytes || 0;
-    var isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(name);
-    var icon = fileIcon(name); var tint = fileTint(name);
-    var overLimit = size > 50 * 1024 * 1024;
-    var card = document.createElement("div");
-    card.className = "gb-attach-card" + (overLimit ? " gb-attach-error" : "");
-    if (isImage && file instanceof File && !overLimit) {
-        var thumb = document.createElement("img");
-        thumb.className = "gb-attach-thumb";
-        try { thumb.src = URL.createObjectURL(file); } catch (e) { /* */ }
-        card.appendChild(thumb);
-    }
-    var displayName = truncMiddle(name, 28);
-    var html = '<span class="gb-attach-icon"' + (tint ? ' style="' + tint + '"' : '') + '>' + I(icon, 16) + '</span>';
-    html += '<span class="gb-attach-name"' + (name.length > 28 ? ' title="' + esc(name) + '"' : '') + '>' + esc(displayName) + '</span>';
-    html += '<span class="gb-attach-size">' + (overLimit ? esc(t("Limite: 50 MB","Limit: 50 MB")) : (size > 0 ? fmtBytes(size) : '')) + '</span>';
-    if (opts.removable !== false) {
-        html += '<button class="gb-attach-remove" aria-label="' + esc(t("Remover","Remove")) + '">' + I("x-circle", 16) + '</button>';
-    }
-    card.insertAdjacentHTML("beforeend", html);
-    if (opts.onRemove) { var rm = card.querySelector(".gb-attach-remove"); if (rm) rm.addEventListener("click", opts.onRemove); }
-    /* Auto-detect drivePath from history attachment objects. */
-    if (!opts.drivePath && file && typeof file === "object" && !(file instanceof File)) {
-        var dp = file.drive_path || file.drivePath || (file.name ? "inbox/" + file.name : "");
-        if (dp) { opts = Object.assign({}, opts, { drivePath: dp }); }
-    }
-    /* Make clickable for preview (unless removable = composer) */
-    if (typeof A.makeAttachClickable === "function" && !opts.removable) {
-        A.makeAttachClickable(card, file, opts);
-    }
-    return card;
-};
-
-/* ---- Hover toolbar ---- */
-A.addMsgToolbar = function (el, content, retryable) {
-    var tb = document.createElement("div"); tb.className = "gb-msg-toolbar";
-    if (content) {
-        var cp = document.createElement("button"); cp.className = "gb-msg-toolbar-btn"; cp.title = t("Copiar","Copy");
-        cp.innerHTML = I("copy", 14);
-        cp.addEventListener("click", function () {
-            navigator.clipboard.writeText(content).catch(function (err) {
-                console.warn("[assistant] toolbar copy failed", err);
-            });
-        });
-        tb.appendChild(cp);
-    }
-    if (retryable) {
-        var rt = document.createElement("button"); rt.className = "gb-msg-toolbar-btn"; rt.title = t("Tentar de novo","Try again");
-        rt.innerHTML = I("arrows-clockwise", 14);
-        rt.addEventListener("click", function () { A.regenerateFrom(el); }); tb.appendChild(rt);
-    }
-    el.appendChild(tb);
-};
+/* attachCard and addMsgToolbar live in 12b_blocks_activity.js (split for 450-line limit). */
 })();

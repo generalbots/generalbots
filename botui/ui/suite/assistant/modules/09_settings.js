@@ -19,6 +19,9 @@
     }
     A.settingsEsc = esc;
 
+    function tr(pt, en) { return A.locale && A.locale.startsWith("pt") ? pt : en; }
+    A.settingsText = tr;
+
     /* Stroke icon used by the settings pages: one path, Mantis line weight. */
     A.settingsIcon = function (path, size, stroke) {
         return '<svg aria-hidden="true" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' +

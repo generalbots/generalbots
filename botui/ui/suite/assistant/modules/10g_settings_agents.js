@@ -5,21 +5,53 @@
  * Claude Code, Codex and Antigravity connect through the agent workspace: an
  * isolated VM where the agent's own program runs and the person signs in
  * with their subscription (/api/ai-accounts). Nothing starts until the
- * person clicks Conectar. The other agents are listed as coming soon.
- *
- * Uses main's existing /api/ai-accounts surface. The status endpoint wraps
- * the account as { account, checked_at, note }, so the poll unwraps it.
+ * person clicks Conectar.
  */
 (function () {
 var A = window.GBAssistant;
 function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
-function tr(ptText, enText) { return A.locale && A.locale.startsWith("pt") ? ptText : enText; }
 
 var AGENTS = [
   { id:"claude-code", logo:"anthropic", name:"Claude Code", sub:"Claude", co:"Anthropic", paste:true },
   { id:"codex-cli", logo:"openai", name:"Codex", sub:"ChatGPT", co:"OpenAI", paste:false },
   { id:"antigravity", logo:"gemini", name:"Antigravity", sub:"Gemini", co:"Google", paste:true }
 ];
+
+var L = { "pt-BR": {
+  title:"Agentes por assinatura", tip:"O agente roda separado do resto do sistema, numa máquina virtual isolada neste computador. Sem ela, o modo agente fica desligado.",
+  space:"ESPAÇO ISOLADO", spaceOff:"INDISPONÍVEL",
+  picked:"Em uso no chat. As conversas com este agente ligam a chave Agente: ele trabalha na máquina virtual isolada deste computador.",
+  connect:"Conectar", disconnect:"Sair da conta", useNow:"Usar no chat", linked:"CONECTADO", connecting:"CONECTANDO…", off:"NÃO CONECTADO",
+  preparing:"Preparando a máquina virtual e instalando o agente. Na primeira vez pode levar alguns minutos.",
+  open:"Abrir página de login", code:"Código", codeHelp:"Na página de login, entre com este código.",
+  signIn:"Entre na sua conta na página de login.", signInPaste:"Entre na sua conta na página de login e cole aqui o código que ela mostrar.", verifying:"Conferindo o código…",
+  paste:"Cole aqui o código que a página mostrar", send:"Enviar código",
+  unavailable:"A máquina virtual de agentes não está disponível neste computador:", failed:"Não foi possível conectar:",
+  models:"MODELOS NO MENU DO CHAT", modelsTip:"Ligue os modelos deste agente que devem aparecer no menu do chat.",
+  count:"%n DE %t LIGADOS", def:"PADRÃO", saving:"Salvando…", saved:"Salvo.",
+  loading:"Lendo os modelos do agente…", none:"O agente não informou modelos.", readFail:"Não foi possível ler os modelos do agente:", saveFail:"Não foi possível salvar:",
+  vmStopped:"MÁQUINA DESLIGADA", vmStarting:"MÁQUINA INICIANDO", vmUnavailable:"MÁQUINA INDISPONÍVEL",
+  vmStoppedMsg:"A máquina virtual está desligada. O login continua quando ela ligar.",
+  vmStartingMsg:"A máquina virtual está iniciando. O login continua em instantes.",
+  vmUnavailableMsg:"A máquina virtual não está disponível agora. Tentaremos de novo em instantes." },
+en: {
+  title:"Subscription agents", tip:"The agent runs apart from the rest of the system, in an isolated virtual machine on this computer. Without it, agent mode stays off.",
+  space:"ISOLATED SPACE", spaceOff:"UNAVAILABLE",
+  picked:"In use in the chat. Conversations with this agent turn the Agent switch on: it works in this computer’s isolated virtual machine.",
+  connect:"Connect", disconnect:"Sign out", useNow:"Use in chat", linked:"CONNECTED", connecting:"CONNECTING…", off:"NOT CONNECTED",
+  preparing:"Preparing the virtual machine and installing the agent. The first time can take a few minutes.",
+  open:"Open sign-in page", code:"Code", codeHelp:"On the sign-in page, enter this code.",
+  signIn:"Sign in to your account on the sign-in page.", signInPaste:"Sign in on the sign-in page, then paste here the code it shows.", verifying:"Checking the code…",
+  paste:"Paste the code the page shows", send:"Send code",
+  unavailable:"The agent virtual machine is not available on this computer:", failed:"Could not connect:",
+  models:"MODELS IN THE CHAT MENU", modelsTip:"Switch on the models of this agent that should appear in the chat menu.",
+  count:"%n OF %t ON", def:"DEFAULT", saving:"Saving…", saved:"Saved.",
+  loading:"Reading the agent's models…", none:"The agent reported no models.", readFail:"Could not read the agent's models:", saveFail:"Could not save:",
+  vmStopped:"MACHINE OFF", vmStarting:"MACHINE STARTING", vmUnavailable:"MACHINE UNAVAILABLE",
+  vmStoppedMsg:"The virtual machine is off. The sign-in continues when it starts.",
+  vmStartingMsg:"The virtual machine is starting. The sign-in continues shortly.",
+  vmUnavailableMsg:"The virtual machine is not available right now. Trying again shortly." } };
+function g(k) { var l = A.locale && A.locale.startsWith("pt") ? L["pt-BR"] : L.en; return l[k] || L.en[k] || k; }
 
 function logo(id) {
   var svg = (A._providerLogos || {})[id];
@@ -43,25 +75,16 @@ function api(path, body, method) {
       });
     });
 }
-
-var poll = null;
-function stopPoll() { if (poll) { clearInterval(poll); poll = null; } }
-
-function rowHtml(a, st) {
-  if (!a.id) {
-    return '<div class="gb-prov-row is-soon" role="listitem">' + logo(a.logo) +
-      '<div class="gb-prov-text"><div class="gb-prov-name">' + esc(a.name) + ' <span class="gb-prov-co">' + esc(a.co) + '</span></div></div>' +
-      '<span class="gb-badge gb-gar-soon">' + esc(tr("Em breve", "Coming soon")) + '</span></div>';
-  }
-  var status = (st && st.status) || "unlinked";
-  var badge = status === "linked" ? '<span class="gb-prov-badge">' + esc(tr("Conectado", "Connected")) + '</span>'
-    : status === "connecting" ? '<span class="gb-badge gb-gar-soon">' + esc(tr("Conectando…", "Connecting…")) + '</span>' : '';
-  var btn = status === "linked"
-    ? '<button type="button" class="gb-prov-btn" data-agent-off="' + a.id + '">' + esc(tr("Desconectar", "Disconnect")) + '</button>'
-    : '<button type="button" class="gb-prov-btn" data-agent-on="' + a.id + '">' + esc(tr("Conectar", "Connect")) + '</button>';
-  return '<div class="gb-prov-agent" data-agent="' + a.id + '"><div class="gb-prov-row is-soon" role="listitem">' + logo(a.logo) +
-    '<div class="gb-prov-text"><div class="gb-prov-name">' + esc(a.name) + ' <span class="gb-prov-co">' + esc(a.co) + '</span> ' + badge + '</div></div>' +
-    btn + '</div><div class="gb-prov-flow" data-flow="' + a.id + '"></div></div>';
+/* The sign-in status, as a background request: 8 s deadline, never two at
+ * once for the same agent. A quick {"status": "stopped" | "starting" |
+ * "unavailable"} (or a 503) is the workspace's state, not the account's. */
+function statusPoll(a) {
+  return A.pollJSON("/api/ai-accounts/" + a.id + "/status", { init: { method: "POST", body: "{}" } }).then(function (res) {
+    var d = res.data || {};
+    res.vm = d.account || d.provider ? null : A.vmState(res);
+    res.account = d.account || d;
+    return res;
+  });
 }
 
 /* One status poll per agent whose sign-in is in progress. */
@@ -106,23 +129,26 @@ var HINT = 'class="gb-of-hint" style="margin:0;padding:10px 16px;border-top:1px 
 function mountModels(el, a) {
   var box = el.querySelector('[data-agm="' + a.id + '"]');
   if (!box) { return; }
-  var code = d.device_code || d.auth_code || "";
-  var html = '<p class="gb-set-hint">' + esc(d.message || tr(
-    "Preparando a máquina virtual e instalando o agente. Na primeira vez pode levar alguns minutos.",
-    "Preparing the virtual machine and installing the agent. The first time can take a few minutes.")) + '</p>';
-  if (d.url) {
-    html += '<a class="gb-set-btn-sm gb-set-btn-accent gb-prov-open" href="' + esc(d.url) + '" target="_blank" rel="noopener noreferrer">' +
-      esc(tr("Abrir a página de login", "Open the sign-in page")) + ' ↗</a>';
+  var G = A._modelGarage, list = [], on = {}, savedOn = {};
+  var saveTimer = null, saving = false, pendingSave = false;
+  box.innerHTML = '<section class="gb-of-km"><button type="button" class="gb-of-km-h" aria-expanded="false" style="width:100%;border:0;font:inherit;color:inherit;text-align:start;cursor:pointer">' +
+    '<span class="gb-of-k">' + (G ? G.sl() : '') + esc(g("models")) + '</span>' + (G ? G.help(g("modelsTip")) : '') +
+    '<span class="gb-of-sp"></span><span class="gb-of-meta" data-role="count"></span>' +
+    '<svg data-role="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin:0 6px"><path d="M6 9l6 6 6-6"/></svg></button>' +
+    '<div data-role="body"></div><div class="gb-of-say" role="status" data-role="msg"></div></section>';
+  var head = box.querySelector(".gb-of-km-h"), body = box.querySelector('[data-role="body"]');
+  function say(cls, text) {
+    box.querySelector('[data-role="msg"]').innerHTML = text ? '<p class="' + cls + '" style="padding:10px 16px;border-top:1px solid var(--id-line)">' + esc(text) + '</p>' : "";
   }
-  if (code && !a.paste) {
-    html += '<p class="gb-set-hint">' + esc(tr("Na página de login, entre com este código.", "On the sign-in page, enter this code.")) +
-      '</p><div class="gb-prov-url gb-prov-code">' + esc(code) + '</div>';
+  function count() {
+    var n = list.filter(function (m) { return on[m.id]; }).length;
+    box.querySelector('[data-role="count"]').textContent = list.length ? g("count").replace("%n", String(n)).replace("%t", String(list.length)) : "";
   }
-  if (d.url && a.paste) {
-    html += '<div class="gb-set-form-actions"><input class="gb-set-input" data-paste="' + a.id + '" placeholder="' +
-      esc(tr("Cole aqui o código que a página mostrar", "Paste the code the page shows")) + '" autocomplete="off"/>' +
-      '<button type="button" class="gb-set-btn-sm gb-set-btn-accent" data-send="' + a.id + '">' +
-      esc(tr("Enviar código", "Send code")) + '</button></div>';
+  function fold() {
+    var open = !!openModels[a.id];
+    head.setAttribute("aria-expanded", String(open));
+    box.querySelector('[data-role="chev"]').style.transform = open ? "rotate(180deg)" : "";
+    body.style.display = open ? "" : "none";
   }
   function draw() {
     count();
@@ -210,11 +236,8 @@ function flowParts(el, a) {
       if (!value) { return; }
       send.disabled = true;
       api("/api/ai-accounts/" + a.id + "/code", { code: value })
-        .then(function () { if (input) { input.value = ""; } })
-        .catch(function (e) {
-          console.debug("gbAgents: code submission failed", e);
-          box.insertAdjacentHTML("beforeend", '<p class="gb-set-warn">' + esc(tr("Não foi possível conectar:", "Could not connect:") + " " + e.message) + '</p>');
-        })
+        .then(function () { if (input) { input.value = ""; } box.querySelector('[data-role="err"]').innerHTML = ""; })
+        .catch(function (e) { box.querySelector('[data-role="err"]').innerHTML = '<p class="gb-set-warn">' + esc(g("failed") + " " + e.message) + '</p>'; })
         .then(function () { send.disabled = false; });
     });
   }
@@ -333,82 +356,63 @@ function bindRow(el, a) {
     off.addEventListener("click", function () {
       off.disabled = true;
       delete started[a.id];
-      api("/api/ai-accounts/" + a.id + "/disconnect", {}).catch(function (e) {
-        // Best-effort disconnect: refresh the list to reflect local state anyway.
-        if (window.gbLogError) { window.gbLogError(e, "agent disconnect"); }
-      }).then(function () { renderAgents(el); refreshPickers(); });
+      api("/api/ai-accounts/" + a.id + "/disconnect", {}).catch(function () {}).then(function () { renderAgents(el); refreshPickers(); });
     });
   }
 }
 
-function watch(el, a) {
-  stopPoll();
-  poll = setInterval(function () {
-    if (!document.body.contains(el)) { stopPoll(); return; }
-    api("/api/ai-accounts/" + a.id + "/status", {}).then(function (d) {
-      /* main returns { account: {...}, checked_at, note } — not a flat account. */
-      var s = d.account || d;
-      if (s.status === "linked" || s.status === "error") { stopPoll(); renderAgents(el); return; }
-      showFlow(el, a, s);
-    }).catch(function (e) {
-      console.debug("gbAgents: status poll failed, retrying while the page is open", e);
-    });
-  }, 3000);
-}
-
 function renderAgents(el) {
   var reason = A.productConfig && A.productConfig.agent_backend_unavailable;
-  api("/api/ai-accounts").catch(function (e) {
-    console.debug("gbAgents: could not list accounts", e);
-    return { accounts: [] };
-  }).then(function (data) {
+  stopAll();
+  api("/api/ai-accounts").catch(function () { return { accounts: [] }; }).then(function (data) {
     var byId = {};
     (data.accounts || []).forEach(function (x) { byId[x.provider] = x; });
-    var useHint = tr("Para usar: no chat, escolha o agente no menu de modelos. O botão Agente da conversa fica ligado.",
-      "To use it: in the chat, pick the agent in the model menu. The conversation's Agent switch turns on.");
-    el.innerHTML = '<div class="gb-prov">' +
-      '<p class="gb-set-desc">' + esc(tr(
-        "Use um agente que você já assina. Ele roda dentro de uma máquina virtual isolada, criada para ele neste computador: sua conta e o que ele executa ficam lá dentro, não no seu Windows.",
-        "Use an agent you already subscribe to. It runs inside an isolated virtual machine created for it on this computer: your account and what it runs stay there, not on your Windows.")) + '</p>' +
-      (reason ? '<p class="gb-set-warn">' + esc(tr("A máquina virtual de agentes não está disponível neste computador:",
-        "The agent virtual machine is not available on this computer:")) + ' ' + esc(reason) + '</p>' : '') +
-      '<div class="gb-prov-list" role="list">' + AGENTS.map(function (a) { return rowHtml(a, byId[a.id]); }).join("") + '</div>' +
-      (AGENTS.some(function (a) { return a.id && byId[a.id] && byId[a.id].status === "linked"; })
-        ? '<p class="gb-set-hint">' + esc(useHint) + '</p>' : '') + '</div>';
-    if (reason) { el.querySelectorAll("[data-agent-on]").forEach(function (b) { b.disabled = true; }); }
+    var G = A._modelGarage;
+    el.innerHTML = '<div class="gb-of-sec"><div class="gb-of-sec-h"><span class="gb-of-letter">A</span><span class="gb-of-sec-t">' + esc(g("title")) + '</span>' +
+      (G ? G.help(g("tip")) : '') + '<span class="gb-of-sp"></span><span class="gb-of-ag-st ' + (reason ? 'gb-of-dngc' : 'gb-of-ok') + '" style="padding-right:6px">' +
+      '<span class="gb-of-sq"></span>' + esc(reason ? g("spaceOff") : g("space") + (/Windows/i.test(navigator.userAgent || "") ? " · WSL2" : "")) + '</span></div>' +
+      (reason ? '<div class="gb-of-sec-b" style="border-bottom:1px solid var(--id-line)"><p class="gb-set-warn" style="margin:0">' + esc(g("unavailable")) + ' ' + esc(reason) + '</p></div>' : '') +
+      '<div role="list">' + AGENTS.map(function (a) { return rowHtml(a, byId[a.id]); }).join("") + '</div></div>';
     AGENTS.forEach(function (a) {
-      if (!a.id) { return; }
-      var on = el.querySelector('[data-agent-on="' + a.id + '"]');
-      if (on) {
-        on.addEventListener("click", function () {
-          on.disabled = true;
-          showFlow(el, a, {});
-          api("/api/ai-accounts/" + a.id + "/connect", {})
-            .then(function (d) { showFlow(el, a, d); watch(el, a); })
-            .catch(function (e) {
-              on.disabled = false;
-              var box = el.querySelector('[data-flow="' + a.id + '"]');
-              if (box) { box.innerHTML = '<p class="gb-set-warn">' +
-                esc(tr("Não foi possível conectar:", "Could not connect:") + " " + e.message) + '</p>'; }
-            });
-        });
-      }
-      var off = el.querySelector('[data-agent-off="' + a.id + '"]');
-      if (off) {
-        off.addEventListener("click", function () {
-          off.disabled = true;
-          /* Disconnect is best-effort: refresh the card either way. */
-          api("/api/ai-accounts/" + a.id + "/disconnect", {})
-            .catch(function (e) { console.debug("gbAgents: disconnect failed, refreshing status", e); })
-            .then(function () { renderAgents(el); });
-        });
-      }
-      if (byId[a.id] && byId[a.id].status === "connecting") { watch(el, a); }
+      bindRow(el, a);
+      var row = byId[a.id];
+      if (statusOf(a, row) === "connecting") { watch(el, a); }
+      else if (row && row.vm_name && row.status !== "linked") { checkOnce(el, a); }
     });
   });
 }
 
-/* The chat model menu lists connected agents (05b_model_picker.js). */
+/* A sign-in finished elsewhere: one status call lets the server see the
+ * credentials in the workspace and mark the account linked. */
+function checkOnce(el, a, tries) {
+  statusPoll(a).then(function (res) {
+    if (res.skipped) {
+      tries = (tries || 0) + 1;
+      if (tries < 5) { setTimeout(function () { if (document.body.contains(el)) { checkOnce(el, a, tries); } }, 1500); }
+      return;
+    }
+    if (res.vm) { if (!started[a.id]) { markRow(el, a, false, res.vm); } return; }
+    var d = res.account || {};
+    if (res.ok && d.status === "linked" && !started[a.id]) { redrawRow(el, a, d); }
+  });
+}
+/* The chat's model menu lists linked agents: read them again after a change. */
+function refreshPickers() {
+  if (!A.loadLinkedAgents) { return; }
+  Promise.all([A.loadLinkedAgents(), A.loadModels ? A.loadModels() : null])
+    .then(function () { if (A.renderModelPickers) { A.renderModelPickers(); } });
+}
+
+/** Look up an agent's display metadata by provider id. */
+A._agentMeta = function (provider) {
+    for (var i = 0; i < AGENTS.length; i++) {
+        if (AGENTS[i].id === provider) { return AGENTS[i]; }
+    }
+    return null;
+};
+if (A._modelProviders) { A._modelProviders.renderAcp = renderAgents; }
+else { A._acpRenderPending = renderAgents; }
+/* The chat's model menu lists the connected agents (05b_model_picker.js). */
 A.loadLinkedAgents = function () {
   return api("/api/ai-accounts").then(function (data) {
     A.linkedAgents = (data.accounts || []).filter(function (x) { return x.status === "linked"; })
@@ -418,8 +422,4 @@ A.loadLinkedAgents = function () {
       });
   }).catch(function () { A.linkedAgents = []; });
 };
-
-/* Wire the ACP detail pane; tolerate either script load order. */
-if (A._modelProviders) { A._modelProviders.renderAcp = renderAgents; }
-else { A._acpRenderPending = renderAgents; }
 })();

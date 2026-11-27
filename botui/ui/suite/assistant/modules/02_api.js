@@ -88,6 +88,7 @@
             var data = await r.json();
             A.tiers = data.tiers || [];
             A.defaultModel = data.default_model || "";
+            A.subscriptions = data.subscriptions || null;
             if (Array.isArray(data.accounts)) { A.accounts = data.accounts; } // grouped provider models for the chat menu
             if (data.destination) { A.destination = data.destination; }
             try {

@@ -217,6 +217,27 @@
         }).catch(function () { /* the menu keeps what it has */ });
     }
 
+    function addLocalGroup(menu, data) {
+        var current = A.fullModelName(A.defaultModel || "");
+        var inUse = !A.selectedModel || A.selectedModel === A.defaultModel;
+        var items = [];
+        (data.tiers || []).forEach(function (tier) {
+            (tier.models || []).forEach(function (m) {
+                if (!m.downloaded) { return; }
+                var isCurrent = m.file === current;
+                items.push({ model: m.name, value: isCurrent ? "" : m.id, active: isCurrent && inUse, current: isCurrent });
+            });
+        });
+        if (!items.length) { return; }
+        if (items.some(function (x) { return x.current; })) {
+            var top = menu.querySelector(".gb-model-menu-current");
+            if (top) { top.remove(); }
+        }
+        addGroup(menu, { id: "local", name: A.engineName("local", "group") }, items, function (id) {
+            if (id) { switchTo({ local: id }); } else { selectModel(A.defaultModel); }
+        });
+    }
+
     /* ---- Connected subscription agents (Settings > AI accounts): picking
        one answers through its own agent VM; the bot's default is untouched. ---- */
     function addAgentGroup(menu) {
