@@ -459,18 +459,18 @@ mod preserve_source_tests {
         std::fs::create_dir_all(&installers).unwrap();
         std::fs::create_dir_all(&bin).unwrap();
 
-        let src = installers.join("minio.exe");
-        std::fs::write(&src, b"MINIO_BINARY").unwrap();
+        let src = installers.join("otterio.exe");
+        std::fs::write(&src, b"OTTERIO_BINARY").unwrap();
         let original_len = std::fs::metadata(&src).unwrap().len();
 
         let pm = test_pm(dir.path());
-        pm.install_binary(&src, &bin, "minio.exe", true).unwrap();
+        pm.install_binary(&src, &bin, "otterio.exe", true).unwrap();
 
         // Source must still exist with the same size.
         assert!(src.exists(), "bundled source was deleted");
         assert_eq!(std::fs::metadata(&src).unwrap().len(), original_len);
         // Destination must exist.
-        assert!(bin.join("minio.exe").exists(), "binary not installed");
+        assert!(bin.join("otterio.exe").exists(), "binary not installed");
     }
 
     #[test]
@@ -481,15 +481,15 @@ mod preserve_source_tests {
         std::fs::create_dir_all(&downloads).unwrap();
         std::fs::create_dir_all(&bin).unwrap();
 
-        let src = downloads.join("minio.exe");
-        std::fs::write(&src, b"MINIO_BINARY").unwrap();
+        let src = downloads.join("otterio.exe");
+        std::fs::write(&src, b"OTTERIO_BINARY").unwrap();
 
         let pm = test_pm(dir.path());
-        pm.install_binary(&src, &bin, "minio.exe", false).unwrap();
+        pm.install_binary(&src, &bin, "otterio.exe", false).unwrap();
 
         // Source should be gone (moved).
         assert!(!src.exists(), "downloaded source was not cleaned up");
-        assert!(bin.join("minio.exe").exists(), "binary not installed");
+        assert!(bin.join("otterio.exe").exists(), "binary not installed");
     }
 
     // ---- handle_downloaded_file: unrecognised extension, no binary_name ----
@@ -579,8 +579,8 @@ mod preserve_source_tests {
         std::fs::create_dir_all(&installers).unwrap();
         std::fs::create_dir_all(&bin).unwrap();
 
-        let src = installers.join("minio.exe");
-        std::fs::write(&src, b"MINIO_BINARY").unwrap();
+        let src = installers.join("otterio.exe");
+        std::fs::write(&src, b"OTTERIO_BINARY").unwrap();
 
         // Set read-only attribute on the source file.
         let mut perms = std::fs::metadata(&src).unwrap().permissions();
@@ -588,10 +588,10 @@ mod preserve_source_tests {
         std::fs::set_permissions(&src, perms).unwrap();
 
         let pm = test_pm(dir.path());
-        let result = pm.install_binary(&src, &bin, "minio.exe", true);
+        let result = pm.install_binary(&src, &bin, "otterio.exe", true);
         assert!(result.is_ok(), "install failed on read-only source: {result:?}");
         assert!(src.exists(), "read-only source was deleted");
-        assert!(bin.join("minio.exe").exists(), "binary not installed");
+        assert!(bin.join("otterio.exe").exists(), "binary not installed");
 
         // Clean up: remove read-only so tempdir can be deleted.
         let mut perms = std::fs::metadata(&src).unwrap().permissions();

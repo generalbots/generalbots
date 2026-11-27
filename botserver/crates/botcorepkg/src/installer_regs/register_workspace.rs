@@ -1,8 +1,5 @@
 use super::*;
 
-// The table editor component was removed (#2582). The `table_editor` key stays
-// only in the existing out-of-scope exclusion lists that guard legacy stacks.
-
 pub fn register_remote_desktop(components: &mut HashMap<String, ComponentConfig>) {
     components.insert(
         "remote_desktop".to_string(),

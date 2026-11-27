@@ -42,7 +42,6 @@ SUMS_NAME = "SHA256SUMS-windows-installers"
 EXCLUDE = {
     "alm": "Forgejo publishes no Windows asset (manifest v17: Linux only)",
     "alm_ci": "Forgejo runner publishes no Windows asset (manifest: Linux only)",
-    "table_editor": "no Windows build",
     "webmail": "Roundcube needs WSL/Docker on Windows (manifest note)",
     "libpq_win": "url_win (17.4) and filename_win (18.6) disagree; the workflow "
                  "stages the pinned 17.4 runtime DLLs and `tables` the 18.6 ZIP",

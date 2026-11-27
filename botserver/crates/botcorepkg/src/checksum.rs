@@ -3,9 +3,9 @@
 //! `3rdparty.toml` pins a component by `url + sha256`, and both download paths
 //! must enforce that pin. Two gaps made the guarantee weaker than documented:
 //!
-//! * `verify_checksum()` returned `Ok(true)` for an empty checksum, so the ten
+//! * `verify_checksum()` returned `Ok(true)` for an empty checksum, so the nine
 //!   entries without one (dns, email, meet, proxy, observability, timeseries_db,
-//!   webmail, libpq_win, table_editor, botmodels, plus every Windows/arm64
+//!   webmail, libpq_win, botmodels, plus every Windows/arm64
 //!   variant missing its own hash) installed with **no verification at all**;
 //! * `facade_download::download_and_install` — the path the first-run wizard
 //!   uses — never verified anything, even when a checksum existed.
