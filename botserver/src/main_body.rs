@@ -407,13 +407,12 @@ pub(super) async fn main() -> std::io::Result<()> {
         trace!("ensure_llama_servers_running completed");
     }
 
-    // After the legacy launcher has completed, enforce the stored model
-    // choice.  With the managed-elsewhere flag the launcher left port 8081
-    // untouched, so runtime control starts it fresh with the launch plan
-    // (context size and GPU layers from free video memory).
-    // This is edition-gated because runtime_ctl lives in
-    // botsettings::on_device_ai which is gbgov-only.
-    #[cfg(feature = "gbgov")]
+    // After the legacy launcher has had a chance to start the runtime (or
+    // discover an orphan on the port), enforce the stored model choice.
+    // An orphan from a previous session that loaded a different model is
+    // replaced.  This is edition-gated because runtime_ctl lives in
+    // botsettings::on_device_ai which is gblite-only.
+    #[cfg(feature = "gblite")]
     {
         let state_for_ctl = app_state.clone();
         tokio::spawn(async move {

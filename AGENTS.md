@@ -1490,7 +1490,7 @@ curl -s http://localhost:8080/api/product | python -m json.tool
 
 ### gbgov Edition (branch `gbgov`, Windows desktop)
 
-The government edition builds on desktop-local with the `gbgov` feature (botserver and botapp) and `.product.gbgov`. Its shell is `botui/ui/suite/assistant/assistant.html` (ordered `"use strict"` IIFE modules in `assistant/modules/NN_*.js` on the shared `A` namespace, `--id-*` tokens, pt-BR + en strings, 450 lines per file). Build, live-check and rig instructions for Windows are in `.claude/CLAUDE.md`.
+The government edition builds on desktop-local with the `gblite` feature (botserver and botapp) and `.product.gblite`. Its shell is `botui/ui/suite/assistant/assistant.html` (ordered `"use strict"` IIFE modules in `assistant/modules/NN_*.js` on the shared `A` namespace, `--id-*` tokens, pt-BR + en strings, 450 lines per file). Build, live-check and rig instructions for Windows are in `.claude/CLAUDE.md`.
 
 **Identity: one user, two paths.** HTTP requests resolve the signed-in owner through the auth middleware (`botsecurity-auth/src/auth_api/middleware.rs`). The chat WebSocket resolves its own identity in `botserver/src/core/bot/ws/handler.rs`:
 1. a token (cookie `gb-access-token`, then the query field `access_token`, also accepted as `token`) resolved by `anonymous_auth::resolve_token_user`;

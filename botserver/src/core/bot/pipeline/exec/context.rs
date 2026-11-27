@@ -246,7 +246,7 @@ pub(super) async fn prepare_messages_and_maybe_finish(
                 // only when the person asked for it: nothing leaves the
                 // machine on the server's own judgement.
                 None => {
-                    !cfg!(feature = "gbgov")
+                    !cfg!(feature = "gblite")
                         && super::super::turn_hooks::is_informational_request(user_text)
                 }
             };

@@ -82,7 +82,7 @@ desktop = ["desktop-tray"]
 desktop-tray = []
 desktop-local = []
 # Government desktop edition: the desktop build with its own product file.
-gbgov = ["desktop-local"]
+gblite = ["desktop-local"]
 # #1925: thin client (UI only, remote botserver) and mobile targets.
 #
 # Both select the dedicated `mobile` module in main.rs: the WebView renders the

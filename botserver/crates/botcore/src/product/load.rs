@@ -114,8 +114,8 @@ impl ProductConfig {
         // The edition's own product file wins over the desktop one, which
         // wins over the default profile.
         let mut names: Vec<&str> = Vec::new();
-        if cfg!(feature = "gbgov") {
-            names.push(".product.gbgov");
+        if cfg!(feature = "gblite") {
+            names.push(".product.gblite");
         }
         if cfg!(feature = "desktop-local") {
             names.push(".product.desktop-local");

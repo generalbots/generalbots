@@ -18,7 +18,7 @@ const WINDOWS_OCR_REMEDIATION: &str =
     "reinstall the BotModels pythonbox (it bundles the RapidOCR fallback)";
 
 pub async fn capabilities() -> Value {
-    if cfg!(feature = "gbgov") {
+    if cfg!(feature = "gblite") {
         return edition_capabilities();
     }
     match fetch_health().await {

@@ -15,16 +15,16 @@ use tauri::{Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 /// The government edition can spend minutes starting its services, and a
 /// topmost window that cannot be closed gets in the way of everything else
 /// on the computer, so there it is an ordinary window.
-const TOPMOST: bool = !cfg!(feature = "gbgov");
+const TOPMOST: bool = !cfg!(feature = "gblite");
 
 /// Splash dimensions: the edition uses a wide animated hero (776x443);
 /// the standard build keeps the square logo (420x420).
-const SPLASH_WIDTH: f64 = if cfg!(feature = "gbgov") { 776.0 } else { 420.0 };
-const SPLASH_HEIGHT: f64 = if cfg!(feature = "gbgov") { 443.0 } else { 420.0 };
+const SPLASH_WIDTH: f64 = if cfg!(feature = "gblite") { 776.0 } else { 420.0 };
+const SPLASH_HEIGHT: f64 = if cfg!(feature = "gblite") { 443.0 } else { 420.0 };
 
 /// Minimum time the splash stays on screen (milliseconds). The edition's hero
 /// animation needs at least 6 s; overridable with `GB_SPLASH_MIN_MS`.
-const DEFAULT_SPLASH_MIN_MS: u64 = if cfg!(feature = "gbgov") { 10000 } else { 0 };
+const DEFAULT_SPLASH_MIN_MS: u64 = if cfg!(feature = "gblite") { 10000 } else { 0 };
 
 /// Whether the app is running under the test rig. Windows are positioned far
 /// off-screen so the WebView2 engine still renders (DevTools screenshots
@@ -389,7 +389,7 @@ mod tests {
 
     #[test]
     fn default_splash_min_matches_feature() {
-        if cfg!(feature = "gbgov") {
+        if cfg!(feature = "gblite") {
             assert_eq!(DEFAULT_SPLASH_MIN_MS, 10000);
         } else {
             assert_eq!(DEFAULT_SPLASH_MIN_MS, 0);
@@ -440,7 +440,7 @@ mod tests {
 
     #[test]
     fn splash_dimensions_match_edition() {
-        if cfg!(feature = "gbgov") {
+        if cfg!(feature = "gblite") {
             assert_eq!((SPLASH_WIDTH, SPLASH_HEIGHT), (776.0, 443.0));
         } else {
             assert_eq!((SPLASH_WIDTH, SPLASH_HEIGHT), (420.0, 420.0));

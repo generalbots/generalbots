@@ -20,9 +20,9 @@ pub(crate) mod refusal;
 mod stream_tools;
 mod turn_end;
 mod svg_contract;
-#[cfg(feature = "gbgov")]
+#[cfg(feature = "gblite")]
 mod local_recovery;
-#[cfg(feature = "gbgov")]
+#[cfg(feature = "gblite")]
 mod free_model_fallback;
 #[cfg(feature = "gbgov")]
 pub(crate) mod cache_warm;

@@ -1,7 +1,7 @@
 //! Guard for the government desktop edition's product file (#2560).
 //!
 //! The edition ships Chat and Drive with the agent workspace (agent-vm).
-//! Every other registry app has to be listed as hidden in `.product.gbgov`: an
+//! Every other registry app has to be listed as hidden in `.product.gblite`: an
 //! app that is neither always visible nor hidden is treated as a preview app,
 //! and the edition has no preview tier. A new registry app therefore fails here
 //! until the file names it.
@@ -15,9 +15,9 @@ const CORE_APPS: &[&str] = &["about", "settings", "auth"];
 const EDITION_APPS: &[&str] = &["chat", "drive"];
 
 fn edition_profile() -> ProductConfig {
-    match ProductConfig::parse(include_str!("../../../.product.gbgov")) {
+    match ProductConfig::parse(include_str!("../../../.product.gblite")) {
         Ok(config) => config,
-        Err(error) => panic!(".product.gbgov does not parse: {error}"),
+        Err(error) => panic!(".product.gblite does not parse: {error}"),
     }
 }
 
@@ -26,10 +26,10 @@ fn edition_shows_chat_and_drive_only() {
     let config = edition_profile();
     let enabled: HashSet<String> = config.get_enabled_apps().into_iter().collect();
     let expected: HashSet<String> = EDITION_APPS.iter().map(|id| (*id).to_string()).collect();
-    assert_eq!(enabled, expected, ".product.gbgov apps= must be chat,drive");
+    assert_eq!(enabled, expected, ".product.gblite apps= must be chat,drive");
     assert!(
         config.get_preview_apps().is_empty(),
-        ".product.gbgov must not declare preview apps"
+        ".product.gblite must not declare preview apps"
     );
     assert_eq!(config.suite_default_app.as_deref(), Some("chat"));
     assert_eq!(config.edition.as_deref(), Some("desktop"));
@@ -50,6 +50,6 @@ fn every_other_registry_app_is_hidden() {
     unclassified.sort();
     assert!(
         unclassified.is_empty(),
-        "registry apps missing from hidden_apps= in .product.gbgov: {unclassified:?}"
+        "registry apps missing from hidden_apps= in .product.gblite: {unclassified:?}"
     );
 }

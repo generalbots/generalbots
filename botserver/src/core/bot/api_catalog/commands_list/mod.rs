@@ -62,10 +62,10 @@ pub fn api_command_instructions(role: &str) -> String {
     lines.push("  NEVER invent a REST path: only paths returned by `api.find` are registered. When a curated command below covers the request, call it directly.".to_string());
 
     // Only the most common commands are named explicitly to avoid prompt bloat.
-    // #2561 — the gbgov edition has no billing, banking, tax, vibe, tasks or
+    // #2561 — the gblite edition has no billing, banking, tax, vibe, tasks or
     // integrations; listing those commands made the model call them and trigger
     // consent prompts / errors for tools that do not exist.
-    let prompt_commands: &[&str] = if cfg!(feature = "gbgov") {
+    let prompt_commands: &[&str] = if cfg!(feature = "gblite") {
         &[
             "apps.find",
             "api.find",
@@ -132,7 +132,7 @@ pub fn api_command_instructions(role: &str) -> String {
             summary = cmd.summary
         ));
     }
-    let rules = if cfg!(feature = "gbgov") {
+    let rules = if cfg!(feature = "gblite") {
         "Rules: use compose=true when the answer needs prose from the data. Never mention JSON or \
          commands to the user. Discovery: api.find matches command NAMES and SUMMARIES by keyword, not \
          free-form intent, so search with domain words such as 'drive', 'files', 'settings' \
@@ -231,7 +231,7 @@ mod prompt_surface_tests {
     }
 
     /// #2372 — the ranking never proposes an admin-only command to a user.
-    #[cfg(not(feature = "gbgov"))]
+    #[cfg(not(feature = "gblite"))]
     #[test]
     fn admin_only_usage_ranked_commands_are_role_filtered() {
         for _ in 0..10 {

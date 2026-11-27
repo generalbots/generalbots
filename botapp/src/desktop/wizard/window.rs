@@ -124,7 +124,7 @@ pub fn open_window(app: &tauri::AppHandle) -> Result<(), String> {
 /// Page the main window opens on the sidecar. The edition goes straight to the
 /// assistant shell: opening the legacy desktop page first painted it for a
 /// moment before it handed over (it reads the product config, then redirects).
-const SUITE_ENTRY_PATH: &str = if cfg!(feature = "gbgov") {
+const SUITE_ENTRY_PATH: &str = if cfg!(feature = "gblite") {
     "/suite/assistant/assistant.html"
 } else {
     "/suite/desktop.html"
@@ -167,7 +167,7 @@ pub fn reveal_suite_signed_in(app: &tauri::AppHandle, email: String, password: S
 /// Whether the main window uses a page-drawn header instead of the native
 /// title bar. The edition draws its own header with drag region, minimise,
 /// maximise and close buttons; other builds keep the OS chrome.
-const CUSTOM_HEADER: bool = cfg!(feature = "gbgov");
+const CUSTOM_HEADER: bool = cfg!(feature = "gblite");
 
 fn reveal_suite_with_token(app: &tauri::AppHandle, token: Option<&str>) {
     let Some(main) = app.get_webview_window("main") else {
@@ -318,7 +318,7 @@ pub fn ensure_suite_window(app: &tauri::AppHandle) {
         // The global hook in `origin::navigation_guard` covers the config-created
         // window; this builder-level one also covers this recreated window.
         .on_navigation(|url| is_allowed_main_navigation(url));
-        // gbgov: page-drawn header; shadow gives edge resize + rounded corners.
+        // gblite: page-drawn header; shadow gives edge resize + rounded corners.
         let builder = if CUSTOM_HEADER {
             builder.decorations(false).shadow(true)
         } else {

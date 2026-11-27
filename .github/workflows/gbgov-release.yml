@@ -35,7 +35,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  GBGOV_FEATURES: gbgov
+  GBLITE_FEATURES: gblite
   TARGET_TRIPLE: x86_64-pc-windows-msvc
 
 jobs:
@@ -75,7 +75,7 @@ jobs:
           "BOTSERVER_BUILD_DATE=$built" >> $env:GITHUB_ENV
           $versionConf = Join-Path $env:RUNNER_TEMP 'gbgov-version.conf.json'
           @{ version = $version } | ConvertTo-Json | Set-Content $versionConf -Encoding utf8
-          "GBGOV_VERSION_CONF=$versionConf" >> $env:GITHUB_ENV
+          "GBLITE_VERSION_CONF=$versionConf" >> $env:GITHUB_ENV
           Write-Host "edition version $version ($label, $commit)"
 
       # The server links libpq and the desktop shell stages its runtime DLLs
@@ -119,7 +119,7 @@ jobs:
           cache-scope: gbgov-release
 
       - name: Build botserver (release, Chat + Drive profile)
-        run: cargo build --release -p botserver --no-default-features --features ${{ env.GBGOV_FEATURES }}
+        run: cargo build --release -p botserver --no-default-features --features ${{ env.GBLITE_FEATURES }}
 
       - name: Prepare the smoke database
         shell: pwsh
@@ -138,7 +138,7 @@ jobs:
           DATABASE_URL: postgres://gb:gb@127.0.0.1:5432/botserver
         run: |
           $ErrorActionPreference = 'Stop'
-          ./scripts/gbgov-smoke.ps1 -Binary target\release\botserver.exe
+          ./scripts/gblite-smoke.ps1 -Binary target\release\botserver.exe
           $logs = Get-ChildItem 'botserver-smoke.log*' -ErrorAction SilentlyContinue
           $panics = $logs | Select-String -Pattern 'panicked at' -SimpleMatch
           if ($panics) {
@@ -147,7 +147,7 @@ jobs:
           }
 
       - name: Build the desktop shell (release)
-        run: cargo build --release -p botapp --features ${{ env.GBGOV_FEATURES }},custom-protocol
+        run: cargo build --release -p botapp --features ${{ env.GBLITE_FEATURES }},custom-protocol
 
       # Same pinned components and digests as the platform's Windows release
       # (botserver/3rdparty.toml). Anything not listed here is still downloaded
@@ -234,13 +234,13 @@ jobs:
               digestAlgorithm = 'sha256'
               timestampUrl = 'http://timestamp.digicert.com'
           } } } | ConvertTo-Json -Depth 5 | Set-Content $signConf -Encoding utf8
-          "GBGOV_SIGN_CONF=$signConf" >> $env:GITHUB_ENV
+          "GBLITE_SIGN_CONF=$signConf" >> $env:GITHUB_ENV
 
       - name: Install the Tauri bundler
         run: cargo install tauri-cli --version "^2" --locked
 
       # D1 decided: productName is "General Bots Lite" in both Tauri configs
-      # (botapp/tauri.conf.json:3, botapp/tauri.gbgov.conf.json:2). The bundle
+      # (botapp/tauri.conf.json:3, botapp/tauri.gblite.conf.json:2). The bundle
       # identifier stays org.generalbots.botapp: changing it breaks upgrades and
       # moves the user-data folder. No further D1 change is pending.
       - name: Package the NSIS and MSI installers
@@ -248,9 +248,9 @@ jobs:
         working-directory: botapp
         run: |
           $ErrorActionPreference = 'Stop'
-          $configs = @('--config', 'tauri.gbgov.conf.json', '--config', $env:GBGOV_VERSION_CONF)
-          if ($env:GBGOV_SIGN_CONF) { $configs += @('--config', $env:GBGOV_SIGN_CONF) }
-          cargo tauri build --features "$env:GBGOV_FEATURES,custom-protocol" @configs --bundles nsis,msi
+          $configs = @('--config', 'tauri.gblite.conf.json', '--config', $env:GBLITE_VERSION_CONF)
+          if ($env:GBLITE_SIGN_CONF) { $configs += @('--config', $env:GBLITE_SIGN_CONF) }
+          cargo tauri build --features "$env:GBLITE_FEATURES,custom-protocol" @configs --bundles nsis,msi
           if ($LASTEXITCODE -ne 0) { throw "cargo tauri build failed with exit code $LASTEXITCODE" }
 
       - name: Collect the release files
@@ -281,8 +281,8 @@ jobs:
           cargo install cargo-cyclonedx --version "^0.5" --locked
           if ($LASTEXITCODE -ne 0) { throw 'could not install cargo-cyclonedx' }
           $builds = @(
-            @{ Crate = 'botserver'; Args = @('--no-default-features', '--features', $env:GBGOV_FEATURES) },
-            @{ Crate = 'botapp'; Args = @('--features', "$env:GBGOV_FEATURES,custom-protocol") }
+            @{ Crate = 'botserver'; Args = @('--no-default-features', '--features', $env:GBLITE_FEATURES) },
+            @{ Crate = 'botapp'; Args = @('--features', "$env:GBLITE_FEATURES,custom-protocol") }
           )
           foreach ($b in $builds) {
             cargo cyclonedx --manifest-path "$($b.Crate)\Cargo.toml" --format json --target $env:TARGET_TRIPLE @($b.Args)

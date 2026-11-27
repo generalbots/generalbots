@@ -9,8 +9,8 @@ use log::{info, warn};
 /// Name of the product file the shell bundles and keeps in the stack. The
 /// government edition ships its own; every other desktop build ships the
 /// desktop one.
-pub(crate) const PRODUCT_FILE: &str = if cfg!(feature = "gbgov") {
-    ".product.gbgov"
+pub(crate) const PRODUCT_FILE: &str = if cfg!(feature = "gblite") {
+    ".product.gblite"
 } else {
     ".product.desktop-local"
 };
