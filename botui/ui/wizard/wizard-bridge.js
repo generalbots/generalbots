@@ -289,35 +289,12 @@
         available_version: null
       });
     },
-    agentRuntimeInstalling: false,
     agentRuntimeInstall: function () {
-      mock.agentRuntimeInstalling = true;
-      var steps = ["wsl", "rootfs_download", "distro_import", "first_boot",
-                   "image_download", "image_import", "finish"];
-      var i = 0;
-      return new Promise(function (resolve) {
-        function tick() {
-          if (!mock.agentRuntimeInstalling || i >= steps.length) {
-            mock.agentRuntimeInstalling = false;
-            emitLocal("agent-runtime://progress",
-              { step: "finish", percent: 100, done_bytes: 0, total_bytes: 0, state: "ready" });
-            resolve();
-            return;
-          }
-          emitLocal("agent-runtime://progress", {
-            step: steps[i], percent: Math.round((i / steps.length) * 100),
-            done_bytes: i * 60 * 1024 * 1024, total_bytes: 420 * 1024 * 1024, state: "installing"
-          });
-          i += 1;
-          setTimeout(tick, 400);
-        }
-        tick();
-      });
-    },
-    agentRuntimeCancel: function () {
-      mock.agentRuntimeInstalling = false;
+      emitLocal("agent-runtime://progress",
+        { step: "finish", percent: 100, done_bytes: 0, total_bytes: 0, state: "ready" });
       return Promise.resolve();
-    }
+    },
+    agentRuntimeCancel: function () { return Promise.resolve(); }
   };
 
   /* ---------------- public API ---------------- */
@@ -436,23 +413,9 @@
     },
 
     /* -- agent runtime -- */
-    agentRuntimeStatus: function () {
-      return isDesktop
-        ? invoke("agent_runtime_status")
-        : mock.agentRuntimeStatus();
-    },
-
-    agentRuntimeInstall: function () {
-      return isDesktop
-        ? invoke("agent_runtime_install")
-        : mock.agentRuntimeInstall();
-    },
-
-    agentRuntimeCancel: function () {
-      return isDesktop
-        ? invoke("agent_runtime_cancel")
-        : mock.agentRuntimeCancel();
-    },
+    agentRuntimeStatus: function () { return isDesktop ? invoke("agent_runtime_status") : mock.agentRuntimeStatus(); },
+    agentRuntimeInstall: function () { return isDesktop ? invoke("agent_runtime_install") : mock.agentRuntimeInstall(); },
+    agentRuntimeCancel: function () { return isDesktop ? invoke("agent_runtime_cancel") : mock.agentRuntimeCancel(); },
 
     onAgentRuntimeProgress: function (handler) {
       if (isDesktop) {

@@ -11,7 +11,6 @@
  */
 (function () {
 var A = window.GBAssistant;
-var TAURI = window.GBTAURI;
 var T = A._artText || {};
 var tr = T.tr || function (pt, en) { return A.locale && A.locale.startsWith("pt") ? pt : en; };
 var esc = T.esc || function (s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); };
@@ -20,26 +19,40 @@ var localPaused = false; /* fallback if status lacks paused field */
 
 /* ---- Tauri / API bridge ---- */
 
-function hasTauri() { return !!(TAURI && TAURI.available); }
+/* The shell page is served by the local server; the desktop app injects
+ * `__TAURI_INTERNALS__` into it (same bridge as 09d_settings_profile.js). */
+function bridge() { return window.__TAURI_INTERNALS__ || (window.__TAURI__ && window.__TAURI__.core) || null; }
+function hasTauri() { var b = bridge(); return !!(b && typeof b.invoke === "function"); }
+function invoke(cmd, args) { return bridge().invoke(cmd, args || {}); }
 
-function fetchStatus() {
-    if (hasTauri()) {
-        return TAURI.invoke("agent_runtime_status").catch(function () { return null; });
-    }
+/* The server's codes (/api/product) mapped to the card's states. */
+var SERVER_STATE = {
+    ready: "ready", unsupported: "unsupported", wsl_missing: "needs_wsl",
+    distro_missing: "not_installed", runtime_not_installed: "not_installed"
+};
+
+function serverStatus() {
     return A.apiFetch("/api/product").then(function (r) {
         return r.ok ? r.json() : null;
     }).then(function (d) {
         if (!d) { return null; }
-        return { state: d.agent_runtime_state || "unsupported", managed: true };
+        return { state: SERVER_STATE[d.agent_runtime_state] || "unsupported", managed: true };
     }).catch(function () { return null; });
 }
 
-function invokeInstall() { return TAURI.invoke("agent_runtime_install"); }
-function invokeCancel() { return TAURI.invoke("agent_runtime_cancel"); }
-function invokeRemove(keepExport) {
-    return TAURI.invoke("agent_runtime_remove", { keep_export: !!keepExport });
+function fetchStatus() {
+    if (hasTauri()) {
+        return invoke("agent_runtime_status").catch(function () { return serverStatus(); });
+    }
+    return serverStatus();
 }
-function invokeCheckUpdate() { return TAURI.invoke("agent_runtime_check_update"); }
+
+function invokeInstall() { return invoke("agent_runtime_install"); }
+function invokeCancel() { return invoke("agent_runtime_cancel"); }
+function invokeRemove(keepExport) {
+    return invoke("agent_runtime_remove", { request: { keep_export: !!keepExport } });
+}
+function invokeCheckUpdate() { return invoke("agent_runtime_check_update"); }
 
 /* ---- polling ---- */
 

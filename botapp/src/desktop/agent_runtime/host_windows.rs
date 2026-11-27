@@ -78,10 +78,13 @@ pub(super) fn wsl_policy_blocked() -> bool {
 }
 
 pub(super) fn wsl_installed() -> bool {
-    let service_exists = reg_key_exists(
+    // The inbox WSL registers `LxssManager`; the Store/MSI WSL that current
+    // Windows 11 installs registers `WslService` and may not have the old key.
+    const SERVICES: [&str; 2] = [
+        r"HKLM\SYSTEM\CurrentControlSet\Services\WslService",
         r"HKLM\SYSTEM\CurrentControlSet\Services\LxssManager",
-    );
-    if !service_exists {
+    ];
+    if !SERVICES.iter().any(|key| reg_key_exists(key)) {
         return false;
     }
     let wsl = wsl_exe_path();

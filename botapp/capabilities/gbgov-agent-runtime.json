@@ -3,7 +3,7 @@
   "identifier": "gbgov-agent-runtime",
   "description": "Agent runtime commands: status, install, cancel, remove and check-update. Granted to the sidecar origin so the suite page can drive the agent-runtime provisioning flow.",
   "local": true,
-  "windows": ["main"],
+  "windows": ["main", "wizard"],
   "remote": {
     "urls": ["http://localhost:8080", "http://127.0.0.1:8080"]
   },
