@@ -56,9 +56,9 @@ else
 fi
 mkdir -p "$INSTALLERS"
 
-# Components vendored with the download (MinIO, whose upstream binaries are
-# gone) are seeded into the cache once; the provisioner then downloads whatever
-# is still missing into the same directory.
+# Components vendored with the download (OtterIO and OC, the pinned drive
+# stack) are seeded into the cache once; the provisioner then downloads
+# whatever is still missing into the same directory.
 if [ -d "$HERE/installers" ]; then
   for archive in "$HERE/installers"/*; do
     [ -f "$archive" ] || continue

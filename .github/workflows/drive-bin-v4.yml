@@ -1,11 +1,9 @@
 name: Vendored drive binaries v4
 
-# #2612 — RELEASE.2025-10-15T17-29-55Z fixes CVE-2025-62506 but publishes no
-# binary assets (dl.min.io is 410). The release workflow therefore fetches
-# source-built binaries from the internal `drive-bin-v4` release. This workflow
-# produces that release from the immutable, checksum-pinned source tag recorded
-# in botserver/3rdparty.toml. Re-run it only to rebuild the internal release;
-# it refuses to replace an existing one.
+# OtterIO and OC publish real release binaries with checksums. The release
+# workflow therefore vendors the pinned upstream assets into the internal
+# `drive-bin-v4` release instead of building a server from source. Re-run it
+# only to rebuild that internal release; it refuses to replace an existing one.
 
 on:
   workflow_dispatch:
@@ -24,46 +22,37 @@ jobs:
         with:
           go-version: "1.24.8"
 
-      - name: Build the CVE-fixed MinIO for Linux and Windows
+      - name: Fetch the pinned OtterIO server binaries
         run: |
           set -euo pipefail
           OUT="$GITHUB_WORKSPACE/dist/drive-bin-v4"
           mkdir -p "$OUT"
-          WORK="$(mktemp -d)"
-          trap 'rm -rf "$WORK"' EXIT
-          TAG="RELEASE.2025-10-15T17-29-55Z"
-          SHA="9e49d5e7a648f00e26f2246f4dc28e6b07f8c84a"
-          SOURCE_SHA="be6d0bd3696c3a13a35f02d3a0280b64319c67918b4501c5c3d87f96d000085c"
-          curl -fsSL --retry 3 --max-time 180 -o "$WORK/minio.tar.gz" \
-            "https://github.com/minio/minio/archive/refs/tags/${TAG}.tar.gz"
-          echo "${SOURCE_SHA}  ${WORK}/minio.tar.gz" | sha256sum -c -
-          tar xzf "$WORK/minio.tar.gz" -C "$WORK"
-          cd "${WORK}/minio-${TAG}"
-          LDFLAGS="-X github.com/minio/minio/cmd.Version=${TAG}"
-          LDFLAGS+=" -X github.com/minio/minio/cmd.ReleaseTag=${TAG}"
-          LDFLAGS+=" -X github.com/minio/minio/cmd.CommitID=${SHA}"
-          LDFLAGS+=" -X github.com/minio/minio/cmd.ShortCommitID=${SHA:0:12}"
-          CGO_ENABLED=0 go build -tags kqueue -trimpath --ldflags "$LDFLAGS" -o "$OUT/minio" .
-          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath --ldflags "$LDFLAGS" -o "$OUT/minio.exe" .
-          "$OUT/minio" --version 2>&1 | head -2
+          BASE="https://github.com/soulteary/otterio/releases/download/RELEASE.2026-11-25T20-30-00Z"
+          curl -fsSL --retry 3 -o "$OUT/otterio" "$BASE/otterio-linux-amd64"
+          echo "cd8cfcc59f31829665adba12abe70ec79308245a3f7b2bb46376917f617b3aa7  $OUT/otterio" | sha256sum -c -
+          curl -fsSL --retry 3 -o "$OUT/otterio.exe" "$BASE/otterio-windows-amd64.exe"
+          echo "25049f76f49ac6e988eb8481c6a94f8632a8494e5554b68dc98c1aa2163e6a01  $OUT/otterio.exe" | sha256sum -c -
 
-      - name: Fetch the pinned MinIO Client binaries
+      - name: Fetch the pinned OC client archives
         run: |
           set -euo pipefail
           OUT="$GITHUB_WORKSPACE/dist/drive-bin-v4"
-          BASE="https://github.com/minio/mc/releases/download/RELEASE.2025-08-13T08-35-41Z"
-          curl -fsSL --retry 3 -o "$OUT/mc" \
-            "$BASE/mc.linux-amd64.RELEASE.2025-08-13T08-35-41Z"
-          curl -fsSL --retry 3 -o "$OUT/mc.exe" \
-            "$BASE/mc.windows-amd64.RELEASE.2025-08-13T08-35-41Z.exe"
-          echo "01f866e9c5f9b87c2b09116fa5d7c06695b106242d829a8bb32990c00312e891  $OUT/mc" | sha256sum -c -
-          echo "c8db13ebeda31497f354c0e950809db0ae9b2a2a69b8afee68c128c37300c157  $OUT/mc.exe" | sha256sum -c -
+          BASE="https://github.com/soulteary/oc/releases/download/RELEASE.2026-11-25T20-30-01Z"
+          curl -fsSL --retry 3 -o "$OUT/oc-RELEASE.2026-11-25T20-30-01Z-linux-amd64.tar.gz" \
+            "$BASE/oc-RELEASE.2026-11-25T20-30-01Z-linux-amd64.tar.gz"
+          echo "b410af77b1473da1c14cf5cecf3684087162da150d50f0c59034c25b4a25794c  $OUT/oc-RELEASE.2026-11-25T20-30-01Z-linux-amd64.tar.gz" | sha256sum -c -
+          curl -fsSL --retry 3 -o "$OUT/oc-RELEASE.2026-11-25T20-30-01Z-windows-amd64.zip" \
+            "$BASE/oc-RELEASE.2026-11-25T20-30-01Z-windows-amd64.zip"
+          echo "3630178855befd300f4baf3933652af03f156d577cfc5f654a3d619516f77881  $OUT/oc-RELEASE.2026-11-25T20-30-01Z-windows-amd64.zip" | sha256sum -c -
 
       - name: Create the checksum manifest
         run: |
           set -euo pipefail
           cd "$GITHUB_WORKSPACE/dist/drive-bin-v4"
-          sha256sum minio mc minio.exe > SHA256SUMS-drive-bin
+          sha256sum otterio \
+            oc-RELEASE.2026-11-25T20-30-01Z-linux-amd64.tar.gz \
+            otterio.exe \
+            oc-RELEASE.2026-11-25T20-30-01Z-windows-amd64.zip > SHA256SUMS-drive-bin
           cat SHA256SUMS-drive-bin
 
       - name: Publish the internal drive-bin-v4 release
@@ -76,10 +65,11 @@ jobs:
             exit 1
           fi
           gh release create drive-bin-v4 \
-            dist/drive-bin-v4/minio \
-            dist/drive-bin-v4/mc \
-            dist/drive-bin-v4/minio.exe \
+            dist/drive-bin-v4/otterio \
+            dist/drive-bin-v4/oc-RELEASE.2026-11-25T20-30-01Z-linux-amd64.tar.gz \
+            dist/drive-bin-v4/otterio.exe \
+            dist/drive-bin-v4/oc-RELEASE.2026-11-25T20-30-01Z-windows-amd64.zip \
             dist/drive-bin-v4/SHA256SUMS-drive-bin \
             --prerelease \
-            --title "Vendored drive binaries v4 (CVE-2025-62506 fixed MinIO)" \
-            --notes "Source-built MinIO RELEASE.2025-10-15T17-29-55Z from the pinned archive in botserver/3rdparty.toml; mc from the pinned upstream release. Internal asset for the General Bots release workflow."
+            --title "Vendored drive binaries v4 (OtterIO + OC)" \
+            --notes "Pinned upstream OtterIO and OC release assets, verified by their published SHA-256 digests. Internal asset for the General Bots release workflow."

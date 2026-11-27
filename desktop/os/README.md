@@ -150,7 +150,7 @@ qemu-system-x86_64 -m 4G -drive file=generalbots-os.iso,format=raw \
 ```
 
 First boot behaves exactly like the desktop edition's first run: the setup
-wizard provisions the service stack (PostgreSQL, Valkey, MinIO, Qdrant,
+wizard provisions the service stack (PostgreSQL, Valkey, OtterIO, Qdrant,
 Vault, Zitadel, llama.cpp) into `/var/lib/gbdesk` — internet required on
 the first boot; the wizard then opens the suite fullscreen (the kiosk
 shell). A crash respawns the shell; there is no console login on the box.
@@ -311,7 +311,7 @@ Drive objects, models, and workspace content live under `/var/lib/gbdesk`).
 This image recipe currently ships the General Bots payload
 (`mkosi.extra/opt/general-bots/`) but does **not** yet bundle the full
 provisioner installer/model payload required for a truly offline first boot
-(Vault, PostgreSQL, Valkey, MinIO, Qdrant, Zitadel, and the local LLM
+(Vault, PostgreSQL, Valkey, OtterIO, Qdrant, Zitadel, and the local LLM
 runtime/model as planned by `botserver/src/main_module/wizard_provision/
 component_plan.rs` and verified via `botserver/3rdparty.toml` checksums).
 `desktop/linux/start.sh` already supports `GB_DESKTOP_OFFLINE=1` and

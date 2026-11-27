@@ -16,7 +16,7 @@
   <text x="210.0" y="253.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#8b949e" text-anchor="middle">(wiremock)</text>
   <rect x="460" y="202" width="300" height="56" rx="10" fill="none" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5"/>
   <text x="610.0" y="217.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#8b949e" text-anchor="middle">botserver --stack-path</text>
-  <text x="610.0" y="235.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#8b949e" text-anchor="middle">PostgreSQL · MinIO</text>
+  <text x="610.0" y="235.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#8b949e" text-anchor="middle">PostgreSQL · OtterIO</text>
   <text x="610.0" y="253.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#8b949e" text-anchor="middle">Redis (cache)</text>
   <path d="M410 176 L410 190" fill="none" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5"/>
   <path d="M210 190 L610 190" fill="none" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5"/>

@@ -88,11 +88,11 @@ echo "  botui PID: $BOTUI_PID"
 BOTMODELS_PID=$(pgrep -f 'uvicorn.*src.main' 2>/dev/null || echo "not running")
 echo "  botmodels PID: $BOTMODELS_PID"
 
-# Quick log scan for errors (skip MinIO 403 noise)
+# Quick log scan for errors (skip OtterIO 403 noise)
 ERR_COUNT=$(grep -c -E " ERROR | panic" botserver.log 2>/dev/null || echo 0)
 echo "  Errors in botserver.log: $ERR_COUNT"
 if [ "$ERR_COUNT" -gt 0 ]; then
-  echo "  (non-MinIO errors shown below)"
+  echo "  (non-OtterIO errors shown below)"
   grep -E " ERROR " botserver.log 2>/dev/null | grep -v "InvalidAccessKeyId\|tokio_backend\|Got HTTP 403\|Retrying" | head -5
 fi
 

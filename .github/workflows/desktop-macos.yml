@@ -40,7 +40,7 @@ name: Desktop macOS
 #
 # macOS runtime caveats (the wizard must report these as unavailable instead of
 # failing provisioning; see desktop/macos/README.md):
-#   - PostgreSQL, Valkey, MinIO/mc, Qdrant, Vault, Zitadel and llama.cpp have
+#   - PostgreSQL, Valkey, Qdrant, Vault, Zitadel and llama.cpp have
 #     no native darwin builds. Run the Linux service stack in a Linux VM or on
 #     a remote Incus host (`incus remote add`).
 #   - The BotModels darwin pythonbox is not published yet, so media tools are
