@@ -1,4 +1,5 @@
 use anyhow::Result;
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 use botvideo::safe_command::SafeCommand;
 use std::sync::Arc;
 #[cfg(feature = "desktop-tray")]
