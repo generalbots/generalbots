@@ -60,7 +60,12 @@ impl BootstrapManager {
         } else {
             &["tables", "cache", "drive", "directory", "llm", "vector_db", "alm", "alm-ci"]
         };
-        for component in core_components {
+        let core_components = crate::product::services_on(
+            core_components.to_vec(),
+            |name| *name,
+            crate::product::is_service_off,
+        );
+        for component in &core_components {
             if !pm.is_installed(component) {
                 info!("Installing {}...", component);
                 match pm.install(component).await {

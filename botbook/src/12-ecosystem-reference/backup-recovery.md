@@ -101,9 +101,12 @@ pg_restore -c -d $DATABASE_URL backup.dump
 ### Snapshot Method
 
 ```bash
-# Create Vault snapshot
-VAULT_ADDR=http://localhost:8200 vault operator raft snapshot save vault-backup-$(date +%Y%m%d).snap
+# Create a snapshot with the bundled OpenBao binary (raft storage)
+VAULT_ADDR=http://localhost:8200 botserver-stack/bin/vault/bao operator raft snapshot save vault-backup-$(date +%Y%m%d).snap
 ```
+
+The command needs a token with access to `sys/storage/raft/snapshot`, for
+example the root token from `init.json`, in `VAULT_TOKEN`.
 
 ### File-Based Backup
 
@@ -134,6 +137,12 @@ tar -xzvf vault-data-backup.tar.gz -C botserver-stack/data/
 ```
 
 **Warning:** Keep `init.json` (unseal keys and root token) in a secure, separate location!
+
+On Windows, `init.json` and `vault-unseal-keys` are sealed with DPAPI for the
+Windows user who runs the stack. Only that user can read them, so a file
+backup of `data/vault` restored under another account cannot be unsealed. To
+move secrets to another computer or account, read them out with `bao kv get`
+before you move.
 
 ---
 
@@ -235,7 +244,7 @@ pg_dump -Fc $DATABASE_URL > "$BACKUP_DIR/database.dump"
 
 # 2. Vault snapshot
 echo "Backing up Vault..."
-VAULT_ADDR=http://localhost:8200 vault operator raft snapshot save "$BACKUP_DIR/vault.snap" 2>/dev/null || \
+VAULT_ADDR=http://localhost:8200 botserver-stack/bin/vault/bao operator raft snapshot save "$BACKUP_DIR/vault.snap" 2>/dev/null || \
     tar -czvf "$BACKUP_DIR/vault-data.tar.gz" botserver-stack/data/vault/
 
 # 3. Object storage

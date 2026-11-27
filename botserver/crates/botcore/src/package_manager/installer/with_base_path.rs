@@ -186,8 +186,18 @@ impl PackageManager {
                         .stderr(std::process::Stdio::from(log));
                     command.spawn().map_err(Into::into)
                 };
-                let _embedding = spawn_model("8082", "bge-small-en-v1.5-f32.gguf", true)?;
-                return spawn_model("8081", "DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf", false);
+                let embedding_bound = std::net::TcpStream::connect_timeout(
+                    &std::net::SocketAddr::from(([127, 0, 0, 1], 8082)),
+                    std::time::Duration::from_millis(300),
+                )
+                .is_ok();
+                let vector_db_off = crate::product::is_service_off("vector_db");
+                if let Some((port, model, embedding)) = windows_llm_engine(embedding_bound, vector_db_off) {
+                    return spawn_model(port, model, embedding);
+                }
+                info!("Embedding engine is already running; the chat engine starts only for a stored local model");
+                return SafeCommand::noop_child()
+                    .map_err(|e| anyhow::anyhow!("Failed to create noop process: {}", e));
             }
 
             #[cfg(target_os = "windows")]
@@ -395,4 +405,35 @@ impl PackageManager {
         })
     }
 
+}
+
+/// The engine the `llm` component starts on Windows, as (port, model, embedding).
+/// Only the embedding engine used by knowledge search, and only when its port
+/// is free and the vector store is on (the embedding endpoint has no consumers
+/// with vector_db off). The chat engine on 8081 is never started here: the boot
+/// model check (`boot_runtime_ctl`) starts it once for a stored local `.gguf`
+/// choice, with that model's context size, and a hosted choice leaves it off.
+#[cfg(any(target_os = "windows", test))]
+fn windows_llm_engine(embedding_bound: bool, vector_db_off: bool) -> Option<(&'static str, &'static str, bool)> {
+    (!embedding_bound && !vector_db_off).then_some(("8082", "bge-small-en-v1.5-f32.gguf", true))
+}
+
+#[cfg(test)]
+mod windows_llm_engine_tests {
+    use super::windows_llm_engine;
+
+    #[test]
+    fn only_the_embedding_engine_starts_and_never_twice() {
+        assert_eq!(windows_llm_engine(false, false), Some(("8082", "bge-small-en-v1.5-f32.gguf", true)));
+        assert_eq!(windows_llm_engine(true, false), None, "already bound");
+        for bound in [false, true] {
+            assert!(windows_llm_engine(bound, false).is_none_or(|(port, ..)| port != "8081"));
+        }
+    }
+
+    #[test]
+    fn nothing_starts_when_the_vector_store_is_off() {
+        assert_eq!(windows_llm_engine(false, true), None, "vector_db off => no embedding");
+        assert_eq!(windows_llm_engine(true, true), None, "both off");
+    }
 }

@@ -113,13 +113,14 @@ async fn stream_llm_response_inner(
     }) {
         Some((ref llm, ref llm_key, ref llm_model)) => {
             log::info!(
-                "LLM REQUEST: {} messages, model={}",
+                "LLM REQUEST: {} messages, model={}, sizes: {}",
                 messages.as_array().map(|a| a.len()).unwrap_or(0),
-                llm_model
+                llm_model,
+                super::prompt_sizes::summarize(&messages)
             );
 
             let prompt_clone = user_text.to_string();
-            let messages_clone = messages.clone();
+            let mut messages_clone = messages.clone();
             let bot_uuid_s = bot_uuid.to_string();
             let session_id_s = session_id.to_string();
             let bot_name_clone = bot_name.to_string();
@@ -135,6 +136,9 @@ async fn stream_llm_response_inner(
 
             // The bounded tool loop's last round offers no tools (turn_end).
             let tools_arg = super::turn_end::tools_for_round(session_tools, final_round);
+            if engine_type == Some(botsettings::usage_engine::ENGINE_LOCAL) {
+                super::local_profile::apply(&mut messages_clone, tools_arg.is_some());
+            }
 
             // #1696 — per-run caps gate the web chat stream path.
             let caps =

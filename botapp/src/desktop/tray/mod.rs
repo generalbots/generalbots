@@ -1,4 +1,5 @@
 use anyhow::Result;
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 use botvideo::safe_command::SafeCommand;
 use std::sync::Arc;
 #[cfg(feature = "desktop-tray")]
@@ -12,6 +13,7 @@ mod menu;
 mod service;
 
 pub use menu::quit_requested;
+pub(crate) use menu::quit;
 pub use service::{ServiceMonitor, ServiceStatus};
 
 #[derive(Clone)]
@@ -193,7 +195,7 @@ impl TrayManager {
 
             let tray_builder = TrayIconBuilder::with_id("main")
                 .menu(&tray_menu)
-                .tooltip(crate::desktop::i18n::t("tray-tooltip"))
+                .tooltip(app.package_info().name.as_str())
                 .icon(icon)
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| {

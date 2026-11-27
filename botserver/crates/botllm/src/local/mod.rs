@@ -13,10 +13,29 @@ pub(crate) use tokio;
 
 static LLAMA_SERVERS_STARTED: AtomicBool = AtomicBool::new(false);
 
+/// When set, the legacy launcher leaves the chat engine (port 8081) alone:
+/// another component (runtime control) owns its lifecycle.  Set once before
+/// the first `ensure_llama_servers_running` call; read inside the launcher.
+static CHAT_ENGINE_MANAGED: AtomicBool = AtomicBool::new(false);
+
+/// Mark the chat engine as managed by another component (runtime control).
+/// Must be called before the first `ensure_llama_servers_running` invocation.
+pub fn set_chat_engine_managed_elsewhere(managed: bool) {
+    CHAT_ENGINE_MANAGED.store(managed, Ordering::SeqCst);
+}
+
+/// Whether `set_chat_engine_managed_elsewhere(true)` was called.
+pub fn chat_engine_managed_elsewhere() -> bool {
+    CHAT_ENGINE_MANAGED.load(Ordering::SeqCst)
+}
+
 mod model_file_name;
 mod ensure_llama_servers_running;
 mod extract_base_url;
+mod launcher_decision;
+pub mod turn_order;
 
 use model_file_name::*;
 pub use ensure_llama_servers_running::*;
 pub use extract_base_url::*;
+pub use launcher_decision::{LauncherDecision, LauncherInput, decide};

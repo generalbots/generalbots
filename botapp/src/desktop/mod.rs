@@ -41,9 +41,13 @@ pub mod single_instance;
 pub mod recovery;
 #[cfg(feature = "desktop-local")]
 pub mod sidecar;
+#[cfg(feature = "gbgov")]
+pub mod stack_relocate;
 #[cfg(feature = "desktop-local")]
 pub mod stack_stop;
 pub mod splash;
+#[cfg(feature = "desktop-local")]
+pub mod splash_failure;
 #[cfg(feature = "desktop-local")]
 pub mod splash_progress;
 pub mod sync;
@@ -67,6 +71,12 @@ pub mod webkit_permissions {
 }
 #[cfg(feature = "desktop-local")]
 pub mod wizard;
+
+/// Agent runtime detection, provisioning and removal (gbgov only).
+/// Compiled under desktop-local so the commands register unconditionally;
+/// every entry point returns "unsupported" when the gbgov feature is off.
+#[cfg(feature = "desktop-local")]
+pub mod agent_runtime;
 
 /// Carries the WebKit profile over from the pre-rename identifier (#1870).
 pub mod legacy_data;

@@ -1,0 +1,45 @@
+#!/bin/sh
+# One-time Incus initialisation of the General Bots Lite agent runtime.
+#
+# Started once by gb-incus-firstboot.service. Applies the preseed (dir storage
+# pool `default`, NAT bridge `gblbr0`, no network listener for the Incus
+# API), records the outcome for the desktop app and disables its unit. A
+# failure leaves the unit enabled, so the next boot (or
+# `systemctl start gb-incus-firstboot`) retries.
+#
+# Status file /var/lib/generalbots/incus-firstboot.status, one line:
+#   running | ok | failed: <reason>
+set -eu
+
+STATE_DIR=/var/lib/generalbots
+STATUS="$STATE_DIR/incus-firstboot.status"
+DONE="$STATE_DIR/incus-firstboot.done"
+PRESEED=/usr/local/share/generalbots/incus-preseed.yaml
+
+mkdir -p "$STATE_DIR"
+fail() {
+    printf 'failed: %s\n' "$1" > "$STATUS"
+    echo "gb-incus-firstboot: $1" >&2
+    exit 1
+}
+printf 'running\n' > "$STATUS"
+
+incus admin waitready --timeout=300 || fail "the incus daemon did not become ready in 300 s"
+
+# The preseed creates missing entities and updates existing ones, so a run
+# interrupted half way is safe to repeat. Once both exist it is skipped:
+# re-applying `ipv4.address: auto` could move the bridge to another subnet.
+if incus storage show default >/dev/null 2>&1 && incus network show gblbr0 >/dev/null 2>&1; then
+    echo "gb-incus-firstboot: storage pool and bridge already exist; preseed skipped"
+else
+    incus admin init --preseed < "$PRESEED" || fail "incus admin init --preseed failed"
+fi
+
+incus storage show default >/dev/null 2>&1 || fail "storage pool 'default' is missing after the preseed"
+incus network show gblbr0 >/dev/null 2>&1 || fail "network 'gblbr0' is missing after the preseed"
+listen=$(incus config get core.https_address 2>/dev/null || true)
+[ -z "$listen" ] || fail "the Incus API listens on the network ($listen); it must stay on the local socket"
+
+: > "$DONE"
+printf 'ok\n' > "$STATUS"
+systemctl disable gb-incus-firstboot.service >/dev/null 2>&1 || true

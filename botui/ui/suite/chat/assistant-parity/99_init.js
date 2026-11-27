@@ -1,37 +1,24 @@
-/* Boots the assistant-parity add-ons inside the classic chat app.
- * Each module mounts itself against chat's existing DOM; none of them
- * replaces the renderer, the WebSocket or the native model picker. */
+/* Boot parity modules; the gate module loads after first paint. */
 "use strict";
 (function () {
   var P = window.GBChatAssistantParity = window.GBChatAssistantParity || {};
-
-  function safe(name) {
-    try {
-      if (P[name] && typeof P[name].mount === "function") P[name].mount();
-    } catch (error) {
-      if (typeof window.gbLogError === "function") window.gbLogError(error, "assistant-parity:" + name);
-      else window.console && console.error("assistant-parity:" + name, error);
-    }
+  function safe(n) {
+    try { if (P[n] && P[n].mount) P[n].mount(); }
+    catch (e) { window.gbLogError ? gbLogError(e, "parity:" + n) : console.error("parity:" + n, e); }
   }
-
   function init() {
-    safe("blocks");
-    safe("workshop");
-    safe("modelDock");
-    safe("driveActions");
-    safe("attachPanel");
-    safe("consentVm");
-    safe("vmWait");
-    safe("vmAllBar");
-    safe("agentSubscribe");
+    ["blocks", "workshop", "modelDock", "driveActions", "attachPanel", "consentVm",
+      "vmWait", "vmAllBar", "agentSubscribe"].forEach(safe);
+    safe("agentGate");
+    if (!P._gateLoading && typeof Promise === "function") {
+      P._gateLoading = 1;
+      var s = document.createElement("script");
+      s.src = "/suite/chat/assistant-parity/08_agent_gate.js?v=1";
+      s.onload = s.onerror = function () { safe("agentGate"); };
+      (document.head || document.body).appendChild(s);
+    }
     return P;
   }
-
   P.init = init;
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init, { once: true });
-  } else {
-    init();
-  }
+  document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", init, { once: true }) : init();
 })();

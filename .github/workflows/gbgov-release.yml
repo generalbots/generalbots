@@ -4,7 +4,8 @@ name: gbgov release
 # (branch `gbgov`). It runs only on the edition's own tags (`gbgov-v1.2.3`) and
 # by hand; the platform's `v*.*.*` tags and release workflow are not involved.
 #
-# A tag builds and publishes a pre-release named for the tag. A manual run
+# A tag builds and publishes a pre-release named for the tag, and only when
+# every installer carries a valid code signature. A manual run
 # builds the same files and keeps them as workflow artifacts; it publishes only
 # with `publish=true` and only when it runs on a `gbgov-v*` tag.
 #
@@ -46,6 +47,10 @@ jobs:
     env:
       # `secrets` cannot be read in a step condition; this flag can.
       HAS_WINDOWS_CERT: ${{ secrets.WINDOWS_CERT != '' }}
+      # Public name of the edition: release files carry it, never `gbgov`.
+      PRODUCT_FILE: GeneralBotsLite
+    outputs:
+      signed: ${{ steps.collect.outputs.signed }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -150,8 +155,11 @@ jobs:
         run: cargo build --release -p botapp --features ${{ env.GBGOV_FEATURES }},custom-protocol
 
       # Same pinned components and digests as the platform's Windows release
-      # (botserver/3rdparty.toml). Anything not listed here is still downloaded
-      # on first run.
+      # (botserver/3rdparty.toml). Every required service must be listed so a
+      # first run finds it locally and never downloads. minio.exe is MinIO
+      # RELEASE.2025-10-15T17-29-55Z (fixes CVE-2025-62506) built from source
+      # by .github/workflows/drive-bin-v4.yml on main; upstream publishes no
+      # binary for that release.
       - name: Stage the offline payload
         shell: pwsh
         run: |
@@ -177,21 +185,90 @@ jobs:
             Write-Host "verified $($item.Name) ($($item.Algo))"
           }
 
-      # The agent workspace on Windows runs Incus inside WSL through a small
-      # `incus.exe` wrapper. Its source is not in this repository yet, so the
-      # installer ships without it and agent mode stays off on such machines.
-      - name: Build the WSL Incus wrapper (when its source is in the repository)
+      # First run of a brand-new install, without the desktop shell: the
+      # release server provisions an EMPTY stack from the payload staged above,
+      # asked the way the first-run wizard asks, with downloads forbidden, and
+      # then starts once on it (scripts/gbgov-first-run.ps1). The smoke test
+      # above never runs the provisioner, so only this step sees a payload or a
+      # product file that a new install cannot use.
+      #
+      # NOT BLOCKING YET: the check has never run on a runner, and a wrong
+      # assumption in it must not stop a release build. Remove
+      # `continue-on-error` from this step once it has passed twice here.
+      #
+      # The runner's own PostgreSQL (the smoke database) holds port 5432, the
+      # port of the stack's database: it is stopped for the check and started
+      # again afterwards.
+      - name: First run on an empty stack, offline (not blocking yet)
+        continue-on-error: true
+        timeout-minutes: 30
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $manifest = 'desktop\windows\incus-wsl\Cargo.toml'
-          if (-not (Test-Path $manifest)) {
-            Write-Host "::notice::$manifest is not in the repository; the installer ships without incus.exe"
-            exit 0
+          $services = @(Get-Service -Name 'postgresql*' | Where-Object { $_.Status -eq 'Running' })
+          $services | Stop-Service -Force
+          try {
+            ./scripts/gbgov-first-run.ps1 -Binary target\release\botserver.exe `
+              -Payload botserver\botserver-installers `
+              -Stack (Join-Path $env:RUNNER_TEMP 'gbgov-first-run-stack')
+            $code = $LASTEXITCODE
+          } finally {
+            $services | Start-Service
           }
-          cargo build --release --manifest-path $manifest
+          exit $code
+
+      # The installers install for the whole machine (`installMode` in
+      # botapp/tauri.gbgov.conf.json), so the person who runs the app cannot
+      # write to, or move files out of, the app folder. The same check with
+      # that folder locked. Not blocking, for the same reason as above; make it
+      # blocking once it has passed twice.
+      - name: First run on an empty stack, app folder read-only (not blocking yet)
+        continue-on-error: true
+        timeout-minutes: 30
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $services = @(Get-Service -Name 'postgresql*' | Where-Object { $_.Status -eq 'Running' })
+          $services | Stop-Service -Force
+          try {
+            ./scripts/gbgov-first-run.ps1 -Binary target\release\botserver.exe `
+              -Payload botserver\botserver-installers -ReadOnlyApp `
+              -Stack (Join-Path $env:RUNNER_TEMP 'gbgov-first-run-locked-stack') `
+              -Evidence first-run-artifacts-read-only
+            $code = $LASTEXITCODE
+          } finally {
+            $services | Start-Service
+          }
+          exit $code
+
+      # The agent workspace on Windows runs Incus inside WSL through the
+      # `incus.exe` wrapper (desktop/windows/incus-wsl). The binary ships as
+      # installers/incus.exe so the shell can find it at runtime.
+      - name: Build and test the WSL Incus wrapper
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          cargo build --release --manifest-path desktop\windows\incus-wsl\Cargo.toml
+          cargo test --release --manifest-path desktop\windows\incus-wsl\Cargo.toml
           $exe = Get-ChildItem 'desktop\windows\incus-wsl\target\release\incus.exe' -ErrorAction Stop
           Copy-Item $exe.FullName 'botserver\botserver-installers\incus.exe' -Force
+
+      # Sign incus.exe separately: it is not part of the Tauri bundle so the
+      # bundler's signing configuration does not reach it.
+      - name: Sign incus.exe (when the certificate is present)
+        if: env.HAS_WINDOWS_CERT == 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $incus = 'botserver\botserver-installers\incus.exe'
+          if (-not (Test-Path $incus)) { throw 'incus.exe was not staged' }
+          $cert = Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert | Select-Object -First 1
+          if (-not $cert) { throw 'no code-signing certificate in the store' }
+          Set-AuthenticodeSignature -FilePath $incus -Certificate $cert `
+            -HashAlgorithm SHA256 -TimestampServer 'http://timestamp.digicert.com'
+          $status = (Get-AuthenticodeSignature $incus).Status
+          if ($status -ne 'Valid') { throw "incus.exe signature status: $status" }
+          Write-Host "incus.exe signed ($status)"
 
       - name: Record the payload checksums
         shell: pwsh
@@ -239,10 +316,6 @@ jobs:
       - name: Install the Tauri bundler
         run: cargo install tauri-cli --version "^2" --locked
 
-      # Product name and app identifier stay as today until the owner decides
-      # them (decision D1). TODO(D1): change `productName` and `identifier` in
-      # botapp/tauri.gbgov.conf.json before the first public release; changing
-      # them later breaks upgrades and moves the data folder.
       - name: Package the NSIS and MSI installers
         shell: pwsh
         working-directory: botapp
@@ -253,26 +326,77 @@ jobs:
           cargo tauri build --features "$env:GBGOV_FEATURES,custom-protocol" @configs --bundles nsis,msi
           if ($LASTEXITCODE -ne 0) { throw "cargo tauri build failed with exit code $LASTEXITCODE" }
 
+      # Gate: the built installer must carry the licence files, the NOTICE
+      # and the source offer. The smoke test extracts the NSIS installer to a
+      # temp directory; we check that the resources map put them there.
+      - name: Verify licence files in the bundle
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $bundles = @('target\release\bundle', 'botapp\target\release\bundle')
+          $nsis = Get-ChildItem ($bundles | ForEach-Object { "$_\nsis\*-setup.exe" }) -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $nsis) { throw 'no NSIS installer found' }
+          # The NSIS installer is a self-extracting archive; use 7z to list its
+          # contents (available on windows-latest) and grep for the licence paths.
+          $listing = & 7z l $nsis.FullName 2>&1 | Out-String
+          $required = @(
+            'licenses\LICENSES-desktop.md',
+            'licenses\NOTICE',
+            'licenses\SOURCE-OFFER.md'
+          )
+          $missing = @()
+          foreach ($path in $required) {
+            if ($listing -notmatch [regex]::Escape($path)) {
+              $missing += $path
+            }
+          }
+          # Also check that at least one upstream licence text is present.
+          if ($listing -notmatch 'licenses\\[a-z]') {
+            $missing += 'licenses\<upstream-text>.txt (no licence text files found)'
+          }
+          if ($missing.Count -gt 0) {
+            foreach ($m in $missing) { Write-Host "::error::missing in bundle: $m" }
+            throw "the installer is missing $($missing.Count) licence file(s)"
+          }
+          Write-Host "licence files verified in the NSIS bundle"
+
       - name: Collect the release files
+        id: collect
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $v = $env:GBGOV_VERSION
+          $p = $env:PRODUCT_FILE
           New-Item -ItemType Directory -Force dist | Out-Null
           $bundles = @('target\release\bundle', 'botapp\target\release\bundle')
           $msi = Get-ChildItem ($bundles | ForEach-Object { "$_\msi\*.msi" }) -ErrorAction SilentlyContinue | Select-Object -First 1
           $setup = Get-ChildItem ($bundles | ForEach-Object { "$_\nsis\*-setup.exe" }) -ErrorAction SilentlyContinue | Select-Object -First 1
           if (-not $msi) { throw 'the bundler produced no MSI' }
           if (-not $setup) { throw 'the bundler produced no NSIS installer' }
-          Copy-Item $msi.FullName "dist\generalbots-gbgov-$v-windows-x64.msi"
-          Copy-Item $setup.FullName "dist\generalbots-gbgov-$v-windows-x64-setup.exe"
-          Copy-Item target\release\botapp.exe "dist\generalbots-gbgov-$v-windows-x64.exe"
-          Copy-Item target\release\botserver.exe "dist\botserver-gbgov-$v-windows-x64.exe"
+          Copy-Item $msi.FullName "dist\$p-$v-windows-x64.msi"
+          Copy-Item $setup.FullName "dist\$p-$v-windows-x64-setup.exe"
+          Copy-Item target\release\botapp.exe "dist\$p-$v-windows-x64.exe"
+          Copy-Item target\release\botserver.exe "dist\$p-botserver-$v-windows-x64.exe"
           foreach ($f in Get-ChildItem dist -File) {
             if ($f.Name -match '(msi|setup\.exe)$' -and $f.Length -lt 1MB) {
               throw "$($f.Name) is suspiciously small ($($f.Length) bytes)"
             }
           }
+          # Publishing needs every executable validly signed (Authenticode);
+          # an unsigned build is kept as a workflow artifact only.
+          $signed = $true
+          $checkFiles = @(Get-ChildItem dist -File | Where-Object { $_.Name -match '\.(exe|msi)$' })
+          $incus = Get-Item 'botserver\botserver-installers\incus.exe' -ErrorAction SilentlyContinue
+          if ($incus) { $checkFiles += $incus }
+          foreach ($f in $checkFiles) {
+            $status = (Get-AuthenticodeSignature $f.FullName).Status
+            Write-Host "signature $($f.Name): $status"
+            if ($status -ne 'Valid') { $signed = $false }
+          }
+          if ($env:HAS_WINDOWS_CERT -eq 'true' -and -not $signed) {
+            throw 'a signing certificate is configured but not every file is validly signed'
+          }
+          "signed=$($signed.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
 
       - name: Software bill of materials (CycloneDX)
         shell: pwsh
@@ -289,13 +413,13 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw "cargo cyclonedx failed for $($b.Crate)" }
             $sbom = Get-ChildItem $b.Crate -Filter '*.cdx.json' -File | Select-Object -First 1
             if (-not $sbom) { throw "no SBOM was written for $($b.Crate)" }
-            Copy-Item $sbom.FullName "dist\$($b.Crate)-gbgov-$env:GBGOV_VERSION.cdx.json" -Force
+            Copy-Item $sbom.FullName "dist\$env:PRODUCT_FILE-$($b.Crate)-$env:GBGOV_VERSION.cdx.json" -Force
           }
 
       - name: SHA-256 sums
         shell: pwsh
         run: |
-          $sums = "SHA256SUMS-gbgov-$env:GBGOV_VERSION-windows.txt"
+          $sums = "SHA256SUMS-$env:PRODUCT_FILE-$env:GBGOV_VERSION-windows.txt"
           Get-ChildItem dist -File | Where-Object { $_.Name -ne $sums } | Sort-Object Name |
             ForEach-Object { "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $($_.Name)" } |
             Set-Content (Join-Path dist $sums) -Encoding ascii
@@ -319,6 +443,8 @@ jobs:
             mock-llm.log
             mock-llm.log.err
             smoke-artifacts/**
+            first-run-artifacts/**
+            first-run-artifacts-read-only/**
           if-no-files-found: warn
 
   publish:
@@ -329,6 +455,24 @@ jobs:
     permissions:
       contents: write
     steps:
+      # A final version (gbgov-v1.2.3) is published only when the installers
+      # are signed. A numbered preview (gbgov-v1.2.3-4) may go out unsigned:
+      # it is published as a pre-release, never as the latest release, with
+      # the title and the notes saying so.
+      - name: Require a signed build, or a numbered preview
+        env:
+          SIGNED: ${{ needs.build.outputs.signed }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if [ "$SIGNED" = "true" ]; then
+            echo "installers are signed"
+          elif [[ "$TAG" =~ ^gbgov-v[0-9]+\.[0-9]+\.[0-9]+-[0-9]+$ ]]; then
+            echo "::notice::unsigned preview $TAG: published as a pre-release with a warning in its title and notes"
+          else
+            echo "::error::the installers are not signed; a final release waits for the code-signing certificate (secrets WINDOWS_CERT and WINDOWS_CERT_PASSWORD). An unsigned preview needs a tag like gbgov-v1.0.0-1"
+            exit 1
+          fi
+
       - name: Require an edition tag
         run: |
           if [ "$GITHUB_REF_TYPE" != "tag" ] || [[ "$GITHUB_REF_NAME" != gbgov-v* ]]; then
@@ -347,15 +491,42 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           TAG: ${{ github.ref_name }}
+          SIGNED: ${{ needs.build.outputs.signed }}
         run: |
           set -euo pipefail
           ls -l dist
+          version="${TAG#gbgov-v}"
+          title="General Bots Lite $version"
+          {
+            echo "General Bots Lite $version: Windows installers (Chat + Drive)."
+            echo
+            echo "Verify the downloads with the SHA256SUMS file attached to this release."
+          } > notes.md
+          if [ "$SIGNED" != "true" ]; then
+            title="General Bots Lite $version (prévia, sem assinatura digital)"
+            {
+              echo '## Prévia sem assinatura digital'
+              echo
+              echo 'Esta é uma versão prévia para testes. Os instaladores ainda não têm assinatura digital, então o Windows mostra o aviso "O Windows protegeu o computador". Para instalar, clique em **Mais informações** e depois em **Executar assim mesmo**.'
+              echo
+              echo 'Antes de instalar, confira o arquivo baixado com o SHA256SUMS anexado a esta página. No PowerShell: `Get-FileHash <arquivo> -Algorithm SHA256`, e compare com a linha do arquivo.'
+              echo
+              echo 'Não use esta prévia em computadores de órgãos públicos: a versão assinada vem depois.'
+              echo
+              echo '## Unsigned preview'
+              echo
+              echo 'This is a preview build for testing. The installers are not code-signed yet, so Windows shows "Windows protected your PC". To install, choose **More info**, then **Run anyway**.'
+              echo
+              echo 'Check the downloaded file against the attached SHA256SUMS first (PowerShell: `Get-FileHash <file> -Algorithm SHA256`).'
+            } > notes.md
+          fi
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" dist/* --clobber
           else
             gh release create "$TAG" dist/* \
-              --title "$TAG" \
+              --title "$title" \
               --prerelease \
+              --latest=false \
               --verify-tag \
-              --notes "Windows installers of the desktop edition (Chat + Drive). Verify the downloads with the SHA256SUMS file attached to this release."
+              --notes-file notes.md
           fi

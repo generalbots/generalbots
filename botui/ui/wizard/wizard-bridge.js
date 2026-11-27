@@ -277,7 +277,27 @@
     },
     aiUseChat: function (provider) {
       return Promise.resolve({ success: true, provider: provider });
-    }
+    },
+
+    /* -- agent runtime mock -- */
+    agentRuntimeStatus: function () {
+      return Promise.resolve({
+        state: "not_installed",
+        managed: true,
+        download_bytes: 420 * 1024 * 1024,
+        disk_bytes: 850 * 1024 * 1024,
+        needs_admin: true,
+        needs_reboot: false,
+        runtime_version: null,
+        available_version: null
+      });
+    },
+    agentRuntimeInstall: function () {
+      emitLocal("agent-runtime://progress",
+        { step: "finish", percent: 100, done_bytes: 0, total_bytes: 0, state: "ready" });
+      return Promise.resolve();
+    },
+    agentRuntimeCancel: function () { return Promise.resolve(); }
   };
 
   /* ---------------- public API ---------------- */
@@ -400,6 +420,25 @@
         listeners["wizard://progress"] = (listeners["wizard://progress"] || []).filter(function (fn) {
           return fn !== handler;
         });
+      });
+    },
+
+    /* -- agent runtime -- */
+    agentRuntimeStatus: function () { return isDesktop ? invoke("agent_runtime_status") : mock.agentRuntimeStatus(); },
+    agentRuntimeInstall: function () { return isDesktop ? invoke("agent_runtime_install") : mock.agentRuntimeInstall(); },
+    agentRuntimeCancel: function () { return isDesktop ? invoke("agent_runtime_cancel") : mock.agentRuntimeCancel(); },
+
+    onAgentRuntimeProgress: function (handler) {
+      if (isDesktop) {
+        return listen("agent-runtime://progress", handler);
+      }
+      listeners["agent-runtime://progress"] = listeners["agent-runtime://progress"] || [];
+      listeners["agent-runtime://progress"].push(handler);
+      return Promise.resolve(function () {
+        listeners["agent-runtime://progress"] =
+          (listeners["agent-runtime://progress"] || []).filter(function (fn) {
+            return fn !== handler;
+          });
       });
     }
   };

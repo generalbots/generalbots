@@ -34,12 +34,9 @@ function renderLocalDetail(el) {
 
 /* ---- Engine section ---- */
 var ENGINE_FAIL = {
-  engine_in_use: ["O motor em uso não pôde ser parado para a troca. Feche outros programas que usem o modelo local e tente de novo.",
-    "The engine in use could not be stopped for the swap. Close other programs that use the local model and try again."],
-  engine_download_failed: ["O download do motor novo falhou. O motor anterior continua instalado.",
-    "The download of the new engine failed. The previous engine is still installed."],
-  engine_new_failed: ["O motor novo não conseguiu iniciar o modelo que estava em uso. O motor anterior foi restaurado.",
-    "The new engine could not start the model that was in use. The previous engine was restored."]
+  engine_in_use: ["O motor em uso não pôde ser parado para a troca. Feche outros programas que usem o modelo local e tente de novo.", "The engine in use could not be stopped for the swap. Close other programs that use the local model and try again."],
+  engine_download_failed: ["O download do motor novo falhou. O motor anterior continua instalado.", "The download of the new engine failed. The previous engine is still installed."],
+  engine_new_failed: ["O motor novo não conseguiu iniciar o modelo que estava em uso. O motor anterior foi restaurado.", "The new engine could not start the model that was in use. The previous engine was restored."]
 };
 function engineStageText(job) {
   if (!job || !job.update) return tr("Baixando e instalando o motor...", "Downloading and installing the engine...");
@@ -47,10 +44,7 @@ function engineStageText(job) {
   if (job.stage === "starting") return tr("Iniciando o modelo com o motor novo...", "Starting the model with the new engine...");
   return tr("Baixando o motor novo...", "Downloading the new engine...");
 }
-function engineFailText(job) {
-  var pair = ENGINE_FAIL[job.code] || ["A instalação do motor falhou.", "The engine install failed."];
-  return tr(pair[0], pair[1]);
-}
+function engineFailText(job) { var p = ENGINE_FAIL[job.code] || ["A instalação do motor falhou.", "The engine install failed."]; return tr(p[0], p[1]); }
 
 function engineSection(lr) {
   lr = lr || {};
@@ -109,6 +103,11 @@ function engineNotice(lr) {
     '<div class="gb-of-sec-b gb-of-engine-b">' + e.body + '<div id="gbInstallMsg" class="gb-of-say"></div></div></div>';
 }
 
+function nvidiaNoticeHtml(size) {
+  var sz = size ? " " + tr("Download de cerca de %s.", "Download of about %s.").replace("%s", size) : "";
+  return '<p class="gb-of-hint" style="margin-bottom:8px">' + esc(tr("Para usar a placa NVIDIA, o aplicativo baixa bibliotecas da NVIDIA (CUDA), que são software da NVIDIA sob a licença dela. Ao continuar, você aceita esses termos.", "To use the NVIDIA card, the app downloads NVIDIA libraries (CUDA), which are NVIDIA software under its license. By continuing, you accept those terms.")) + esc(sz) + ' <a href="https://docs.nvidia.com/cuda/eula/index.html" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">' + esc(tr("Ler a licença da NVIDIA", "Read the NVIDIA license")) + '</a></p>';
+}
+
 function startEngineInstall() {
   S().setBusy(true, document.getElementById("gbInstallMsg"), tr("Iniciando...", "Starting..."));
   A.apiFetch("/api/llm/runtime/install", { method: "POST" }).then(function (r) {
@@ -126,15 +125,21 @@ function startEngineInstall() {
 
 function bindEngine(container) {
   var btn = container.querySelector("#gbInstallRuntime");
-  if (btn) {
-    btn.addEventListener("click", function () {
-      if (!btn.getAttribute("data-update")) { startEngineInstall(); return; }
-      S().inlineConfirm(tr(
-          "Baixar cerca de %s de %h e trocar o motor local? O modelo em uso fica parado durante a troca. Se o motor novo não funcionar, o anterior volta sozinho.",
-          "Download about %s from %h and replace the local engine? The model in use stops during the swap. If the new engine does not work, the previous one comes back by itself.")
-          .replace("%s", btn.getAttribute("data-size")).replace("%h", btn.getAttribute("data-host")), startEngineInstall);
-    });
-  }
+  if (btn) { btn.addEventListener("click", function () {
+    var hw = (S().localModels || {}).hardware || {};
+    var cuda = !!(hw.cuda_usable && hw.vram_gb > 0), rt = (S().cfg || {}).local_runtime || {};
+    var dlSize = fmtBytes(rt.install_info && rt.install_info.download_size_bytes);
+    if (!btn.getAttribute("data-update")) {
+      if (cuda) { S().inlineConfirm(nvidiaNoticeHtml(dlSize), startEngineInstall, true); }
+      else { startEngineInstall(); }
+      return;
+    }
+    var msg = tr("Baixar cerca de %s de %h e trocar o motor local? O modelo em uso fica parado durante a troca. Se o motor novo não funcionar, o anterior volta sozinho.",
+        "Download about %s from %h and replace the local engine? The model in use stops during the swap. If the new engine does not work, the previous one comes back by itself.")
+        .replace("%s", btn.getAttribute("data-size")).replace("%h", btn.getAttribute("data-host"));
+    if (cuda) { S().inlineConfirm(esc(msg) + nvidiaNoticeHtml(dlSize), startEngineInstall, true); }
+    else { S().inlineConfirm(msg, startEngineInstall); }
+  }); }
   var jobEl = container.querySelector("#gbEngineJob");
   if (jobEl) { pollEngine(jobEl.getAttribute("data-job")); }
 }
@@ -181,8 +186,10 @@ async function loadLocalModels() {
   if (openId === null) { openId = (all.filter(function (m) { return m.active; })[0] || all.filter(isInstalled)[0] || {}).id || ""; }
   var fit = all.filter(function (m) { return isInstalled(m) || runsHere(m, hw); });
   var shown = filter === "all" ? all : fit;
-  var html = (A._modelMachine ? A._modelMachine.card(hw, localModels) : '') + engineNotice(lr);
-  html += '<div class="gb-of-sec"><div class="gb-of-sec-h"><span class="gb-of-letter">B</span><span class="gb-of-sec-t">' + esc(tr("Modelos locais", "Local models")) + '</span>' +
+  var G = A._modelGarage;
+  launch = G ? G.launchOf(localModels.last_launch, all.filter(function (m) { return m.active; })[0], lr) : null;
+  var html = (A._modelMachine ? A._modelMachine.card(hw, localModels) : '') + engineNotice(lr) + (G ? G.placeNotice(launch) : '');
+  html += '<div class="gb-of-sec" id="gbLocalModels"><div class="gb-of-sec-h"><span class="gb-of-letter">B</span><span class="gb-of-sec-t">' + esc(tr("Modelos locais", "Local models")) + '</span>' +
     '<span class="gb-of-sp"></span><div class="gb-of-seg" role="group">' + [["fit", tr("Cabem aqui", "Fit here"), fit.length], ["all", tr("Todos", "All"), all.length]].map(function (f) {
       return '<button type="button" data-filter="' + f[0] + '" aria-pressed="' + (filter === f[0]) + '">' + esc(f[1]) + '<span>' + f[2] + '</span></button>';
     }).join("") + '</div></div><div class="gb-of-tbl"><div><div class="gb-of-tr gb-of-th"><span></span><span>' + esc(tr("MODELO", "MODEL")) + '</span><div class="gb-of-3"><span>' +
@@ -201,6 +208,10 @@ async function loadLocalModels() {
   container.querySelectorAll("[data-filter]").forEach(function (b) {
     b.addEventListener("click", function () { filter = b.getAttribute("data-filter"); loadLocalModels(); });
   });
+  var pick = container.querySelector("[data-pick-smaller]");
+  if (pick) { pick.addEventListener("click", showSmaller); }
+  var restart = container.querySelector("[data-restart-model]");
+  if (restart) { restart.addEventListener("click", doRestartModel); }
   container.querySelectorAll("[data-open]").forEach(function (b) {
     b.addEventListener("click", function () {
       var id = b.getAttribute("data-open"), row = b.closest(".gb-of-m");
@@ -218,7 +229,42 @@ async function loadLocalModels() {
   });
 }
 
-var filter = "fit", openId = null;
+var filter = "fit", openId = null, launch = null;
+/* "Choose a smaller model": the list of the ones that fit, scrolled to and focused. */
+async function showSmaller() {
+  filter = "fit";
+  await loadLocalModels();
+  var sec = document.getElementById("gbLocalModels"), seg = sec && sec.querySelector('[data-filter="fit"]');
+  if (!sec) { return; }
+  sec.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  if (seg) { seg.focus({ preventScroll: true }); }
+}
+/* "Restart the model": POST /api/llm/local/restart, then re-fetch models. */
+async function doRestartModel() {
+  var box = document.querySelector(".gb-of-placen");
+  var msg = document.getElementById("gbPlaceMsg");
+  var btns = box ? box.querySelectorAll("button") : [];
+  btns.forEach(function (b) { b.disabled = true; });
+  if (msg) { msg.innerHTML = '<p class="gb-set-busy">' + esc(tr("Reiniciando o modelo… isso pode levar até um minuto.", "Restarting the model… this may take up to a minute.")) + '</p>'; }
+  try {
+    var r = await A.apiFetch("/api/llm/local/restart", { method: "POST" });
+    if (r.status === 404) {
+      if (A._modelGarage) { A._modelGarage.placeFallbackAdvice(box); }
+      if (msg) { msg.innerHTML = ""; }
+      return;
+    }
+    if (!r.ok) {
+      var d = await r.json().catch(function () { return {}; });
+      if (msg) { msg.innerHTML = '<p class="gb-set-warn">' + esc(tr("Não foi possível reiniciar o modelo.", "Could not restart the model.") + (d.error ? " (" + d.error + ")" : "")) + '</p>'; }
+      btns.forEach(function (b) { b.disabled = false; });
+      return;
+    }
+    await loadLocalModels();
+  } catch (e) {
+    if (msg) { msg.innerHTML = '<p class="gb-set-warn">' + esc(tr("Não foi possível reiniciar o modelo.", "Could not restart the model.")) + '</p>'; }
+    btns.forEach(function (b) { b.disabled = false; });
+  }
+}
 function isInstalled(m) { return !!(m.active || m.downloaded || m.status === "downloading"); }
 function aff(m, hw) { return A._modelMachine ? A._modelMachine.affinity(m, hw) : { pct: 0, tone: "none", label: "", why: "" }; }
 function runsHere(m, hw) { var a = aff(m, hw); return a.tone === "good" || a.tone === "mid"; }
@@ -279,6 +325,7 @@ function modelRow(m, lr, hw) {
   return '<div class="gb-of-m' + (open ? ' open' : '') + '"><div class="gb-of-tr"><div class="gb-of-gt"></div><div class="gb-of-mn"><div><b>' + esc(m.name) + '</b><span>' + esc(m.quant || "") + '</span></div>' +
     (m.active || recommended ? '<div class="gb-of-tags">' + (m.active ? '<span class="gb-of-chip xs">' + esc(tr("EM USO", "IN USE")) + '</span>' : '') +
       (recommended ? '<span class="gb-of-chip xs line">' + esc(tr("RECOMENDADO AQUI", "RECOMMENDED HERE")) + '</span>' : '') + '</div>' : '') +
+    (m.active && A._modelGarage ? A._modelGarage.placeLine(launch) : '') +
     (downloading ? '<div class="gb-of-dlp gb-dl-progress" id="gbJob_' + esc(m.job_id) + '" data-model-job="' + esc(m.job_id) + '"><div class="gb-of-bar gb-dl-bar"><i style="width:' + pct + '%"></i></div>' +
       '<span class="gb-dl-text">' + esc(progressText(m.progress)) + '</span></div>' : '') + '</div>' +
     '<div class="gb-of-box gb-of-3"><div><span class="gb-of-segs xs" data-tone="ink">' + segs + '</span><span class="t">' + esc(tr(WORDS[lvl][0], WORDS[lvl][1]) + (m.params ? " · " + m.params : "")) + '</span></div>' +

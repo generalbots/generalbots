@@ -15,7 +15,7 @@ use super::runtime_stop;
 
 /// Serialises calls to [`ensure_inner`] so that concurrent callers (boot start,
 /// recovery path, Settings switch) cannot launch two engines on the same port.
-static ENSURE_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+pub(super) static ENSURE_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
 /// Maximum time to wait for the runtime to become healthy after a start.
 /// A cold disk-cache load of a large model (5+ GB) can take over two minutes,
@@ -43,6 +43,7 @@ pub struct DesiredRuntime {
     pub server_dir: String,
     /// Empty means "omit the flag" (use build default).
     pub gpu_layers: String,
+    /// Empty means "size it from the free video memory at start".
     pub ctx_size: String,
 }
 
@@ -142,25 +143,35 @@ pub fn start_chat_runtime(desired: &DesiredRuntime) -> Result<u32, String> {
     if !std::path::Path::new(&desired.model_path).exists() {
         return Err(format!("Model file not found at {}", desired.model_path));
     }
+    let resolved = super::launch_plan::resolve(desired);
     log::info!(
         "[runtime_ctl] starting chat runtime: model={}, gpu_layers={}, ctx_size={}",
-        desired.model_file,
-        if desired.gpu_layers.is_empty() { "(build default)" } else { &desired.gpu_layers },
-        desired.ctx_size,
+        resolved.model_file,
+        if resolved.gpu_layers.is_empty() { "auto" } else { &resolved.gpu_layers },
+        resolved.ctx_size,
     );
-    super::runtime_spawn::spawn_server(&desired.server_dir, &build_args(desired), "llm.log")
+    super::runtime_spawn::spawn_server(&resolved.server_dir, &build_args(&resolved), "llm.log")
 }
 
-/// Command-line args matching the package manager's line plus `--ctx-size`.
+/// Command-line args: the package manager's line plus context, one slot and,
+/// when the layer count is automatic, a smaller margin for the engine's fit.
 pub fn build_args(desired: &DesiredRuntime) -> Vec<String> {
+    use super::launch_plan::{FIT_TARGET_MIB, PARALLEL_SLOTS};
     let mut args = vec![
         "--port".into(), CHAT_PORT.to_string(),
         "--host".into(), "127.0.0.1".into(),
         "-m".into(), desired.model_path.clone(),
         "--ubatch-size".into(), "512".into(),
         "--ctx-size".into(), desired.ctx_size.clone(),
+        "--parallel".into(), PARALLEL_SLOTS.to_string(),
+        // -lv 4: the launch plan reads `offloaded N/M layers to GPU`.
+        // Privacy verified: -lv 4 does not log conversation text.
+        "-lv".into(), "4".into(),
     ];
-    if !desired.gpu_layers.is_empty() {
+    if desired.gpu_layers.is_empty() {
+        args.push("--fit-target".into());
+        args.push(FIT_TARGET_MIB.to_string());
+    } else {
         args.push("--n-gpu-layers".into());
         args.push(desired.gpu_layers.clone());
     }
@@ -189,6 +200,7 @@ pub async fn wait_healthy(desired_file: &str, child_pid: u32) -> Result<(), Stri
         let p = probe_with_timeout(Duration::from_secs(3)).await;
         if p.reachable && model_matches(&p.loaded_model, desired_file) {
             log::info!("[runtime_ctl] chat runtime healthy, model={}", p.loaded_model);
+            super::launch_plan::record_after_load(desired_file);
             return Ok(());
         }
     }
@@ -225,13 +237,17 @@ async fn ensure_inner(desired: &DesiredRuntime, restore_previous: bool) -> Ensur
             "[runtime_ctl] stopping chat runtime (loaded={}, desired={})",
             current.loaded_model, desired.model_file,
         );
-        match runtime_stop::stop_chat_runtime(CHAT_PORT) {
-            Ok(pid) => {
+        let stop = tokio::task::spawn_blocking(|| runtime_stop::stop_chat_runtime(CHAT_PORT)).await;
+        match stop {
+            Ok(Ok(pid)) => {
                 log::info!("[runtime_ctl] killed PID {pid}, waiting for port release");
                 wait_port_free().await;
             }
-            Err(reason) => {
+            Ok(Err(reason)) => {
                 return EnsureOutcome::Failed(format!("Cannot stop chat runtime: {reason}"));
+            }
+            Err(error) => {
+                return EnsureOutcome::Failed(format!("stop task panicked: {error}"));
             }
         }
     }
@@ -257,13 +273,12 @@ async fn ensure_inner(desired: &DesiredRuntime, restore_previous: bool) -> Ensur
         Err(reason) => reason,
     };
 
-    let code = classify_failure(&llm_log_since(log_mark));
-    record_failure(Some((desired.model_file.clone(), code)));
+    let failure = handle_start_failure(&desired.model_file, log_mark, &reason);
     if restore_previous && current.reachable {
         wait_port_free().await;
         restore(&current.loaded_model, desired).await;
     }
-    EnsureOutcome::Failed(format!("{code}: {reason}"))
+    EnsureOutcome::Failed(failure)
 }
 
 // ── failure cause ───────────────────────────────────────────────────────
@@ -288,6 +303,14 @@ pub fn classify_failure(log_text: &str) -> &'static str {
     } else {
         CODE_START_FAILED
     }
+}
+
+/// Classify a start failure from the engine log, record it and return the
+/// formatted message. Used by both [`ensure_inner`] and the restart endpoint.
+pub fn handle_start_failure(model_file: &str, log_mark: u64, reason: &str) -> String {
+    let code = classify_failure(&llm_log_since(log_mark));
+    record_failure(Some((model_file.to_string(), code)));
+    format!("{code}: {reason}")
 }
 
 /// The code at the start of a [`EnsureOutcome::Failed`] message.
@@ -320,12 +343,12 @@ fn llm_log_path() -> String {
     format!("{}/logs/llm/llm.log", botcore::shared::utils::get_stack_path())
 }
 
-fn llm_log_len() -> u64 {
+pub fn llm_log_len() -> u64 {
     std::fs::metadata(llm_log_path()).map(|meta| meta.len()).unwrap_or(0)
 }
 
 /// What the engine wrote to its log after `mark` (at most the last 64 KB).
-fn llm_log_since(mark: u64) -> String {
+pub fn llm_log_since(mark: u64) -> String {
     use std::io::{Read, Seek, SeekFrom};
     let Ok(mut file) = std::fs::File::open(llm_log_path()) else {
         return String::new();
@@ -389,6 +412,11 @@ async fn wait_for_initial_probe() -> RuntimeProbe {
     }
 }
 
+/// Public name for callers that hold the lock themselves.
+pub async fn wait_port_free_public() {
+    wait_port_free().await;
+}
+
 /// Wait until the chat port is free (bounded, 10 s).
 async fn wait_port_free() {
     let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
@@ -419,31 +447,13 @@ pub fn desired_from_config(
         other => other.to_string(),
     };
     let ctx = match ctx_size.trim() {
-        "" | "0" => {
-            let model_bytes = std::fs::metadata(&model_path).map(|m| m.len()).unwrap_or(0);
-            let hardware = super::hardware::probe();
-            let vram_gb = hardware.cuda_usable.then_some(hardware.vram_gb);
-            ctx_size_for(model_bytes, vram_gb).to_string()
-        }
+        "" | "0" => String::new(),
         other => other.to_string(),
     };
     Some(DesiredRuntime {
         model_file: bare.to_string(), model_path, server_dir,
         gpu_layers: gpu, ctx_size: ctx,
     })
-}
-
-/// Context the chat engine starts with when none is configured: 8192 tokens,
-/// more when the graphics card keeps room beside the model. The context takes
-/// video memory too, and a model that spills out of it answers far slower.
-pub fn ctx_size_for(model_bytes: u64, vram_gb: Option<u16>) -> u32 {
-    let (Some(vram_gb), true) = (vram_gb, model_bytes > 0) else { return 8192 };
-    let spare_mib = (u64::from(vram_gb) * 1024).saturating_sub(model_bytes / (1024 * 1024));
-    match spare_mib {
-        6144.. => 32768,
-        2048.. => 16384,
-        _ => 8192,
-    }
 }
 
 #[cfg(test)]

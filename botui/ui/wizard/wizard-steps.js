@@ -214,6 +214,10 @@
         "</div>" +
       "</div>" +
       '<div id="provisionError" class="note err" role="status"></div>' +
+      '<div class="card" style="margin-top:14px" id="agentRuntimeCardWrap">' +
+        '<div class="card-head"><span class="card-title">' + esc(t("agent.card-title")) + '</span></div>' +
+        '<div id="agentRuntimeCard"></div>' +
+      '</div>' +
       '<p class="install-status" id="installStatus" style="margin-top:4px">' + esc(t("install.preparing", { count: planned.length })) + "</p>" +
       '<div class="install-footer">' +
         '<div class="install-footer-left">' +

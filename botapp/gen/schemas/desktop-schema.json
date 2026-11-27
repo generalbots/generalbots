@@ -327,6 +327,36 @@
           "markdownDescription": "Allow the add_service command"
         },
         {
+          "description": "Allow the agent_runtime_cancel command",
+          "type": "string",
+          "const": "allow-agent-runtime-cancel",
+          "markdownDescription": "Allow the agent_runtime_cancel command"
+        },
+        {
+          "description": "Allow the agent_runtime_check_update command",
+          "type": "string",
+          "const": "allow-agent-runtime-check-update",
+          "markdownDescription": "Allow the agent_runtime_check_update command"
+        },
+        {
+          "description": "Allow the agent_runtime_install command",
+          "type": "string",
+          "const": "allow-agent-runtime-install",
+          "markdownDescription": "Allow the agent_runtime_install command"
+        },
+        {
+          "description": "Allow the agent_runtime_remove command",
+          "type": "string",
+          "const": "allow-agent-runtime-remove",
+          "markdownDescription": "Allow the agent_runtime_remove command"
+        },
+        {
+          "description": "Allow the agent_runtime_status command",
+          "type": "string",
+          "const": "allow-agent-runtime-status",
+          "markdownDescription": "Allow the agent_runtime_status command"
+        },
+        {
           "description": "Allow the all_services_running command",
           "type": "string",
           "const": "allow-all-services-running",

@@ -31,6 +31,8 @@
     { id: "shared-links", group: "workspace", depth: "essential", editions: ["os"], scope: "personal", control: "shell", requires: "p2p" },
     { id: "integrations", group: "workspace", depth: "essential", editions: ALL, scope: "personal" },
     { id: "ai-accounts", group: "workspace", depth: "advanced", editions: ALL, scope: "personal" },
+    // gbgov parity: the same agent-runtime card the standalone Assistant shows.
+    { id: "agent-runtime", group: "workspace", depth: "essential", editions: ALL, scope: "personal" },
     { id: "on-device-ai", group: "workspace", depth: "essential", editions: ALL, scope: "admin" },
     { id: "vibe", group: "workspace", depth: "advanced", editions: ["cloud", "desktop", "os"], scope: "personal" },
     { id: "privacy", group: "workspace", depth: "advanced", editions: ALL, scope: "personal" },
@@ -58,6 +60,8 @@
     { id: "updates", group: "system", depth: "essential", editions: ["desktop", "os"], scope: "personal", control: "shell" },
     { id: "system", group: "system", depth: "essential", editions: ALL, scope: "personal" },
     { id: "about", group: "system", depth: "essential", editions: ALL, scope: "personal" },
+    // gbgov parity: local third-party notices, available in every edition.
+    { id: "licenses", group: "system", depth: "essential", editions: ALL, scope: "personal" },
     { id: "versions", group: "system", depth: "essential", editions: ALL, scope: "personal" }
   ];
 

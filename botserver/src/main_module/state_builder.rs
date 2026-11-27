@@ -68,12 +68,18 @@ pub async fn create_app_state(
     let session_manager: Arc<tokio::sync::Mutex<dyn botlib::traits::SessionManagerService>> =
         Arc::new(tokio::sync::Mutex::new(session_manager_inner));
 
+    // A directory switched off by the product file is never waited for.
+    #[cfg(feature = "directory")]
+    let directory_off = botcore::product::is_service_off("directory");
     #[cfg(feature = "directory")]
     // A fresh desktop install can reach this point before the identity provider
     // has written conf/system/directory_config.json. Aborting the whole process
     // there left the first run with a dead assistant; single-user mode does not
     // need the directory, so boot continues without it.
-    let (auth_service, zitadel_config) = {
+    let (auth_service, zitadel_config) = if directory_off {
+        info!("Directory service is switched off; signing in with the local administrator only");
+        (None, super::directory_setup::default_zitadel_config())
+    } else {
         // GBO_SKIP_DIRECTORY_WAIT: when set, the server does not wait for the
         // identity provider to appear. Desktop/single-user installs that sign
         // in through admin-credentials.json do not need it, and the 180 s poll
@@ -117,7 +123,7 @@ pub async fn create_app_state(
                 .unwrap_or(false);
         if skip_local_directory {
             info!("Skipping local directory bootstrap for this Windows development run");
-        } else {
+        } else if !directory_off {
             bootstrap_directory_admin(&zitadel_config).await;
         }
     }

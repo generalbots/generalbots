@@ -264,7 +264,10 @@
         });
         var list = document.createElement("div");
         list.className = "gb-model-group-list";
-        var backendReason = A.productConfig && A.productConfig.agent_backend_unavailable;
+        var runtimeOff = typeof A.agentRuntimeReady === "function" && !A.agentRuntimeReady();
+        var backendReason = runtimeOff
+            ? A.t("assistant-requires-agent-mode", "Requires Agent Mode")
+            : (A.productConfig && A.productConfig.agent_backend_unavailable);
         models.forEach(function (m) {
             var item = document.createElement("button");
             item.className = "gb-model-menu-item" + (isActive(m) ? " active" : "");
@@ -273,11 +276,24 @@
                 item.disabled = true;
                 item.title = backendReason || A.t("assistant-agent-backend-off", "Subscription agents unavailable on this computer");
                 item.classList.add("gb-model-menu-disabled");
+                if (runtimeOff) {
+                    var chip = document.createElement("span");
+                    chip.className = "gb-model-menu-meta";
+                    chip.textContent = tr("Requer Modo Agente", "Requires Agent Mode");
+                    item.appendChild(chip);
+                }
             } else {
                 item.addEventListener("click", function () { onPick(m.value); });
             }
             list.appendChild(item);
         });
+        if (runtimeOff && typeof A.openAgentRuntimeSettings === "function") {
+            var link = document.createElement("button");
+            link.className = "gb-model-menu-action";
+            link.innerHTML = '<span>' + esc(A.t("assistant-requires-agent-mode", "Requires Agent Mode")) + '</span>';
+            link.addEventListener("click", function () { closeModelMenu(); A.openAgentRuntimeSettings(); });
+            list.appendChild(link);
+        }
         group.appendChild(head);
         group.appendChild(list);
         var before = acc.id === "agents"

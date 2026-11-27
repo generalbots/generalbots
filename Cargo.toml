@@ -334,7 +334,7 @@ tower = "0.4"
 tower-http = { version = "0.6", default-features = false }
 
 # ─── HTTP CLIENT ───
-reqwest = { version = "0.12", default-features = false }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls-native-roots"] }
 # AWS request signing for the botintegrations provider adapters (#950).
 # #2010 — 1.6 moves to aws-smithy-http 0.64, which no longer depends on
 # pin-utils (RUSTSEC-2026-0441). Requires Rust >= 1.94 (CI + local are 1.99).

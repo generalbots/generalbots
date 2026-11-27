@@ -148,8 +148,20 @@ impl TerminalSession {
                 let distro = std::env::var("GBO_WSL_DISTRO")
                     .ok()
                     .map(|value| value.trim().to_string())
-                    .filter(|value| !value.is_empty())
-                    .unwrap_or_else(|| "Debian".to_string());
+                    // A distro name is letters, digits, `.`, `_` and `-`
+                    // (the wrapper applies the same rule): anything else
+                    // could be read by `wsl.exe` as an option.
+                    .filter(|value| {
+                        !value.is_empty()
+                            && value.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'))
+                    })
+                    // The Lite edition owns its distro (the `incus.exe`
+                    // wrapper and botagent use the same default); other
+                    // builds keep the platform's `Debian`.
+                    .unwrap_or_else(|| {
+                        let name = if cfg!(feature = "gbgov") { "GeneralBotsLite" } else { "Debian" };
+                        name.to_string()
+                    });
                 let mut command = portable_pty::CommandBuilder::new("wsl.exe");
                 command.args([
                     "-d",

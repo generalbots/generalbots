@@ -390,6 +390,13 @@ pub(super) async fn main() -> std::io::Result<()> {
         error!("Failed to mount bots: {}", e);
     }
 
+    // On the Lite edition (Windows) the chat engine lifecycle belongs to
+    // runtime control, not the legacy launcher.  Set the flag before the
+    // first `ensure_llama_servers_running` call so neither the main-body
+    // invocation nor the background-services one touches port 8081.
+    #[cfg(all(windows, feature = "gbgov"))]
+    crate::llm::local::set_chat_engine_managed_elsewhere(true);
+
     #[cfg(feature = "llm")]
     {
         let app_state_for_llm = app_state.clone();
@@ -400,16 +407,40 @@ pub(super) async fn main() -> std::io::Result<()> {
         trace!("ensure_llama_servers_running completed");
     }
 
-    // After the legacy launcher has had a chance to start the runtime (or
-    // discover an orphan on the port), enforce the stored model choice.
-    // An orphan from a previous session that loaded a different model is
-    // replaced.  This is edition-gated because runtime_ctl lives in
+    // After the legacy launcher has completed, enforce the stored model
+    // choice.  With the managed-elsewhere flag the launcher left port 8081
+    // untouched, so runtime control starts it fresh with the launch plan
+    // (context size and GPU layers from free video memory).
+    // This is edition-gated because runtime_ctl lives in
     // botsettings::on_device_ai which is gbgov-only.
     #[cfg(feature = "gbgov")]
     {
         let state_for_ctl = app_state.clone();
         tokio::spawn(async move {
             crate::boot_runtime_ctl::enforce_stored_model(state_for_ctl).await;
+        });
+    }
+
+    // Prompt-cache warm-up: after any engine (re)start, send a throw-away
+    // request so the first real turn does not pay the full prompt evaluation.
+    // Off unless GB_LLM_CACHE_WARM=1: measured on the installed app, the
+    // warm-up prompt shares only the first 61% with a real first turn, and
+    // the engine cannot reuse a partial prefix for models with a sliding
+    // window or recurrent state (it re-evaluates everything), so today it
+    // costs two seconds of the card after every start and saves nothing.
+    // It needs to be an exact prefix of the real prompt before it is turned on.
+    #[cfg(feature = "gbgov")]
+    if std::env::var("GB_LLM_CACHE_WARM").is_ok_and(|v| v == "1") {
+        let state_for_warm = app_state.clone();
+        tokio::spawn(async move {
+            loop {
+                botsettings::on_device_ai::launch_plan::engine_loaded().await;
+                if let Err(reason) =
+                    crate::core::bot::pipeline::llm::cache_warm::warm(&state_for_warm).await
+                {
+                    log::info!("[cache_warm] skipped: {reason}");
+                }
+            }
         });
     }
 

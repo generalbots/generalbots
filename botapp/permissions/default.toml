@@ -59,6 +59,11 @@ permissions = [
     "allow-wizard-ai-code",
     "allow-wizard-ai-use-chat",
     "allow-wizard-finish",
+    "allow-agent-runtime-status",
+    "allow-agent-runtime-install",
+    "allow-agent-runtime-cancel",
+    "allow-agent-runtime-remove",
+    "allow-agent-runtime-check-update",
     "allow-local-password-reset",
 ]
 
@@ -356,3 +361,28 @@ commands.allow = ["wizard_finish"]
 identifier = "allow-local-password-reset"
 description = "Allow the local_password_reset command"
 commands.allow = ["local_password_reset"]
+
+[[permission]]
+identifier = "allow-agent-runtime-status"
+description = "Allow the agent_runtime_status command"
+commands.allow = ["agent_runtime_status"]
+
+[[permission]]
+identifier = "allow-agent-runtime-install"
+description = "Allow the agent_runtime_install command"
+commands.allow = ["agent_runtime_install"]
+
+[[permission]]
+identifier = "allow-agent-runtime-cancel"
+description = "Allow the agent_runtime_cancel command"
+commands.allow = ["agent_runtime_cancel"]
+
+[[permission]]
+identifier = "allow-agent-runtime-remove"
+description = "Allow the agent_runtime_remove command"
+commands.allow = ["agent_runtime_remove"]
+
+[[permission]]
+identifier = "allow-agent-runtime-check-update"
+description = "Allow the agent_runtime_check_update command"
+commands.allow = ["agent_runtime_check_update"]

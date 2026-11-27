@@ -314,6 +314,9 @@ async fn handle_put_config(
             api_error(StatusCode::INTERNAL_SERVER_ERROR, "vault_write_failed")
         })?;
 
+    // A hosted choice frees the card the local model held.
+    super::on_device_ai::runtime_release::release_in_background(ConfigManager::new(state.conn.clone()), &new_central);
+
     // ── Step 3: hot-swap the running provider ───────────────────────────
     let swap_url = new_central.get("url").cloned().unwrap_or_else(String::new);
     let swap_model = new_central.get("model").cloned();

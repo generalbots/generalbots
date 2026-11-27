@@ -37,6 +37,7 @@
     var reset = document.getElementById("resetStackBtn");
     if (reset) { reset.addEventListener("click", confirmReset); }
     bindToggleDetails();
+    if (typeof App.bindAgentRuntime === "function") { App.bindAgentRuntime(); }
     var recheck = document.getElementById("hostRecheckBtn");
     if (recheck) { recheck.addEventListener("click", function () { checkHost(true); }); }
     var proceed = document.getElementById("hostContinueBtn");
@@ -283,6 +284,9 @@
     updateInstallProgress();
     renderHostCheck();
     renderFooter();
+    if (typeof App.startAgentInstallIfChosen === "function") {
+      App.startAgentInstallIfChosen();
+    }
     if (state.step === 7) { goTo(8); }
   }
 

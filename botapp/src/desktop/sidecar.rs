@@ -6,8 +6,11 @@ use std::sync::{Arc, Mutex};
 mod binary;
 mod bootlog;
 mod paths;
+pub(crate) mod port_holder;
 pub(crate) mod probe;
 mod product;
+mod supervise;
+pub use supervise::ChildState;
 
 pub(crate) use binary::ValidatedBinary;
 use bootlog::{file_inode, log_was_recreated, write_boot_banner};
@@ -138,6 +141,9 @@ impl Sidecar {
                 return Ok(());
             }
             StartDecision::AttachPort => {
+                if let Some(conflict) = port_holder::foreign_conflict() {
+                    return Err(conflict.into());
+                }
                 let port = sidecar_port();
                 info!(
                     "port {port} is already held by an assistant that is still booting; attaching to it instead of starting a second one"
@@ -274,6 +280,7 @@ impl Sidecar {
             // Single-user desktop: there is no sign-in screen, so the local
             // identity must be allowed to provision the agent workspace.
             .env("AGENT_ALLOW_UNREGISTERED_IDENTITIES", "1");
+        command.envs(agent_env::agent_env(&installers, &stack));
         if let Some(ref ui) = packaged_ui {
             command.env("BOTUI_PATH", ui);
         }

@@ -96,7 +96,7 @@ pub fn show(app: &tauri::AppHandle) {
     }
 
     let mut builder = WebviewWindowBuilder::new(app, "splash", WebviewUrl::App("splash.html".into()))
-        .title("General Bots")
+        .title(app.package_info().name.as_str())
         .inner_size(SPLASH_WIDTH, SPLASH_HEIGHT)
         .min_inner_size(320.0, 320.0)
         .resizable(false)

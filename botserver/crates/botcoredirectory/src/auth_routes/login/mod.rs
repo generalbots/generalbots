@@ -23,15 +23,7 @@ pub async fn login(
     let auth_service = state
         .auth_service
         .as_ref()
-        .ok_or_else(|| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: "No auth service".to_string(),
-                    details: None,
-                }),
-            )
-        })?
+        .ok_or_else(|| without_directory_refusal(is_desktop_edition()))?
         .lock()
         .await;
 
@@ -380,4 +372,41 @@ pub async fn login(
             details: None,
         }),
     ))
+}
+
+/// The answer when no directory service is configured. On the desktop the
+/// local administrator was already checked, so the credentials are simply
+/// wrong (401); elsewhere a missing directory is a server fault (500).
+fn without_directory_refusal(desktop: bool) -> (StatusCode, Json<ErrorResponse>) {
+    if desktop {
+        (
+            StatusCode::UNAUTHORIZED,
+            Json(ErrorResponse {
+                error: "Invalid email or password".to_string(),
+                details: None,
+            }),
+        )
+    } else {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: "No auth service".to_string(),
+                details: None,
+            }),
+        )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_wrong_password_without_a_directory_is_401_on_the_desktop() {
+        let (status, Json(body)) = without_directory_refusal(true);
+        assert_eq!(status, StatusCode::UNAUTHORIZED);
+        assert_eq!(body.error, "Invalid email or password");
+        let (status, _) = without_directory_refusal(false);
+        assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR);
+    }
 }

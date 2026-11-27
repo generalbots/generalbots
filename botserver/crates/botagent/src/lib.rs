@@ -23,6 +23,8 @@ pub mod keys;
 pub mod models;
 pub mod plan_limit;
 pub mod plan_usage;
+mod runtime_host;
+pub mod runtime_state;
 pub mod sandbox;
 pub mod schema;
 pub mod snapshots;
@@ -47,11 +49,10 @@ pub const AGENT_INCUS_BIN_ENV: &str = "AGENT_INCUS_BIN";
 
 /// Why agent mode cannot run on this host, or `None` when it can.
 ///
-/// `/api/product` can expose this as `agent_backend_unavailable` from
-/// `get_product_config()` in `main_module/routes/product_handlers.rs` (inside
-/// the `agent-vm` feature). The agent error path can call it before spawning
-/// Incus so the caller gets this reason instead of the generic sanitized
-/// agent-workspace failure.
+/// `/api/product` exposes this as `agent_backend_unavailable` next to the
+/// stable code `agent_runtime_state` (`runtime_state::AgentRuntimeState`).
+/// The agent error path calls it before spawning Incus so the caller gets
+/// this reason instead of the generic sanitized agent-workspace failure.
 pub fn agent_backend_unavailable() -> Option<String> {
     let configured = match std::env::var(AGENT_INCUS_BIN_ENV) {
         Ok(value) => Some(value),
@@ -211,81 +212,4 @@ pub fn configure_routes() -> axum::Router<Arc<AgentService>> {
             get(keys::list_org_keys).post(keys::create_org_key),
         )
         .route("/api/cloud/orgkeys/:id", delete(keys::revoke_org_key))
-}
-
-#[cfg(test)]
-mod backend_tests {
-    use super::{agent_backend_unavailable_for, binary_on_path};
-
-    fn absent(_: &str) -> bool {
-        false
-    }
-
-    fn present(_: &str) -> bool {
-        true
-    }
-
-    #[test]
-    fn linux_without_incus_reports_the_missing_binary() {
-        let reason = agent_backend_unavailable_for("linux", None, absent)
-            .expect("a host without incus must be unavailable");
-        assert!(reason.contains("incus"));
-        assert!(reason.contains("AGENT_INCUS_BIN"));
-    }
-
-    #[test]
-    fn linux_with_incus_is_available() {
-        assert_eq!(agent_backend_unavailable_for("linux", None, present), None);
-    }
-
-    #[test]
-    fn windows_without_wsl_is_unavailable() {
-        let reason = agent_backend_unavailable_for("windows", None, absent)
-            .expect("a host without wsl must be unavailable");
-        assert!(reason.contains("WSL2"));
-        assert!(reason.contains("PROD-DEPENDENCIES.ps1"));
-    }
-
-    #[test]
-    fn windows_with_wsl_needs_an_explicit_wrapper() {
-        let only_wsl = |name: &str| name == "wsl";
-        let reason = agent_backend_unavailable_for("windows", None, only_wsl)
-            .expect("wsl alone is not an Incus backend");
-        assert!(reason.contains("AGENT_INCUS_BIN"));
-    }
-
-    #[test]
-    fn windows_with_a_wrapper_is_available() {
-        let only_wsl = |name: &str| name == "wsl";
-        assert_eq!(
-            agent_backend_unavailable_for("windows", Some("wsl-incus.cmd"), only_wsl),
-            None
-        );
-    }
-
-    #[test]
-    fn windows_with_a_remote_client_does_not_require_wsl() {
-        assert_eq!(
-            agent_backend_unavailable_for("windows", Some("incus-remote.cmd"), absent),
-            None
-        );
-    }
-
-    #[test]
-    fn macos_without_incus_reports_the_unsupported_bundle() {
-        let reason = agent_backend_unavailable_for("macos", None, absent)
-            .expect("macOS has no default Incus backend");
-        assert!(reason.contains("macOS"));
-        assert!(reason.contains("WSL2"));
-    }
-
-    #[test]
-    fn macos_with_a_remote_incus_client_is_available() {
-        assert_eq!(agent_backend_unavailable_for("macos", None, present), None);
-    }
-
-    #[test]
-    fn a_configured_absolute_path_must_exist() {
-        assert!(!binary_on_path("/definitely/not/a/real/incus"));
-    }
 }

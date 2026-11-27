@@ -186,6 +186,14 @@
            instead of toggling. */
         function handleClick(e) {
             if (impliedByModel()) { showLockedHint(e.currentTarget); return; }
+            if (typeof A.agentRuntimeReady === "function" && !A.agentRuntimeReady()) {
+                A.announce(A.t("assistant-agent-mode-disabled",
+                    "Agent Mode must be installed to use subscription agents."));
+                if (typeof A.openAgentRuntimeSettings === "function") {
+                    A.openAgentRuntimeSettings();
+                }
+                return;
+            }
             if (!backendAvailable()) {
                 A.announce(A.t("assistant.agent-unavailable",
                     "Agent mode is not available on this computer."));

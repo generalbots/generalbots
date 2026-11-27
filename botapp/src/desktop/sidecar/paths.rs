@@ -16,17 +16,14 @@ pub(super) const BINARY_NAME: &str = if cfg!(target_os = "windows") {
 /// Resolves the stack directory.
 ///
 /// `BOTSERVER_STACK_PATH` wins; otherwise the per-user local data directory
-/// holds `generalbots/stack`.
+/// holds the edition's stack folder (`data_root`).
 pub(super) fn resolve_stack(explicit: Option<&str>, data_local: Option<PathBuf>) -> PathBuf {
     if let Some(value) = explicit {
         if !value.trim().is_empty() {
             return PathBuf::from(value);
         }
     }
-    data_local
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join("generalbots")
-        .join("stack")
+    crate::desktop::data_root::default_stack(data_local)
 }
 
 /// Resolves the sidecar executable.
@@ -49,6 +46,7 @@ pub(super) fn resolve_binary(
 #[cfg(test)]
 mod tests {
     use super::{resolve_binary, resolve_stack, BINARY_NAME};
+    use crate::desktop::data_root::DATA_FOLDER;
     use std::path::{Path, PathBuf};
 
     #[test]
@@ -69,7 +67,7 @@ mod tests {
         // A blank override is not a path.
         assert_eq!(
             resolve_stack(Some("  "), Some(PathBuf::from("/data"))),
-            PathBuf::from("/data/generalbots/stack")
+            PathBuf::from("/data").join(DATA_FOLDER).join("stack")
         );
     }
 
@@ -77,10 +75,10 @@ mod tests {
     fn the_stack_falls_back_to_the_user_data_directory() {
         assert_eq!(
             resolve_stack(None, Some(PathBuf::from("/home/u/.local/share"))),
-            PathBuf::from("/home/u/.local/share/generalbots/stack")
+            PathBuf::from("/home/u/.local/share").join(DATA_FOLDER).join("stack")
         );
         // No resolvable data directory keeps the path relative.
-        assert_eq!(resolve_stack(None, None), PathBuf::from("./generalbots/stack"));
+        assert_eq!(resolve_stack(None, None), PathBuf::from(".").join(DATA_FOLDER).join("stack"));
     }
 
     #[test]

@@ -284,7 +284,7 @@ Quick lookup for General Bots terms. If you're lost, start here.
 
 ## V
 
-**Vault** - HashiCorp Vault. Secrets management service for storing credentials securely. Only `VAULT_*` environment variables are used.
+**Vault** - The secrets management service that stores credentials securely. The bundled server is OpenBao (MPL-2.0), a fork of HashiCorp Vault with the same API. The component keeps the id `vault`, and only `VAULT_*` environment variables are used.
 
 **Vector** - Mathematical representation of meaning. Similar meanings produce similar vectors.
 

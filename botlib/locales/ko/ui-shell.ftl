@@ -300,6 +300,8 @@ trechos = 발췌
 arquivo = file
 arquivos = files
 assistant-agent-backend-off = Agent backend is off
+assistant-requires-agent-mode = 에이전트 모드가 필요합니다
+assistant-agent-mode-disabled = 구독 에이전트를 사용하려면 에이전트 모드를 설치해야 합니다.
 assistant-agent-locked-hint = Agent is locked for this model
 assistant-agent-locked-tip = Choose another model to use the agent
 assistant-regenerate-older = Regenerating an older answer starts a new turn
@@ -382,3 +384,4 @@ chat-vm-agent-locked-note = 가상 머신에서 실행되므로 선택되어 있
 
 # ── Completed translations (issue #2970) ──
 atende = 참석
+assistant-no-update = 사용 가능한 업데이트가 없습니다

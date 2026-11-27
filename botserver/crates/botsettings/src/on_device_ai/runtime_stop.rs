@@ -13,7 +13,8 @@ use sysinfo::{ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
 /// found or when the kill fails.
 pub fn stop_chat_runtime(port: u16) -> Result<u32, String> {
     let stack_fragment = stack_llm_fragment();
-    let pid = find_stack_llama_for_port(&stack_fragment, port)?;
+    let pid = select_chat_engine(&scan_processes(), &stack_fragment, port)
+        .ok_or_else(|| format!("No chat engine of this install found for port {port}"))?;
     kill_pid(pid)?;
     Ok(pid)
 }
@@ -22,13 +23,13 @@ pub fn stop_chat_runtime(port: u16) -> Result<u32, String> {
 /// llama-server exe must contain (e.g. `\bin\llm\`).
 fn stack_llm_fragment() -> String {
     let sep = std::path::MAIN_SEPARATOR;
-    format!(
-        "{}{}bin{}llm{}",
-        botcore::shared::utils::get_stack_path(),
-        sep, sep, sep,
-    )
-    .to_ascii_lowercase()
-    .replace('/', &sep.to_string())
+    let stack = botcore::shared::utils::get_stack_path();
+    let stack = std::path::absolute(&stack)
+        .map(|path| path.to_string_lossy().into_owned())
+        .unwrap_or(stack);
+    format!("{}{}bin{}llm{}", stack.trim_end_matches(['/', '\\']), sep, sep, sep)
+        .to_ascii_lowercase()
+        .replace('/', &sep.to_string())
 }
 
 // ── pure selection (testable) ───────────────────────────────────────────
@@ -43,25 +44,31 @@ pub struct ProcessInfo {
     pub cmd_line: String,
 }
 
-/// Pure function: given a list of processes, find the one whose exe is under
-/// `stack_fragment` and whose command line contains `--port <port>`.
-pub fn select_stack_llama(
-    procs: &[ProcessInfo],
-    stack_fragment: &str,
-    port: u16,
-) -> Option<u32> {
-    let port_flag = format!("--port {port}");
-    // Also match the case where args are separate tokens joined by space.
-    let port_flag_eq = format!("--port={port}");
-    for p in procs {
-        if !p.exe_lower.contains(stack_fragment) {
-            continue;
-        }
-        if p.cmd_line.contains(&port_flag) || p.cmd_line.contains(&port_flag_eq) {
-            return Some(p.pid);
-        }
+/// The chat engine of THIS install, and nothing else:
+/// - the executable is `llama-server` (`.exe` on Windows) directly in the
+///   stack's engine folder `<stack>\bin\llm\` or its `bin\` subfolder, the
+///   path compared from its start (a checkout or another install elsewhere
+///   never matches, even with the same file name);
+/// - the command line has `--port <port>` (or `--port=<port>`) as whole
+///   arguments, so 8081 never matches 80810;
+/// - it is not the embedding engine (no `--embeddings` argument).
+pub fn is_install_chat_engine(process: &ProcessInfo, stack_fragment: &str, port: u16) -> bool {
+    let Some(rest) = process.exe_lower.strip_prefix(stack_fragment) else { return false };
+    let rest = rest.strip_prefix("bin\\").or_else(|| rest.strip_prefix("bin/")).unwrap_or(rest);
+    if !matches!(rest, "llama-server.exe" | "llama-server") {
+        return false;
     }
-    None
+    let args: Vec<&str> = process.cmd_line.split_whitespace().collect();
+    let port_text = port.to_string();
+    let joined = format!("--port={port}");
+    let on_port = args.windows(2).any(|pair| pair[0] == "--port" && pair[1] == port_text)
+        || args.iter().any(|arg| *arg == joined);
+    on_port && !args.contains(&"--embeddings")
+}
+
+/// The first process that [`is_install_chat_engine`] accepts.
+pub fn select_chat_engine(procs: &[ProcessInfo], stack_fragment: &str, port: u16) -> Option<u32> {
+    procs.iter().find(|p| is_install_chat_engine(p, stack_fragment, port)).map(|p| p.pid)
 }
 
 /// True when `exe_lower` is under the stack's llm directory.
@@ -70,12 +77,6 @@ pub fn is_stack_llm_process(exe_lower: &str, stack_fragment: &str) -> bool {
 }
 
 // ── OS calls ────────────────────────────────────────────────────────────
-
-/// Scan running processes with `sysinfo` and select the matching one.
-fn find_stack_llama_for_port(stack_fragment: &str, port: u16) -> Result<u32, String> {
-    select_stack_llama(&scan_processes(), stack_fragment, port)
-        .ok_or_else(|| format!("No stack llama-server found for port {port}"))
-}
 
 fn scan_processes() -> Vec<ProcessInfo> {
     let mut sys = System::new();
@@ -174,29 +175,44 @@ mod tests {
         }
     }
 
+    const FRAG: &str = r"c:\users\a\appdata\local\generalbotslite\stack\bin\llm\";
+
     #[test]
-    fn select_finds_correct_port() {
+    fn only_the_chat_engine_of_this_install_is_selected() {
         let procs = vec![
-            make_proc(100, r"c:\stack\bin\llm\bin\llama-server.exe", "--port 8082 --host 127.0.0.1 -m bge.gguf --embeddings"),
-            make_proc(200, r"c:\stack\bin\llm\bin\llama-server.exe", "--port 8081 --host 127.0.0.1 -m deepseek.gguf"),
-            make_proc(300, r"c:\other\llama-server.exe", "--port 8081 --host 127.0.0.1 -m deepseek.gguf"),
+            make_proc(100, r"C:\Users\a\AppData\Local\GeneralBotsLite\stack\bin\llm\llama-server.exe", "llama-server.exe --port 8082 --host 127.0.0.1 -m bge.gguf --embeddings --n-gpu-layers 0"),
+            make_proc(200, r"C:\Users\a\AppData\Local\GeneralBotsLite\stack/bin/llm\llama-server.exe", "llama-server.exe --port 8081 --host 127.0.0.1 -m qwen.gguf --ctx-size 8192"),
+            make_proc(300, r"C:\Users\a\llama.cpp\build\bin\Release\llama-server.exe", "llama-server.exe --port 8081 -m mine.gguf"),
         ];
-        let frag = r"c:\stack\bin\llm\".to_ascii_lowercase();
-        // Port 8081 matches PID 200 (stack), not 300 (non-stack).
-        assert_eq!(select_stack_llama(&procs, &frag, 8081), Some(200));
-        // Port 8082 matches PID 100 (embedding).
-        assert_eq!(select_stack_llama(&procs, &frag, 8082), Some(100));
-        // Port 9090 matches nothing.
-        assert_eq!(select_stack_llama(&procs, &frag, 9090), None);
+        assert_eq!(select_chat_engine(&procs, FRAG, 8081), Some(200));
+        assert_eq!(select_chat_engine(&procs, FRAG, 8082), None, "the embedding engine is never the chat engine");
+        assert_eq!(select_chat_engine(&procs, FRAG, 9090), None);
     }
 
     #[test]
-    fn select_ignores_non_stack_process() {
-        let procs = vec![
-            make_proc(300, r"c:\other\llama-server.exe", "--port 8081 -m model.gguf"),
+    fn a_llama_server_outside_this_stack_is_never_selected() {
+        let outside = [
+            r"C:\Users\a\llama.cpp\build\bin\Release\llama-server.exe",
+            r"C:\Users\a\AppData\Local\generalbots\stack\bin\llm\llama-server.exe",
+            r"D:\copy\c\users\a\appdata\local\generalbotslite\stack\bin\llm\llama-server.exe",
+            r"C:\Users\a\AppData\Local\GeneralBotsLite\stack\bin\llm\other\llama-server.exe",
+            r"C:\Users\a\AppData\Local\GeneralBotsLite\stack\bin\llm\llama-cli.exe",
         ];
-        let frag = r"c:\stack\bin\llm\".to_ascii_lowercase();
-        assert_eq!(select_stack_llama(&procs, &frag, 8081), None);
+        for exe in outside {
+            let p = make_proc(1, exe, "x --port 8081 -m m.gguf");
+            assert!(!is_install_chat_engine(&p, FRAG, 8081), "{exe}");
+        }
+        let nested = make_proc(2, r"C:\Users\a\AppData\Local\GeneralBotsLite\stack\bin\llm\bin\llama-server.exe", "x --port 8081");
+        assert!(is_install_chat_engine(&nested, FRAG, 8081), "the package layout with a bin subfolder");
+    }
+
+    #[test]
+    fn the_port_must_be_a_whole_argument() {
+        let exe = r"C:\Users\a\AppData\Local\GeneralBotsLite\stack\bin\llm\llama-server.exe";
+        assert!(is_install_chat_engine(&make_proc(1, exe, "x --port=8081 -m m.gguf"), FRAG, 8081));
+        assert!(!is_install_chat_engine(&make_proc(1, exe, "x --port 80810 -m m.gguf"), FRAG, 8081));
+        assert!(!is_install_chat_engine(&make_proc(1, exe, "x -m port8081.gguf"), FRAG, 8081));
+        assert!(!is_install_chat_engine(&make_proc(1, exe, "x --port 8081 --embeddings"), FRAG, 8081));
     }
 
     #[test]
@@ -226,7 +242,7 @@ mod tests {
         // The sysinfo scan should find our PID on this port ... but wait,
         // sysinfo reads the process's command line, not its bound ports.
         // Our test binary's cmd line does NOT contain `--port <port>`.
-        // So select_stack_llama will not find it -- which is correct:
+        // So select_chat_engine will not find it -- which is correct:
         // only a llama-server with `--port N` in its args is matched.
         // We test the pure function instead with a synthetic entry.
         let frag = stack_llm_fragment();
@@ -242,7 +258,7 @@ mod tests {
 
         // The test binary's exe is NOT under the stack's llm dir,
         // so it must NOT be selected.
-        assert_eq!(select_stack_llama(&procs, &frag, port), None);
+        assert_eq!(select_chat_engine(&procs, &frag, port), None);
 
         // Also test is_stack_llm_process directly.
         let my_exe = std::env::current_exe()

@@ -129,6 +129,10 @@ pub fn register_tables(components: &mut HashMap<String, ComponentConfig>) {
     );
 }
 pub fn register_cache(components: &mut HashMap<String, ComponentConfig>) {
+    // On Windows no external cache binary is bundled or downloaded: the server
+    // provides a built-in RESP cache (main_module/embedded_cache.rs). The
+    // Windows exec/check commands are cleared so the installer never tries to
+    // start a binary that does not exist. Linux keeps Valkey as before.
     components.insert(
         "cache".to_string(),
         ComponentConfig {
@@ -152,17 +156,14 @@ pub fn register_cache(components: &mut HashMap<String, ComponentConfig>) {
             ],
             pre_install_cmds_macos: Vec::new(),
             post_install_cmds_macos: Vec::new(),
-            pre_install_cmds_windows: vec![
-                "if not exist {{DATA_PATH}} mkdir {{DATA_PATH}}".to_string(),
-                "if not exist {{LOGS_PATH}} mkdir {{LOGS_PATH}}".to_string(),
-            ],
+            pre_install_cmds_windows: Vec::new(),
             post_install_cmds_windows: Vec::new(),
             env_vars: HashMap::new(),
             data_download_list: Vec::new(),
             exec_cmd: "nohup {{BIN_PATH}}/bin/valkey-server --port 6379 --bind 127.0.0.1 --dir {{DATA_PATH}} --logfile {{LOGS_PATH}}/valkey.log --daemonize yes > {{LOGS_PATH}}/valkey-startup.log 2>&1".to_string(),
             check_cmd: "pgrep -x valkey-server >/dev/null 2>&1".to_string(),
-            exec_cmd_windows: Some("start /B {{BIN_PATH}}\\redis-server.exe --port 6379 --bind 127.0.0.1 --dir {{DATA_PATH}} --logfile {{LOGS_PATH}}\\valkey.log > {{LOGS_PATH}}\\valkey-startup.log 2>&1".to_string()),
-            check_cmd_windows: Some("tasklist /FI \"IMAGENAME eq redis-server.exe\" 2>NUL | findstr /I \"redis\" >NUL".to_string()),
+            exec_cmd_windows: None,
+            check_cmd_windows: None,
             container: None,
         },
     );
@@ -318,16 +319,13 @@ mod tests {
     /// (Windows). `windows_binary_name_from_exec` must return the Windows name
     /// so `is_installed` finds the binary even though `binary_name` says valkey.
     #[test]
-    fn cache_windows_binary_name_resolves_to_redis() {
+    fn cache_has_no_windows_exec_command() {
         let mut components = HashMap::new();
         register_cache(&mut components);
         let cache = components.get("cache").expect("cache component");
         assert_eq!(cache.binary_name.as_deref(), Some("valkey-server"));
-        assert_eq!(
-            cache.windows_binary_name_from_exec(),
-            Some("redis-server.exe".to_string()),
-            "exec_cmd_windows must reference redis-server.exe"
-        );
+        assert!(cache.exec_cmd_windows.is_none(), "Windows has no bundled cache binary");
+        assert!(cache.check_cmd_windows.is_none());
     }
 
     #[test]

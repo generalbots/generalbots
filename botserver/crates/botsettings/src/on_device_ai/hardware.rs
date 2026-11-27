@@ -15,6 +15,8 @@ pub(crate) struct Hardware {
     pub device: String,
     pub vram_gb: u16,
     pub vram_free_gb: u16,
+    /// Free video memory in MiB, for the engine's launch plan.
+    pub vram_free_mib: u32,
     pub driver: String,
     pub cuda_usable: bool,
     pub ram_gb: u64,
@@ -28,6 +30,7 @@ pub(crate) fn probe() -> Hardware {
             device: gpu.name,
             vram_gb: gpu.vram_total_gb,
             vram_free_gb: gpu.vram_free_gb,
+            vram_free_mib: gpu.vram_free_mib,
             driver: gpu.driver,
             cuda_usable: true,
             ram_gb,
@@ -37,6 +40,7 @@ pub(crate) fn probe() -> Hardware {
             device: "CPU only".to_string(),
             vram_gb: 0,
             vram_free_gb: 0,
+            vram_free_mib: 0,
             driver: String::new(),
             cuda_usable: false,
             ram_gb,
@@ -49,6 +53,7 @@ pub(crate) struct GpuInfo {
     pub name: String,
     pub vram_total_gb: u16,
     pub vram_free_gb: u16,
+    pub vram_free_mib: u32,
     pub driver: String,
 }
 
@@ -143,17 +148,19 @@ pub(crate) fn parse_nvidia_line(stdout: &str) -> Option<GpuInfo> {
         return None;
     }
     let vram_total_gb = (total_mb / 1024.0).round().clamp(1.0, f64::from(u16::MAX)) as u16;
-    let vram_free_gb = fields
+    let free_mb = fields
         .get(2)
         .and_then(|s| s.parse::<f64>().ok())
         .filter(|v| v.is_finite() && *v >= 0.0)
-        .map(|mb| (mb / 1024.0).round().clamp(0.0, f64::from(u16::MAX)) as u16)
-        .unwrap_or(0);
+        .unwrap_or(0.0);
+    let vram_free_gb = (free_mb / 1024.0).round().clamp(0.0, f64::from(u16::MAX)) as u16;
+    let vram_free_mib = free_mb.round().clamp(0.0, f64::from(u32::MAX)) as u32;
     let driver = fields.get(3).unwrap_or(&"").to_string();
     Some(GpuInfo {
         name: name.to_string(),
         vram_total_gb,
         vram_free_gb,
+        vram_free_mib,
         driver,
     })
 }
@@ -194,6 +201,7 @@ mod hardware_tests {
         assert_eq!(gpu.name, "NVIDIA GeForce RTX 4070 Laptop GPU");
         assert_eq!(gpu.vram_total_gb, 8);
         assert_eq!(gpu.vram_free_gb, 4);
+        assert_eq!(gpu.vram_free_mib, 4401);
         assert_eq!(gpu.driver, "621.14");
     }
 

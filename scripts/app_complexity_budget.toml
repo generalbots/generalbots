@@ -11,7 +11,7 @@
 [defaults]
 routes = 153
 js_modules = 117
-loc = 32378
+loc = 32507
 
 [apps."about"]
 routes = 0
@@ -75,8 +75,8 @@ loc = 3366
 
 [apps."chat"]
 routes = 30
-js_modules = 102
-loc = 32378
+js_modules = 103
+loc = 32507
 
 [apps."clock"]
 routes = 0
@@ -290,8 +290,8 @@ loc = 561
 
 [apps."settings"]
 routes = 52
-js_modules = 37
-loc = 14019
+js_modules = 40
+loc = 14682
 
 [apps."sheet"]
 routes = 0
