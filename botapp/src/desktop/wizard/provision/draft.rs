@@ -32,11 +32,14 @@ pub(super) fn save_draft(request: &ProvisionRequest) -> std::io::Result<()> {
         "services": services,
         "skip_all_agentic_work": request.skip_all_agentic_work,
     });
-    let raw = serde_json::to_string_pretty(&draft)
+    let path = draft_path();
+    let existing = std::fs::read_to_string(&path)
+        .ok()
+        .and_then(|raw| serde_json::from_str::<serde_json::Value>(&raw).ok());
+    let raw = serde_json::to_string_pretty(&merge_draft(existing, draft))
         .map_err(|e| std::io::Error::other(format!("serialize draft: {e}")))?;
     let stack = stack_path();
     std::fs::create_dir_all(&stack)?;
-    let path = draft_path();
     std::fs::write(&path, raw)?;
     #[cfg(unix)]
     {
@@ -48,6 +51,19 @@ pub(super) fn save_draft(request: &ProvisionRequest) -> std::io::Result<()> {
         }
     }
     Ok(())
+}
+
+/// The provisioning choices laid over the draft the wizard page saved, so the
+/// keys only the page writes (network mode, appearance) survive a resume.
+fn merge_draft(existing: Option<serde_json::Value>, owned: serde_json::Value) -> serde_json::Value {
+    use serde_json::Value;
+    match (existing, owned) {
+        (Some(Value::Object(mut merged)), Value::Object(owned)) => {
+            merged.extend(owned);
+            Value::Object(merged)
+        }
+        (_, owned) => owned,
+    }
 }
 
 /// Stores the OAuth client ids/secrets the user entered, through the running
@@ -118,5 +134,31 @@ pub(super) async fn apply_integrations(request: &ProvisionRequest) {
                 warn!("wizard: could not store the OAuth client for {provider}: {e}");
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::merge_draft;
+    use serde_json::json;
+
+    #[test]
+    fn keys_only_the_page_writes_survive_the_provisioning_save() {
+        let page = json!({
+            "network": { "mode": "offline" },
+            "appearance": { "accent": "blue" },
+            "workspace": { "path": "old" },
+        });
+        let merged = merge_draft(Some(page), json!({ "workspace": { "path": "new" } }));
+        assert_eq!(merged["network"]["mode"], "offline");
+        assert_eq!(merged["appearance"]["accent"], "blue");
+        assert_eq!(merged["workspace"]["path"], "new");
+    }
+
+    #[test]
+    fn a_missing_or_foreign_draft_is_replaced() {
+        let owned = json!({ "display_name": "Ana" });
+        assert_eq!(merge_draft(None, owned.clone()), owned);
+        assert_eq!(merge_draft(Some(json!([1, 2])), owned.clone()), owned);
     }
 }
