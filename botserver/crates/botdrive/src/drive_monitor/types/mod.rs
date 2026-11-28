@@ -58,6 +58,8 @@ pub struct DriveMonitor {
 mod classify_file;
 mod drive_monitor_params;
 mod index_kb_file;
+#[cfg(any(feature = "research", feature = "llm"))]
+mod kb_vector_gate;
 mod normalize_etag;
 mod parse_kb_path;
 mod start_kb_processor;

@@ -12,6 +12,9 @@ impl DriveMonitor {
         s3_key: &str,
         etag: Option<String>,
     ) {
+        if !kb_vector_gate::kb_vector_indexing_enabled() {
+            return;
+        }
         let parsed = match parse_kb_path(s3_key) {
             Some(p) => p,
             None => {
