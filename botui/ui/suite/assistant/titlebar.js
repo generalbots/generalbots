@@ -15,7 +15,7 @@
 (function () {
     "use strict";
 
-    var IS_TAURI = !!(window.GBTAURI || window.__TAURI_INTERNALS__);
+    var IS_TAURI = !!((window.GBTAURI && window.GBTAURI.available) || window.__TAURI_INTERNALS__);
     var FORCE = false;
     try {
         FORCE = new URLSearchParams(window.location.search).get("titlebar") === "1";
@@ -117,9 +117,10 @@
         if (!IS_TAURI) { return; }
         try {
             var win = window.GBTAURI.window.getCurrentWindow();
-            if (action === "minimize") { win.minimize(); }
-            else if (action === "maximize") { win.toggleMaximize(); }
-            else if (action === "close") { win.close(); }
+            var call = action === "minimize" ? win.minimize() :
+                action === "maximize" ? win.toggleMaximize() :
+                action === "close" ? win.close() : null;
+            if (call && typeof call.catch === "function") { call.catch(function () { /* permission refused */ }); }
         } catch (e) { /* permission refused or API unavailable */ }
     }
 
@@ -135,7 +136,7 @@
                     maxBtn.innerHTML = m ? restoreIcon : maxIcon;
                     maxBtn.title = m ? t.restore : t.max;
                     maxBtn.setAttribute("aria-label", m ? t.restore : t.max);
-                });
+                }, function () { /* permission refused: keep the maximise icon */ });
             } catch (e) { /* */ }
         }
         window.addEventListener("resize", update);

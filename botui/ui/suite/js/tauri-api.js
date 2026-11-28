@@ -18,15 +18,17 @@
     return internals.invoke(command, args || {});
   }
 
+  /* The bridge already knows which window hosts the page; asking through
+     plugin:window|current_window would need a grant no capability gives. */
   function label() {
-    return invoke("plugin:window|current_window");
+    var meta = internals && internals.metadata;
+    var current = meta && meta.currentWindow && meta.currentWindow.label;
+    return typeof current === "string" && current ? current : "main";
   }
 
   function windowApi() {
     function call(command) {
-      return label().then(function (current) {
-        return invoke("plugin:window|" + command, { label: current });
-      });
+      return invoke("plugin:window|" + command, { label: label() });
     }
     return {
       minimize: function () { return call("minimize"); },

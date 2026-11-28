@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "gblite-window-controls",
-  "description": "Window controls for the page-drawn header: drag, minimise, toggle-maximise, close and maximise state query. Granted to the bundled app document (tauri://localhost, and http:// or https://tauri.localhost on Windows) and to the loopback sidecar origin the main window is navigated to, so the page can drive the undecorated window. The permissions are harmless window-chrome operations; the window itself is only undecorated in gblite builds.",
+  "description": "Window controls for the page-drawn header: drag, double-click and button toggle-maximise, minimise, close and maximise state query. Granted to the bundled app document (tauri://localhost, and http:// or https://tauri.localhost on Windows) and to the loopback sidecar origin the main window is navigated to, so the page can drive the undecorated window. The permissions are harmless window-chrome operations; the window itself is only undecorated in gblite builds.",
   "local": true,
   "windows": ["main"],
   "remote": {
@@ -17,6 +17,7 @@
     "core:window:allow-start-dragging",
     "core:window:allow-minimize",
     "core:window:allow-toggle-maximize",
+    "core:window:allow-internal-toggle-maximize",
     "core:window:allow-maximize",
     "core:window:allow-unmaximize",
     "core:window:allow-close",
