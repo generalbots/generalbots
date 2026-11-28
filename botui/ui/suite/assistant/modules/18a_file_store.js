@@ -55,10 +55,7 @@
     };
     F.fmtBytes = function (b) {
         if (!b && b !== 0) { return ""; }
-        if (b < 1024) { return b + " B"; }
-        var units = ["KB", "MB", "GB"], v = b / 1024, i = 0;
-        while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
-        return gbFormatNumber(v, { maximumFractionDigits: v < 10 ? 1 : 0 }, A.locale || undefined) + " " + units[i];
+        return A.fmtBytes(b);
     };
 
     function httpError(status) {

@@ -14,13 +14,7 @@
 var A = window.GBAssistant;
 var I = window.GBIcon || function () { return ""; };
 function esc(s) { return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
-function fmtBytes(b) {
-    if (!b && b !== 0) return "0 B";
-    if (b < 1024) return b + " B";
-    if (b < 1048576) return (b/1024).toFixed(0) + " KB";
-    if (b < 1073741824) return (b/1048576).toFixed(1) + " MB";
-    return (b/1073741824).toFixed(1) + " GB";
-}
+function fmtBytes(b) { return A.fmtBytes(b || 0); }
 var pt = function () { return A.locale && A.locale.startsWith("pt"); };
 function t(ptT, enT) { return pt() ? ptT : enT; }
 

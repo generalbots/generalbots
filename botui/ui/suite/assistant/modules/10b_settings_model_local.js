@@ -12,7 +12,7 @@
 var A = window.GBAssistant;
 function S() { return A._modelShared || {}; }
 function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
-function fmtBytes(b){if(!b)return"0 B";if(b<1024)return b+" B";if(b<1048576)return(b/1024).toFixed(1)+" KB";if(b<1073741824)return(b/1048576).toFixed(1)+" MB";return(b/1073741824).toFixed(1)+" GB";}
+function fmtBytes(b) { return b ? A.fmtBytes(b) : A.fmtBytes(0); }
 function fmtSpeed(bps){return bps?fmtBytes(bps)+"/s":"";}
 function fmtEta(s){if(!s&&s!==0)return"";if(s<60)return s+"s";if(s<3600)return Math.floor(s/60)+"m "+(s%60)+"s";return Math.floor(s/3600)+"h "+Math.floor((s%3600)/60)+"m";}
 function t(key) { return S().t ? S().t(key) : key; }

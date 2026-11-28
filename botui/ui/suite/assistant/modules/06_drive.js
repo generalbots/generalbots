@@ -43,11 +43,7 @@
 
     D.fmtBytes = function (b) {
         if (!b || b <= 0) return "";
-        if (b < 1024) return b + " B";
-        if (b < 1048576) return (b / 1024).toFixed(0) + " KB";
-        var sep = (A.locale || document.documentElement.lang || "").toLowerCase().indexOf("pt") === 0 ? "," : ".";
-        if (b < 1073741824) return (b / 1048576).toFixed(1).replace(".", sep) + " MB";
-        return (b / 1073741824).toFixed(1).replace(".", sep) + " GB";
+        return A.fmtBytes(b);
     };
 
     D.fmtDate = function (iso) {

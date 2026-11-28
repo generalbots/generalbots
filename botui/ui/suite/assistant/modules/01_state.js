@@ -57,6 +57,21 @@ window.GBAssistant = window.GBAssistant || {};
     /* ---- i18n ---- */
     A.locale = "pt-BR";
 
+    /* One size format for the whole shell, written with the reader's decimal
+       separator: "37,8 MB" in pt-BR, "37.8 MB" in en. "" for a missing size. */
+    A.fmtBytes = function (bytes) {
+        var n = Number(bytes);
+        if (bytes == null || bytes === "" || !isFinite(n) || n < 0) { return ""; }
+        if (n < 1024) { return Math.round(n) + " B"; }
+        var units = ["KB", "MB", "GB", "TB"], v = n / 1024, i = 0;
+        while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+        var digits = i === 0 ? 0 : 1;
+        var opts = { minimumFractionDigits: digits, maximumFractionDigits: digits };
+        var text = typeof window.gbFormatNumber === "function"
+            ? window.gbFormatNumber(v, opts, A.locale || undefined) : v.toFixed(digits);
+        return text + " " + units[i];
+    };
+
     A.initLocale = function () {
         var stored = null;
         try { stored = localStorage.getItem("gb-locale"); } catch (e) { /* */ }

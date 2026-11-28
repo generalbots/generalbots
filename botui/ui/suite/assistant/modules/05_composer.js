@@ -149,9 +149,8 @@
         messageType = messageType || 1;
         var tooBig = files.filter(function (f) { return f.size > MAX_ATTACH_BYTES; });
         if (tooBig.length) {
-            var fmtMB = function (b) { return (b / 1048576).toFixed(1) + " MB"; };
             var names = tooBig.map(function (f) {
-                return f.name + " (" + fmtMB(f.size) + ")";
+                return f.name + " (" + A.fmtBytes(f.size) + ")";
             }).join(", ");
             A.renderError(A.t("attach.too-big",
                 "File too large (50 MB per file limit): ") + names);

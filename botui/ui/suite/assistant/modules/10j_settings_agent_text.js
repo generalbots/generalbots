@@ -20,14 +20,7 @@ function esc(s) {
 
 function fmtBytes(bytes) {
     if (bytes == null || bytes <= 0) { return ""; }
-    var isPt = A.locale && A.locale.startsWith("pt");
-    if (bytes >= 1073741824) {
-        var gb = (bytes / 1073741824).toFixed(1);
-        if (isPt) { gb = gb.replace(".", ","); }
-        return gb + " GB";
-    }
-    var mb = (bytes / 1048576).toFixed(0);
-    return mb + " MB";
+    return A.fmtBytes(bytes);
 }
 
 /* ---- short chip labels (one line, no sentence) ---- */

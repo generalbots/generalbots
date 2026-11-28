@@ -95,7 +95,7 @@ function facts(mode, cfg, hw) {
   var reads = cell("yes", tr("Lê", "Reads")), notYet = cell("no", tr("Ainda não", "Not yet"));
   if (mode === "local") {
     var V = A._modelMachine ? A._modelMachine.verdict(hw, S().localModels) : null;
-    var note = hw.device ? tr("Este computador: ", "This computer: ") + hw.device.replace(/^NVIDIA (GeForce )?/, "").replace(/ GPU$/, "") + ", " + (hw.vram_gb || 0) + " GB" : "";
+    var note = hw.device ? tr("Este computador: ", "This computer: ") + hw.device.replace(/^NVIDIA (GeForce )?/, "").replace(/ GPU$/, "") + ", " + gbOf((hw.vram_gb || 0) * 1024) : "";
     if (V && V.tone !== "none") { note += (note ? " · " : "") + V.short.toLowerCase(); }
     var kind = !V ? (machineFits(hw) ? "yes" : "no") : V.tone === "good" ? "yes" : V.tone === "mid" ? "part" : "no";
     return { privacy: cell("yes", tr("Ficam neste computador", "Stay on this computer")), offline: cell("yes", tr("Funciona", "Works")), cost: cell("yes", tr("Grátis", "Free")),
@@ -235,7 +235,7 @@ function bindGuide(panel, modes, dialog) {
       tr("Pense em processos, dados pessoais e documentos internos. Na dúvida, considere que não podem.", "Think of case files, personal data and internal documents. If in doubt, assume they cannot."), [
       [tr("Não, precisa ficar aqui", "No, it must stay here"), tr("Processos, dados pessoais, documentos internos", "Case files, personal data, internal documents"), I.lock, function () {
         ask(2, tr("Este computador tem placa de vídeo com 6 GB ou mais?", "Does this computer have a graphics card with 6 GB or more?"),
-          hw.device ? tr("Já examinamos: %d, com %v GB.", "We already checked: %d, with %v GB.").replace("%d", hw.device).replace("%v", String(hw.vram_gb || 0)) : tr("Não conseguimos examinar a placa deste computador.", "We could not check this computer’s card."), [
+          hw.device ? tr("Já examinamos: %d, com %v GB.", "We already checked: %d, with %v GB.").replace("%d", hw.device).replace("%v", gbFormatNumber(hw.vram_gb || 0, { maximumFractionDigits: 1 }, A.locale)) : tr("Não conseguimos examinar a placa deste computador.", "We could not check this computer’s card."), [
           [tr("Sim, quero usar este computador", "Yes, I want to use this computer"), tr("Nada sai daqui", "Nothing leaves it"), INFO.local[5], function () { result("local"); }],
           [tr("Não, ou prefiro o servidor da organização", "No, or I prefer the organization’s server"), tr("Os textos vão à rede da organização", "Your text goes to the organization’s network"), INFO.own_key[5], function () { result("own_key"); }]]);
       }],
