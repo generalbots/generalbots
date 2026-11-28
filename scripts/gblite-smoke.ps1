@@ -11,6 +11,15 @@
 # Needs: PostgreSQL reachable through DATABASE_URL, Python on PATH. No request
 # leaves the machine: the model endpoint is 127.0.0.1 and the secrets address is
 # an unresolvable name, so the server skips its service bootstrap.
+#
+# Isolated on purpose, and therefore NOT a check of a real install: it hands
+# the server what a new machine does not have (a CSRF secret, an empty .env and
+# init.json that mark the bootstrap done, conf\system and conf\vault made in
+# advance, a directory_config.json, sign-in switched off, an external
+# database, no Vault at all). A broken first start passes here. The gate for
+# the real path (empty stack, payload Vault, two starts) is
+# scripts/gblite-first-run.ps1, run by gbgov-windows.yml on every push and by
+# gblite-release.yml before a release is packaged.
 
 param(
     [string]$Binary = 'target\debug\botserver.exe',
