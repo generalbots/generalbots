@@ -363,6 +363,11 @@ description = "Allow the local_password_reset command"
 commands.allow = ["local_password_reset"]
 
 [[permission]]
+identifier = "allow-take-desktop-session"
+description = "Allow the take_desktop_session command"
+commands.allow = ["take_desktop_session"]
+
+[[permission]]
 identifier = "allow-agent-runtime-status"
 description = "Allow the agent_runtime_status command"
 commands.allow = ["agent_runtime_status"]

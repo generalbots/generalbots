@@ -561,6 +561,12 @@
           "markdownDescription": "Allow the stop_tray command"
         },
         {
+          "description": "Allow the take_desktop_session command",
+          "type": "string",
+          "const": "allow-take-desktop-session",
+          "markdownDescription": "Allow the take_desktop_session command"
+        },
+        {
           "description": "Allow the update_tray_status command",
           "type": "string",
           "const": "allow-update-tray-status",

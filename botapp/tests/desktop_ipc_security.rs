@@ -283,9 +283,17 @@ fn remote_origin_scripts_cannot_invoke_wizard_reset_stack() {
         );
     }
 
-    // Positive control: the minimal read-only/download set the suite needs.
-    let expected: HashSet<&str> = ["save_download", "check_release_update", "open_release_url"]
-        .into_iter()
-        .collect();
+    // Positive control: the minimal set the suite needs (downloads, release
+    // check, the sign-in page's local reset, the one-shot session handoff).
+    let expected: HashSet<&str> = [
+        "save_download",
+        "open_download",
+        "check_release_update",
+        "open_release_url",
+        "local_password_reset",
+        "take_desktop_session",
+    ]
+    .into_iter()
+    .collect();
     assert_eq!(remote_commands, expected, "main.json command set drifted");
 }

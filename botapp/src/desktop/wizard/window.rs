@@ -6,7 +6,8 @@ use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 use super::origin::{
     is_allowed_main_navigation, is_allowed_suite_url, parse_suite_url, use_dev_server,
 };
-use super::session::{suite_url_with_token, wait_for_desktop_session, wait_for_wizard_session};
+use super::session::{wait_for_desktop_session, wait_for_wizard_session};
+use super::session_handoff::suite_url_for_session;
 
 /// Design size of the wizard window and the margin kept around it.
 const WIZARD_WIDTH: f64 = 1040.0;
@@ -221,7 +222,7 @@ fn reveal_suite_with_token(app: &tauri::AppHandle, token: Option<&str>) {
     if SHOW_BEFORE_NAVIGATE {
         let _ = main.show();
     }
-    let url = suite_url_with_token(url, token);
+    let url = suite_url_for_session(url, token);
     if let Err(e) = main.navigate(url.clone()) {
         warn!("could not navigate the suite window: {e}");
         let _ = main.show();
@@ -308,7 +309,7 @@ pub fn ensure_suite_window(app: &tauri::AppHandle) {
         let builder = WebviewWindowBuilder::new(
             &handle,
             "main",
-            WebviewUrl::External(suite_url_with_token(url, token.as_deref())),
+            WebviewUrl::External(suite_url_for_session(url, token.as_deref())),
         )
         .title(handle.package_info().name.as_str())
         .inner_size(1340.0, 860.0)

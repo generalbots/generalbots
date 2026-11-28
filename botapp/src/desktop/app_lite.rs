@@ -119,6 +119,7 @@ pub fn run() {
         crate::desktop::wizard::wizard_ai_use_chat,
         crate::desktop::wizard::wizard_finish,
         crate::desktop::recovery::local_password_reset,
+        crate::desktop::wizard::session_handoff::take_desktop_session,
         crate::desktop::agent_runtime::commands::agent_runtime_status,
         crate::desktop::agent_runtime::commands::agent_runtime_install,
         crate::desktop::agent_runtime::commands::agent_runtime_cancel,

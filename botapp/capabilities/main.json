@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "main",
-  "description": "Least-privilege capability for the main WebView. It is navigated to the loopback sidecar, whose HTML/JS may include model-generated content, so it receives only core window commands, the text-zoom command, the download save/open commands, the release-update check and the sign-in page's local password reset (which asks for a native confirmation) the suite actually calls. All wizard, Drive, sync, tray and destructive commands stay on the local-only wizard capability (#2688).",
+  "description": "Least-privilege capability for the main WebView. It is navigated to the loopback sidecar, whose HTML/JS may include model-generated content, so it receives only core window commands, the text-zoom command, the download save/open commands, the release-update check and the sign-in page's local password reset (which asks for a native confirmation) and the one-shot session handoff the assistant page takes at boot, which the suite actually calls. All wizard, Drive, sync, tray and destructive commands stay on the local-only wizard capability (#2688).",
   "platforms": ["macOS", "windows", "linux"],
   "local": false,
   "windows": ["main"],
@@ -17,6 +17,7 @@
     "allow-save-download",
     "allow-open-download",
     "allow-local-password-reset",
+    "allow-take-desktop-session",
     "allow-check-release-update",
     "allow-open-release-url"
   ]

@@ -22,6 +22,7 @@ mod private_file;
 mod progress;
 mod provision;
 mod session;
+pub(crate) mod session_handoff;
 mod system;
 mod types;
 mod window;
