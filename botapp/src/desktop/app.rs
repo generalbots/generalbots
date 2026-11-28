@@ -59,7 +59,10 @@ pub fn run() {
     }
     botlib::logging::init_compact_logger("info");
     let version = crate::build_info::version();
-    info!("BotApp {version} starting...");
+    info!("BotApp {version} ({}, built {}) starting...",
+        crate::build_info::commit(),
+        crate::build_info::build_date()
+    );
 
     // #1870 — carry the WebKit profile (localStorage, cache) from the legacy
     // bundle identifier's data folder before any webview opens, so users keep

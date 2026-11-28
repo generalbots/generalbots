@@ -26,7 +26,10 @@ pub fn run() {
     }
     botlib::logging::init_compact_logger("info");
     let version = crate::build_info::version();
-    info!("BotApp {version} starting (Lite edition)...");
+    info!("BotApp {version} ({}, built {}) starting (Lite edition)...",
+        crate::build_info::commit(),
+        crate::build_info::build_date()
+    );
 
     let context: tauri::Context<tauri::Wry> = tauri::generate_context!();
     let running_identifier = context.config().identifier.clone();

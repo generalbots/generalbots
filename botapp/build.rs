@@ -1,4 +1,9 @@
 use serde_json::{Map, Value};
+
+/// Stamps `BOTSERVER_COMMIT` / `BOTSERVER_BUILD_DATE` for `build_info`, the
+/// same way botcore does for `/api/product`.
+#[path = "../botserver/crates/botcore/build_stamp.rs"]
+mod build_stamp;
 use std::error::Error;
 
 /// The edition config the release workflow passes to `cargo tauri build`.
@@ -13,6 +18,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // The suite and the first-run wizard are embedded from botui/ui at build
     // time, so a change there must relink the application.
     println!("cargo:rerun-if-changed=../botui/ui");
+    build_stamp::emit();
     if std::env::var_os("CARGO_FEATURE_GBLITE").is_some() {
         apply_identity(GBGOV_CONFIG)?;
     }

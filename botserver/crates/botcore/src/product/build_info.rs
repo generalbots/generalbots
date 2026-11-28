@@ -78,4 +78,15 @@ mod tests {
         assert_eq!(text(Some("   ")), "unknown");
         assert_eq!(text(Some(" abc123 ")), "abc123");
     }
+
+    /// The build script stamps a date on every build, with or without the
+    /// release workflow's variable, so About never shows it as unknown.
+    #[test]
+    fn the_build_date_is_stamped_on_every_build() {
+        let date = build_date();
+        let parts: Vec<&str> = date.split(['-', 'T']).collect();
+        assert!(parts.len() >= 3, "{date}");
+        assert_eq!(parts[0].len(), 4, "{date}");
+        assert!(parts[..3].iter().all(|part| part.parse::<u32>().is_ok()), "{date}");
+    }
 }
