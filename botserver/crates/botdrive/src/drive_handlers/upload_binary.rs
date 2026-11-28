@@ -82,6 +82,7 @@ pub async fn upload_file_binary(
                 &format!("Upload failed: {e}"),
             )
         })?;
+    invalidate_quota();
 
     Ok(drive_upload_response(notice))
 }

@@ -105,6 +105,9 @@ mod keys_tests;
 #[cfg(test)]
 #[path = "public_link_tests.rs"]
 mod public_link_tests;
+#[cfg(test)]
+#[path = "quota_cache_tests.rs"]
+mod quota_cache_tests;
 
 pub use ai_chat_handler::*;
 pub use bucket_scope::*;

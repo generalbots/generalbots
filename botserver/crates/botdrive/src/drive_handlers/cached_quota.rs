@@ -16,6 +16,16 @@ pub(super) fn store_quota(quota: &QuotaResponse) {
         }
     }
 }
+/// Drops the quota snapshot after a write that changes the stored bytes, so
+/// the next quota request counts the change instead of serving the old total
+/// for the rest of the cache window.
+pub(super) fn invalidate_quota() {
+    if let Some(cell) = QUOTA_CACHE.get() {
+        if let Ok(mut guard) = cell.lock() {
+            *guard = None;
+        }
+    }
+}
 pub(super) fn err(status: StatusCode, msg: &str) -> (StatusCode, Json<serde_json::Value>) {
     warn!("drive_handler error ({}): {}", status.as_u16(), msg);
     (status, Json(serde_json::json!({"error": msg})))

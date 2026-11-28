@@ -139,6 +139,7 @@ pub async fn delete_file(
             &format!("Delete failed: {e}"),
         )
     })?;
+    invalidate_quota();
 
     botlog::safe_info!("File deleted: {key} from bucket {bucket}");
     Ok(Json(SuccessResponse { success: true }))

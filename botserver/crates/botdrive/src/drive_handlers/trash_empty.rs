@@ -59,6 +59,8 @@ pub async fn empty_trash(
             }
         }
 
+        invalidate_quota();
+
         if let Err(e) = diesel::sql_query("DELETE FROM drive_trash WHERE user_id = $1")
             .bind::<Text, _>(&uid)
             .execute(&mut conn)
