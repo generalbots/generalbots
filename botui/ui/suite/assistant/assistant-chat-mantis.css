@@ -48,8 +48,9 @@
    Copy, Regenerate and the thumbs fade in on hover or keyboard focus
    (always shown on the last answer) and keep their space, so nothing moves. */
 .gb-chat-view .gb-msg-assistant > .gb-msg-toolbar {
-    display: flex; flex-wrap: nowrap; align-items: center; gap: 0;
-    margin-top: var(--id-space-2); border: 0; background: none; opacity: 1;
+    position: static; display: flex; flex-wrap: nowrap; align-items: center; gap: 0;
+    margin-top: var(--id-space-2); padding: 0; border: 0; border-radius: 0;
+    background: none; box-shadow: none; opacity: 1;
 }
 .gb-chat-view .gb-msg-assistant > .gb-msg-toolbar > .gb-msg-toolbar-btn {
     color: var(--id-muted); border: 1px solid var(--id-line); opacity: 0;

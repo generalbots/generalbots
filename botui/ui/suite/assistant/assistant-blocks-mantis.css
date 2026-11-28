@@ -25,6 +25,7 @@
     flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     font-size: var(--id-text-xs); color: var(--id-muted);
 }
+.gb-chat-view .gb-block-title + .gb-block-summary:not(:empty)::before { content: "·" / ""; margin-right: 8px; }
 .gb-chat-view :is(.gb-block-chip, .gb-block-count) {
     flex: none; display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 7px;
     border: 1px solid var(--id-line); border-radius: var(--id-radius-sm); background: var(--id-surface-solid);
@@ -155,6 +156,7 @@
 
 @media (max-width: 620px) {
     .gb-chat-view .gb-block-summary { flex-basis: 100%; order: 9; white-space: normal; }
+    .gb-chat-view .gb-block-title + .gb-block-summary::before { content: none; }
     .gb-chat-view .gb-block-row-label { min-width: 96px; }
 }
 @media (prefers-reduced-motion: reduce) {

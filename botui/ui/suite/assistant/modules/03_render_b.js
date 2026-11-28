@@ -88,6 +88,7 @@
         } else if (reasoning) {
             el.insertAdjacentHTML("beforeend", A.reasoningHtml(reasoning, elapsed));
         }
+        if (A.addMessageHeading) { A.addMessageHeading(el, false, Number(el.dataset.streamStarted) || Date.now()); }
         var card = typeof A.consentFromContent === "function" ? A.consentFromContent(raw) : null;
         if (card) { A.queueConsentCard(card); }
         if (leaked && !card) {
@@ -254,7 +255,9 @@
                 }
                 if (m.reasoning && typeof A.blockThinking === "function") {
                     var thinkStack = el.querySelector(".gb-block-stack");
-                    var thinkEl = A.blockThinking(null, m.reasoning);
+                    /* The stored turn carries no duration unless the server adds
+                       `reasoning_ms`; without it the card shows no time. */
+                    var thinkEl = A.blockThinking(m.reasoning_ms > 0 ? Math.floor(m.reasoning_ms / 1000) : null, m.reasoning);
                     if (thinkStack) {
                         thinkStack.appendChild(thinkEl);
                     } else {
