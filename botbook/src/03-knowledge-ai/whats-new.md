@@ -3,7 +3,7 @@
 What changed recently, with the date it landed. Every entry here is traceable to a
 commit, a route or a page in the repository — this page is a changelog, not a
 feature list. For what exists today rather than what is new, see the
-[Roadmap](../ROADMAP.md) and [Suite Apps Status](../07-user-interface/apps/suite-apps-status.md).
+[What shipped](../what-shipped.md) and the [generated app registry](../07-user-interface/apps/generated/registry.md).
 
 > **Verified 2026-09-13** against the commit history. If an entry here disagrees
 > with the code, the code is right.
@@ -23,13 +23,13 @@ feature list. For what exists today rather than what is new, see the
 
 The larger arcs — the Rust core, channels, Drive, the productivity suite, workflow
 and CRM — are recorded with their state and evidence in the
-[Roadmap](../ROADMAP.md), which separates **shipped** work from work that is
+[Roadmap](../what-shipped.md), which separates **shipped** work from work that is
 in progress or planned. That separation is deliberate: this page should never be
 the place where unfinished work is announced as finished.
 
 ## See Also
 
-- [Roadmap](../ROADMAP.md) — what is shipped, in progress and planned
+- [What shipped](../what-shipped.md) — released version tags
 - [Multi-Agent Orchestration](./multi-agent-orchestration.md) — agents, protocols and routing
 - [Retrieval and RAG](./hybrid-search.md) — how knowledge is retrieved, and what is not implemented
 - [Suite Apps Status](../07-user-interface/apps/suite-apps-status.md) — per-application state

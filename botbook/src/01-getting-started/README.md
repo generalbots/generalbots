@@ -101,7 +101,7 @@ How conversations are managed across WhatsApp, Web, Telegram, and more.
 
 ## Coming From Executive Vision?
 
-If you just read the [Executive Vision](../executive-vision.md), here's what to know:
+Here is what to know before you start:
 
 1. **Everything in that feature table?** It's all included in the single `botserver` binary
 2. **No configuration needed** — Bootstrap detects your system and sets everything up

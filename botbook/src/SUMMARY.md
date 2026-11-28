@@ -1,8 +1,7 @@
 # Summary 🟡 BETA
 
 [Home](./index.md)
-[Executive Vision](./executive-vision.md)
-[Roadmap 2018-2027](./ROADMAP.md)
+- [What shipped](./what-shipped.md)
 [Verification Checklist](./VERIFICATION-CHECKLIST.md)
 [Introduction](./introduction.md)
 
@@ -411,6 +410,7 @@
    - [Vision - Image Recognition](./07-user-interface/apps/vision.md)
    - [Suite Apps](./07-user-interface/apps/README.md)
    - [Generated app registry](./07-user-interface/apps/generated/registry.md)
+   - [Generated app cards](./07-user-interface/apps/generated/cards.md)
    - [Automations](./07-user-interface/apps/automations.md)
    - [Biometry](./07-user-interface/apps/biometry.md)
    - [Clock Widget](./07-user-interface/apps/clock-widget.md)

@@ -2,7 +2,7 @@
 
 # API / email
 
-71 routes in the `email` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+73 routes in the `email` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
@@ -15,6 +15,8 @@ Base URL: `http://localhost:8080` — see
 | DELETE | `/api/email/accounts/:param` | registered in crates/botemail/src/routes.rs | yes | `botserver/crates/botemail/src/routes.rs` |
 | GET | `/api/email/accounts/:param` | schema not modeled | no | `botserver/crates/botemail/src/routes.rs` |
 | POST | `/api/email/accounts/:param` | schema not modeled | no | `botserver/crates/botemail/src/routes.rs` |
+| DELETE | `/api/email/accounts/:param/oauth` | schema not modeled | no | `botserver/crates/botemail/src/routes.rs` |
+| POST | `/api/email/accounts/:param/oauth` | schema not modeled | no | `botserver/crates/botemail/src/routes.rs` |
 | DELETE | `/api/email/accounts/add` | schema not modeled | no | `botserver/crates/botemail/src/routes.rs` |
 | POST | `/api/email/accounts/add` | registered in crates/botemail/src/routes.rs | yes | `botserver/crates/botemail/src/routes.rs` |
 | GET | `/api/email/bulk/add-label` | schema not modeled | no | `botserver/crates/botemail/src/routes.rs` |

@@ -1,4 +1,4 @@
-# Video 🟡 PREVIEW - AI Monitoring
+# Video AI 🟡 PREVIEW - AI Monitoring
 
 > **AI-powered camera monitoring**
 

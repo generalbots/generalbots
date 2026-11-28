@@ -1,4 +1,4 @@
-# Vibe — AI Development Environment 🟢 GA
+# Vibe — AI Development Environment 🟡 PREVIEW
 
 > **Chat-driven coding, deployment, and infrastructure management**
 

@@ -1,4 +1,4 @@
-# Sheet 🟡 PREVIEW (advanced) - Spreadsheets
+# Sheets 🟡 PREVIEW (advanced) - Spreadsheets
 
 > **AI spreadsheet with desktop-grade features**
 

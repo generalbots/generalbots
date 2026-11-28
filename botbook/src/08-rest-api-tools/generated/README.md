@@ -33,11 +33,11 @@ request/response fields are invented here.
 
 ## Counts
 
-- method/path pairs parsed from route literals: **4303**
+- method/path pairs parsed from route literals: **4305**
 - catalog entries: **800**
-- merged routes: **4336**
+- merged routes: **4338**
 - catalog-only (no route literal found): **33**
-- route-only (no catalog summary): **3536**
+- route-only (no catalog summary): **3538**
 - families: **191**
 - `.nest(` calls (mount prefixes, unresolved): **9**
 
@@ -85,7 +85,7 @@ A catalog-only entry is usually a route mounted inside a nested router;
 | `dns` | 14 | [api-dns](./api-dns.md) |
 | `docs` | 104 | [api-docs](./api-docs.md) |
 | `editor` | 12 | [api-editor](./api-editor.md) |
-| `email` | 71 | [api-email](./api-email.md) |
+| `email` | 73 | [api-email](./api-email.md) |
 | `erp` | 22 | [api-erp](./api-erp.md) |
 | `events` | 19 | [api-events](./api-events.md) |
 | `external-drives` | 14 | [api-external-drives](./api-external-drives.md) |

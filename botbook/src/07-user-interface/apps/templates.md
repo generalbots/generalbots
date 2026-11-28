@@ -1,4 +1,4 @@
-# Templates 🟡 PREVIEW - Content
+# Message Templates 🟡 PREVIEW - Content
 
 > **Reusable content templates**
 

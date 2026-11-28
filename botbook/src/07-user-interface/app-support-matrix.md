@@ -1,6 +1,6 @@
 # Supported Matrix 🟢 GA
 
-68 apps and more than a hundred Cargo features multiply every test, doc,
+72 apps and more than a hundred Cargo features multiply every test, doc,
 security review, translation string and support obligation. "Everything is
 preview" is another way of saying nothing is supported, so the product declares
 one matrix: which build tier supports which app, on which platforms, owned by
@@ -39,8 +39,8 @@ built and smoke-tested on Windows by the `gbgov Windows` workflow.
 
 | Status | Apps | Meaning |
 |---|---|---|
-| Supported | 14 — `chat`, `drive`, `browser`, `clock-widget`, `jukebox`, `player`, `calculator`, `notes`, `photos`, `timer`, `weather`, `integrations`, `about`, `settings` | In `apps=` of a tier; covered by the matrix SLA |
-| Preview | 52 — every other registry app | Ships, excluded from the SLA, withheld until Preview mode is on |
+| Supported | **26** ids, listed with owners in the [generated registry](./apps/generated/registry.md) | In `apps=` of a tier; covered by the matrix SLA |
+| Preview | **44** — every other registry app | Ships, excluded from the SLA, withheld until Preview mode is on |
 | Hidden | `research` | Compiled and routed, never advertised (#1626) |
 | Deprecated | `clock` (superseded by `clock-widget`) | Announced for removal; never in `apps=` |
 

@@ -5,7 +5,7 @@
 > work that is in progress, and ambitions that have not been built. Read it as a
 > proposal.
 >
-> For what exists today, use [ROADMAP.md](../ROADMAP.md), which marks each item
+> For what exists today, use [What shipped](../what-shipped.md), which marks each item
 > **Shipped**, **In progress** or **Planned** with evidence, and
 > [Multi-Agent Orchestration](./multi-agent-orchestration.md) for the agent
 > system as it actually behaves. Where this page and the code disagree, the code

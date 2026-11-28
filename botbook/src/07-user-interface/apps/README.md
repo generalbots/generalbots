@@ -14,20 +14,20 @@ Every app page carries its status in the title, so you never have to guess:
 
 | Marker | Meaning | Apps |
 |---|---|---|
-| **🟢 GA** | Supported. Safe to depend on. | **Chat**, **Explorer** (Drive), **Vibe** |
+| **🟢 GA** | Supported. Safe to depend on. | **Chat**, **Explorer** (Drive) |
 | **🟡 PREVIEW (advanced)** | Functional and close to stable, but not yet supported. | **Mail**, **Sheets** |
 | **🟡 PREVIEW — IN TEST** | Under active test. Behaviour and interface may change. | **Docs**, **Slides** |
 | **🟡 PREVIEW** | Usable, but not yet supported. | Every other app in the catalog |
 
 Preview applications are **installed and working** — they are simply withheld from the launcher and the sidebar until you turn on the **Preview** switch. That switch lives in the left sidebar and is remembered per browser.
 
-In the shipped 7.0 configuration these apps appear **without** Preview mode: Chat,
-Explorer (Drive), Sheets, Player, Calculator, Sticky Notes, Photos, Timer, Weather,
-JukeBox, the Clock widget and Integrations. Every other app is preview-only. The
-split lives in the app registry (`launcher_visibility` in
-`botserver/src/apps/registry`), which the launchers read; the `.product` file
-mirrors it — see [Product configuration](../../12-ecosystem-reference/README.md#preview_apps)
-for how to promote or hide an app.
+The launcher visibility split is generated from the registry: **25** ids are
+marked `Always`, the other **47** are `Preview`. The current list — and the
+`AppStatus` for each id — is in the [generated app registry](./generated/registry.md).
+The split lives in `botserver/src/apps/registry` (`launcher_visibility`), which the
+launchers read; the `.product` file mirrors it — see
+[Product configuration](../../12-ecosystem-reference/README.md#preview_apps) for
+how to promote or hide an app.
 
 ### App manifest consistency
 
