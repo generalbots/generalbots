@@ -35,6 +35,7 @@ pub mod corpus;
 pub mod macro_strip;
 pub mod malware;
 pub mod password;
+pub mod scanner_presence;
 
 pub use clamav_scanner::register_default_malware_scanner;
 
@@ -128,8 +129,22 @@ pub fn malware_decision(
     decision: &MalwareScanDecision,
     require_scanner: bool,
 ) -> Result<(), UploadError> {
+    malware_decision_with(
+        decision,
+        require_scanner,
+        scanner_presence::missing_scanner_allowed(),
+    )
+}
+
+/// As [`malware_decision`], with the "no scanner installed is accepted"
+/// switch passed explicitly so the decision is testable without global state.
+pub fn malware_decision_with(
+    decision: &MalwareScanDecision,
+    require_scanner: bool,
+    missing_scanner_allowed: bool,
+) -> Result<(), UploadError> {
     match decision {
-        MalwareScanDecision::NotConfigured if require_scanner => {
+        MalwareScanDecision::NotConfigured if require_scanner && !missing_scanner_allowed => {
             Err(UploadError::MalwareScannerMissing)
         }
         MalwareScanDecision::Infected { signature, .. } => Err(UploadError::MalwareDetected {
