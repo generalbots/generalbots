@@ -192,6 +192,7 @@
           "</div>" +
         "</div>" +
       "</details>" +
+      '<div id="provisionError" class="note err" role="status"></div>' +
       '<div class="install-columns" id="installColumns">' +
         '<div class="install-col-steps">' +
           '<div class="install-head">' +
@@ -213,7 +214,6 @@
           "</div>" +
         "</div>" +
       "</div>" +
-      '<div id="provisionError" class="note err" role="status"></div>' +
       '<div class="card" style="margin-top:14px" id="agentRuntimeCardWrap">' +
         '<div class="card-head"><span class="card-title">' + esc(t("agent.card-title")) + '</span></div>' +
         '<div id="agentRuntimeCard"></div>' +

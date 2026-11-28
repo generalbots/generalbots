@@ -85,8 +85,9 @@
   flex: 1;
   min-height: 0;
 }
-/* A failure notice below must not squeeze the step list under it. */
-.install-columns:has(~ .install-failure:not(:empty)) { flex: 1 0 auto; }
+/* The failure notice sits above the step list so it and its actions fit the
+   window; the step list keeps its height and the step body scrolls to it. */
+.install-failure:not(:empty) ~ .install-columns { flex: 1 0 auto; }
 .install-col-steps {
   display: flex;
   flex-direction: column;
@@ -192,9 +193,10 @@ pre.log {
 /* Failure notice: what stopped, why, where the log is, what to do. */
 .install-failure:not(:empty) {
   display: flex;
+  flex: none;
   flex-direction: column;
   gap: 4px;
-  margin-top: var(--id-space-3);
+  margin: 0 0 var(--id-space-3);
   padding: var(--id-space-3) var(--id-space-4);
   border: 1px solid var(--id-danger-line);
   border-radius: var(--id-radius-sm);
