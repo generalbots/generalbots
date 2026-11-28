@@ -230,38 +230,36 @@
 
     D.uploadFiles = function (files) {
         if (!files || !files.length) return;
-        /* Reject files over the limit before starting the upload. */
-        var tooBig = [];
+        /* A file the page will not send is listed in the same failure toast
+           as a file the server refused, each with its reason. */
+        var failures = [];
         var ok = [];
         for (var fi = 0; fi < files.length; fi++) {
             if (overDriveLimit(files[fi])) {
-                tooBig.push(files[fi].name + " (" + D.fmtBytes(files[fi].size) + ")");
+                failures.push({ name: files[fi].name, reason: D.fmtBytes(files[fi].size) + ", " +
+                    A.t("drive.file-too-big", "acima do limite de 75 MB por arquivo do Drive.") });
             } else {
                 ok.push(files[fi]);
             }
         }
-        if (tooBig.length) {
-            D.showToast(
-                A.t("drive.file-too-big", "Arquivo grande demais para o Drive (limite de 75 MB por arquivo): ") + tooBig.join(", "),
-                "error"
-            );
-        }
+        var total = files.length;
         files = ok;
-        if (!files.length) return;
+        var toast = showUploadToast(total);
+        if (!files.length) {
+            showUploadFailures(toast, 0, total, failures);
+            return;
+        }
         /* Track which names already exist so the toast can say "replaced". */
         var existingNames = {};
         for (var ei = 0; ei < D.files.length; ei++) {
             existingNames[(D.files[ei].name || "").toLowerCase()] = true;
         }
         var replaced = 0;
-        var toast = showUploadToast(files.length);
         var done = 0;
-        var failed = 0;
-        var failures = [];
 
         (function next(i) {
             if (i >= files.length) {
-                if (failed === 0) {
+                if (!failures.length) {
                     var doneMsg = A.t("drive.upload-done", "Envio concluido");
                     if (replaced > 0) {
                         doneMsg += " (" + replaced + " " + A.t("drive.replaced", "substituido(s)") + ")";
@@ -269,7 +267,7 @@
                     updateUploadToast(toast, files.length, files.length, doneMsg);
                     setTimeout(function () { removeToast(); }, replaced > 0 ? 4000 : 2000);
                 } else {
-                    showUploadFailures(toast, done, files.length, failures);
+                    showUploadFailures(toast, done, total, failures);
                 }
                 if (D.inboxMode) {
                     var filesTab = document.querySelector('#gbDrvTabs [data-tab="files"]');
@@ -294,7 +292,6 @@
                 if (existingNames[files[i].name.toLowerCase()]) { replaced++; }
                 next(i + 1);
             }).catch(function (e) {
-                failed++;
                 failures.push({ name: files[i].name, reason: (e && e.message) || A.t("drive.upload-failed", "falha(s)") });
                 next(i + 1);
             });

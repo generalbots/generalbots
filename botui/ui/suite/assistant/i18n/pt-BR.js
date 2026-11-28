@@ -206,7 +206,7 @@ window.GBAssistantLocales["pt-BR"] = {
     "drive.uploading":         "Enviando...",
     "drive.upload-done":       "Envio concluído",
     "drive.replaced":          "substituído(s)",
-    "drive.file-too-big":      "Arquivo grande demais para o Drive (limite de 75 MB por arquivo): ",
+    "drive.file-too-big":      "acima do limite de 75 MB por arquivo do Drive.",
     "drive.upload-failed":     "falha(s)",
     "drive.upload-failed-title": "Envio não concluído",
     "drive.close":             "Fechar",
