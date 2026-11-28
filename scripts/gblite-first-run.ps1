@@ -180,13 +180,7 @@ function Invoke-Preflight {
     if ($absent.Count -gt 0) { $detail = "PostgreSQL runtime files missing from the payload: $($absent -join ', ')" }
     Add-Check 'app folder laid out as the installer does, runtime files beside the stack' ($absent.Count -eq 0) $detail
     if ($absent.Count -gt 0) { return }
-    if ($ReadOnlyApp) {
-        & icacls $AppDir /deny '*S-1-1-0:(OI)(CI)(DE,DC,WD,AD,WEA,WA)' /Q | Out-Null
-        $script:locked = $true
-        $writable = $true
-        try { [IO.File]::WriteAllText("$Installers\write-test.tmp", 'x') } catch { $writable = $false }
-        Add-Check 'app folder is read-only, as a per-machine install is' (-not $writable) $AppDir
-    }
+    if ($ReadOnlyApp) { Lock-AppFolder }
     $script:staged = $true
 }
 
@@ -276,7 +270,7 @@ function Invoke-Provisioning {
     # is the refusal of one (facade/install_system_packages.rs:91-100); a file
     # that is new in the installers folder was fetched into it
     # (package_manager/cache.rs:58-59).
-    $fetched = @($now | Where-Object { $script:bundled -notcontains $_ } | ForEach-Object { "new file $_" })
+    $fetched = @($now | Where-Object { $script:bundled -notcontains $_ -and $_ -ne $WriteProbe } | ForEach-Object { "new file $_" })
     $fetched += @($text | Where-Object { $_ -match '^\s*Downloading\s' -or $_ -match 'Offline mode:' } |
             ForEach-Object { ($_ -replace '^.*?(Offline mode:|Downloading\s)', '$1' -replace '","elapsed_ms.*$', '' -replace '\\\\', '\').Trim() })
     Add-Check 'provisioning needed nothing outside the payload' ($fetched.Count -eq 0) (@($fetched | Select-Object -Unique) -join ' | ')
@@ -363,7 +357,7 @@ try {
         if (Test-Path -LiteralPath "$Stack\logs") { Copy-Item -LiteralPath "$Stack\logs" -Destination "$Evidence\stack-logs" -Recurse -Force -ErrorAction SilentlyContinue }
     }
     foreach ($name in @($script:envBackup.Keys)) { Set-Env $name $script:envBackup[$name] }
-    if ($script:locked) { & icacls $AppDir /remove:d '*S-1-1-0' /Q | Out-Null }
+    if ($script:locked) { Unlock-AppFolder }
     if ($script:owned -and -not $KeepFolders) {
         foreach ($folder in $Stack, $AppDir) {
             for ($try = 0; $try -lt 5 -and (Test-Path -LiteralPath $folder); $try++) {

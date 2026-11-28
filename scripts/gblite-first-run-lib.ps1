@@ -97,3 +97,51 @@ function Stop-Everything {
         Start-Sleep -Seconds 1
     }
 }
+
+# -ReadOnlyApp: the staged app folder is locked as a per-machine install is for
+# the person who runs the app. The read-only attribute and an ACL that only drops
+# Allow entries do not stop an administrator (the CI runner is one); an explicit
+# Deny of every write right does. It is set for Everyone and for the account
+# running the check, on the app folder and again on installers\ (in case the
+# inherited entry did not reach it), and the lock is measured by creating a file
+# in each folder. A probe file that got through is deleted at once and is left
+# out of the payload comparison.
+$WriteProbe = 'gblite-check-write-probe.tmp'
+function Get-LockSids { return @('*S-1-1-0', "*$([Security.Principal.WindowsIdentity]::GetCurrent().User.Value)") }
+function Get-WritableFolders {
+    $writable = @()
+    foreach ($folder in $AppDir, $Installers) {
+        $probe = Join-Path $folder $WriteProbe
+        try { [IO.File]::WriteAllText($probe, 'x'); $writable += $folder } catch { Write-Verbose "write refused in $folder" }
+        if (Test-Path -LiteralPath $probe) { Remove-Item -LiteralPath $probe -Force -ErrorAction SilentlyContinue }
+    }
+    return $writable
+}
+function Lock-AppFolder {
+    $script:locked = $true
+    $problems = @()
+    foreach ($folder in $AppDir, $Installers) {
+        foreach ($sid in Get-LockSids) {
+            $out = & icacls $folder /deny "${sid}:(OI)(CI)(DE,DC,WD,AD,WEA,WA)" /Q
+            if ($LASTEXITCODE -ne 0) { $problems += "icacls /deny $sid on $folder exited $LASTEXITCODE $(($out | Out-String).Trim())" }
+        }
+    }
+    $writable = @(Get-WritableFolders)
+    $detail = "a new file was refused in $AppDir and in installers\"
+    if ($writable.Count -gt 0) {
+        $privileges = @(& whoami /priv | Where-Object { $_ -match 'SeBackupPrivilege|SeRestorePrivilege|SeTakeOwnershipPrivilege' } | ForEach-Object { ($_ -replace '\s+', ' ').Trim() })
+        $detail = "a file could still be created in $($writable -join ', '); $($problems -join '; '); $($privileges -join '; ')"
+    }
+    Add-Check 'app folder is read-only, as a per-machine install is' ($writable.Count -eq 0 -and $problems.Count -eq 0) $detail
+}
+function Unlock-AppFolder {
+    foreach ($folder in $Installers, $AppDir) {
+        if (-not (Test-Path -LiteralPath $folder)) { continue }
+        foreach ($sid in Get-LockSids) { & icacls $folder /remove:d $sid /Q | Out-Null }
+    }
+    $script:locked = $false
+    if (Test-Path -LiteralPath $Installers) {
+        $writable = @(Get-WritableFolders)
+        Add-Check 'app folder writable again after the run (lock removed)' ($writable.Count -eq 2) "writable: $($writable -join ', ')"
+    }
+}
