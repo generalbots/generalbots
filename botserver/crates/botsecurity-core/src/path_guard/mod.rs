@@ -245,6 +245,8 @@ mod tests {
 mod path_guard_error;
 mod permissive;
 mod validate;
+#[cfg(test)]
+mod windows_forms_tests;
 
 pub use validate::*;
 

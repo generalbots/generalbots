@@ -26,14 +26,13 @@ impl PathGuard {
             return Err(PathGuardError::PathTooLong);
         }
 
-        if path.is_absolute() && !self.config.allowed_roots.is_empty() {
-            let is_within_root = self.config.allowed_roots.iter().any(|root| {
-                path.starts_with(root)
-            });
-            if !is_within_root {
-                warn!(path = %path_str, "Absolute path outside allowed roots");
-                return Err(PathGuardError::AbsolutePath);
-            }
+        // A root or a drive prefix replaces the base on join, whether or not
+        // `is_absolute` says so (`\x`, `C:x` on Windows). Such input is only
+        // accepted inside an allowed root, checked after normalisation below.
+        let rooted = is_rooted(path);
+        if rooted && self.config.allowed_roots.is_empty() {
+            warn!(path = %path_str, "Rooted path without an allowed root");
+            return Err(PathGuardError::AbsolutePath);
         }
 
         let mut depth: usize = 0;
@@ -80,6 +79,17 @@ impl PathGuard {
             }
         }
 
+        if rooted
+            && !self
+                .config
+                .allowed_roots
+                .iter()
+                .any(|root| normalized.starts_with(root))
+        {
+            warn!(path = %path_str, "Rooted path outside allowed roots");
+            return Err(PathGuardError::AbsolutePath);
+        }
+
         if let Some(ext) = normalized.extension() {
             let ext_str = ext.to_string_lossy().to_lowercase();
 
@@ -115,9 +125,16 @@ impl PathGuard {
         path: &Path,
     ) -> Result<PathBuf, PathGuardError> {
         let shown = path.to_string_lossy();
-        if path.is_absolute() {
-            warn!(path = %shown, "Absolute path input rejected");
+        if is_rooted(path) {
+            warn!(path = %shown, "Rooted path input rejected");
             return Err(PathGuardError::AbsolutePath);
+        }
+        // Relative input uses `/` only. A backslash is a separator on Windows
+        // and a file-name character elsewhere; refusing it keeps both hosts
+        // on the same rule.
+        if shown.contains('\\') {
+            warn!(path = %shown, "Backslash in relative path rejected");
+            return Err(PathGuardError::InvalidComponent);
         }
 
         let validated = self.validate(path)?;
@@ -143,6 +160,10 @@ impl PathGuard {
         }
 
         let full_path = base.join(&validated);
+        if !full_path.starts_with(base) {
+            warn!(path = %full_path.display(), "Joined path outside the base");
+            return Err(PathGuardError::OutsideAllowedRoot);
+        }
 
         // Symlink-aware containment for targets that already exist: a symlinked
         // ancestor resolves here even if the component walk above missed it.
@@ -212,6 +233,13 @@ impl PathGuard {
             Ok(validated)
         }
     }
+}
+/// True when `path` has a root or a Windows prefix (`/x`, `\x`, `C:x`,
+/// `C:\x`, `\\server\share`, `\\?\C:\x`). Joining such a path onto a
+/// base replaces the base instead of extending it, so it is never relative
+/// input even where `Path::is_absolute` is false.
+pub fn is_rooted(path: &Path) -> bool {
+    path.has_root() || matches!(path.components().next(), Some(Component::Prefix(_)))
 }
 pub(super) fn has_dangerous_patterns(name: &str) -> bool {
     let dangerous = [
