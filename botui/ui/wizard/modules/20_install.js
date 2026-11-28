@@ -302,6 +302,7 @@
     state.provisioning.running = true;
     state.provisioning.failed = null;
     state.provisioning.startedAt = Date.now();
+    shellRunSeen = false;
     if (retry) {
       var again = [];
       state.provisioning.components.forEach(function (c) {
@@ -334,9 +335,13 @@
     if (state.step === 7) { goTo(8); }
   }
 
+  /* Until the shell reports this run as started, its status is the previous
+     run's snapshot: a retry would otherwise read the old failure back. */
+  var shellRunSeen = false;
   function pollStatus() {
     B.status().then(function (s) {
-      if (!s) {
+      if (s && s.running) { shellRunSeen = true; }
+      if (!s || !shellRunSeen) {
         if (state.provisioning.running) { setTimeout(pollStatus, 700); }
         return;
       }
