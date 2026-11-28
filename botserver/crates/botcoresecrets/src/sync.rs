@@ -1,4 +1,4 @@
-//! Synchronous Vault reads for boot-time settings (#1968, #2141).
+//! Synchronous Vault reads and writes for boot-time settings (#1968, #2141).
 //!
 //! The secrets manager is async, but several settings must be resolved before
 //! the first request (peer node config, CSRF signing secret). Both go through
@@ -10,6 +10,7 @@
 use crate::manager::SecretsManager;
 use crate::paths::SecretPaths;
 use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::sync::mpsc;
 use std::time::Duration;
 
@@ -78,6 +79,47 @@ fn select_csrf_secret(secrets: &BTreeMap<String, String>) -> Option<String> {
             .filter(|value| !value.is_empty())
             .map(str::to_string)
     })
+}
+
+/// Store the CSRF signing secret in Vault at [`SecretPaths::SECURITY`] so
+/// later boots reuse the same key. Returns `true` on success.
+///
+/// The write merges into the existing map (reading first) so it does not
+/// clobber other keys on the same path. A failure is not fatal: the caller
+/// logs a warning and continues with the in-memory secret.
+pub fn put_csrf_secret_sync(value: &str) -> bool {
+    let manager = match SecretsManager::get_clone() {
+        Ok(m) => m,
+        Err(_) => return false,
+    };
+    let path = SecretPaths::SECURITY.to_string();
+    let secret_value = value.to_string();
+    let (tx, rx) = mpsc::channel();
+    std::thread::spawn(move || {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build();
+        let ok = match rt {
+            Ok(rt) => rt.block_on(async {
+                let mut data: HashMap<String, String> = manager
+                    .get_secret(&path)
+                    .await
+                    .unwrap_or_default()
+                    .into_iter()
+                    .collect();
+                data.insert("csrf_secret".to_string(), secret_value);
+                manager.put_secret(&path, data).await.is_ok()
+            }),
+            Err(error) => {
+                log::warn!(
+                    "CSRF secret persist: could not start Vault runtime: {error}"
+                );
+                false
+            }
+        };
+        let _ = tx.send(ok);
+    });
+    rx.recv_timeout(READ_TIMEOUT).unwrap_or(false)
 }
 
 #[cfg(test)]

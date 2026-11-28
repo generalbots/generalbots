@@ -47,6 +47,9 @@ pub enum CsrfSecretSource {
     Vault,
     /// Random per process; only used when neither env nor Vault is configured.
     Ephemeral,
+    /// Generated at first boot of the desktop edition. The caller should
+    /// persist it to Vault so later boots reuse the same key.
+    DesktopGenerated,
 }
 
 impl CsrfSecretSource {
@@ -55,6 +58,7 @@ impl CsrfSecretSource {
             Self::Env => "env",
             Self::Vault => "vault",
             Self::Ephemeral => "ephemeral",
+            Self::DesktopGenerated => "desktop-generated",
         }
     }
 }
@@ -114,10 +118,14 @@ pub enum CsrfSecretError {
 /// * `env` — value of [`ENV_CSRF_SECRET`], if set.
 /// * `vault` — value read from Vault, if any.
 /// * `production` — refuse to mint an ephemeral secret when `true`.
+/// * `desktop_edition` — when `true` and no secret is configured in
+///   production, generate one instead of refusing to start. The caller
+///   should persist it so later boots reuse the same key.
 pub fn resolve_secret(
     env: Option<&str>,
     vault: Option<&str>,
     production: bool,
+    desktop_edition: bool,
 ) -> Result<CsrfSecret, CsrfSecretError> {
     let configured = [
         (env, CsrfSecretSource::Env),
@@ -146,6 +154,12 @@ pub fn resolve_secret(
     }
 
     if production {
+        if desktop_edition {
+            return Ok(CsrfSecret {
+                bytes: desktop_random_secret(),
+                source: CsrfSecretSource::DesktopGenerated,
+            });
+        }
         return Err(CsrfSecretError::MissingInProduction);
     }
 
@@ -160,6 +174,35 @@ pub fn resolve_secret(
 fn random_secret() -> Vec<u8> {
     let mut rng = rand::rng();
     (0..MIN_SECRET_BYTES).map(|_| rng.random()).collect()
+}
+
+/// 64 random bytes, hex-encoded to a 128-character string and returned as its
+/// UTF-8 byte representation. The hex form round-trips through Vault (which
+/// stores strings), and 128 characters exceed the [`MIN_SECRET_BYTES`] floor.
+///
+/// Used for the desktop edition's first-boot secret. The caller persists the
+/// string to Vault so later boots sign with the same key.
+fn desktop_random_secret() -> Vec<u8> {
+    let mut rng = rand::rng();
+    let raw: Vec<u8> = (0..64).map(|_| rng.random()).collect();
+    let hex: String = raw.iter().fold(String::with_capacity(128), |mut s, b| {
+        use std::fmt::Write;
+        let _ = write!(s, "{b:02x}");
+        s
+    });
+    hex.into_bytes()
+}
+
+/// The hex string form of a [`DesktopGenerated`](CsrfSecretSource::DesktopGenerated)
+/// secret, for Vault storage. Returns `None` for other sources.
+impl CsrfSecret {
+    pub fn as_vault_string(&self) -> Option<String> {
+        if self.source == CsrfSecretSource::DesktopGenerated {
+            String::from_utf8(self.bytes.clone()).ok()
+        } else {
+            None
+        }
+    }
 }
 
 #[cfg(test)]

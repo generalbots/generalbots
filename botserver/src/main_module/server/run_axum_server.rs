@@ -181,6 +181,7 @@ pub async fn run_axum_server(
             env_secret.as_deref(),
             vault_secret.as_deref(),
             is_production,
+            cfg!(feature = "gblite"),
         ) {
             Ok(secret) => secret,
             Err(error) => {
@@ -189,7 +190,19 @@ pub async fn run_axum_server(
             }
         };
         info!("CSRF secret source: {}", resolved.source().as_str());
-        if resolved.source() == CsrfSecretSource::Ephemeral {
+        if resolved.source() == CsrfSecretSource::DesktopGenerated {
+            // Persist to Vault so later boots sign with the same key.
+            if let Some(hex) = resolved.as_vault_string() {
+                if botcoresecrets::put_csrf_secret_sync(&hex) {
+                    info!("CSRF signing secret generated and persisted to Vault");
+                } else {
+                    log::warn!(
+                        "Generated a CSRF signing secret but could not persist it \
+                         to Vault; tokens will not survive a restart"
+                    );
+                }
+            }
+        } else if resolved.source() == CsrfSecretSource::Ephemeral {
             log::warn!(
                 "CSRF_SECRET is not configured; signing tokens with an ephemeral \
                  per-process secret. Tokens minted before a restart stop validating. \
