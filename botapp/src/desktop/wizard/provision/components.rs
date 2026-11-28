@@ -19,6 +19,9 @@ use crate::desktop::sidecar::Sidecar;
 
 mod assistant_wait;
 mod directory_wait;
+mod progress_store;
+#[cfg(test)]
+mod tests;
 fn api_product() -> String {
     crate::desktop::sidecar::probe::api_product_url()
 }
@@ -57,10 +60,8 @@ fn is_terminal(event: &ProgressEvent) -> bool {
 
 fn emit(app: &tauri::AppHandle, state: &WizardState, event: ProgressEvent) {
     if let Ok(mut progress) = state.progress.lock() {
-        if let Some(existing) = progress.iter_mut().find(|entry| entry.id == event.id) {
-            *existing = event.clone();
-        } else {
-            progress.push(event.clone());
+        if !progress_store::record(&mut progress, &event) {
+            return;
         }
     }
     if event.state == "failed" {
@@ -321,9 +322,11 @@ pub(super) async fn start_assistant(
     let config_before_start =
         directory_config.exists() || directory_wait::directory_switched_off(&stack_path());
 
-    sidecar
-        .start(resource_dir.clone())
-        .map_err(|e| format!("could not start the assistant: {e}"))?;
+    if let Err(e) = sidecar.start(resource_dir.clone()) {
+        let reason = format!("could not start the assistant: {e}");
+        progress(app, state, "botserver", "failed", &reason, 0);
+        return Err(reason);
+    }
     let first = assistant_wait::wait_for_assistant(sidecar, &api_product(), assistant_wait::FIRST_BOOT_DEADLINE).await;
     if first == assistant_wait::WaitOutcome::Ready {
         // The identity provider's OAuth client is created by the assistant
@@ -408,55 +411,4 @@ pub(super) async fn start_assistant(
     log::error!("wizard: assistant service failed to start: {reason}");
     progress(app, state, "botserver", "failed", &reason, 0);
     Err(reason)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{is_terminal, parse_progress_line, trim_stderr_tail, STDERR_MAX_BYTES};
-
-    #[test]
-    fn only_gbwizard_json_lines_are_progress_events() {
-        let line = r#"GBWIZARD:{"id":"vault","state":"ready","message":"ok","elapsed_ms":12}"#;
-        let event = parse_progress_line(line).expect("structured progress line");
-        assert_eq!(event.id, "vault");
-        assert_eq!(event.state, "ready");
-        assert_eq!(event.elapsed_ms, 12);
-
-        assert!(parse_progress_line("starting vault...").is_none());
-        assert!(parse_progress_line("GBWIZARD:{not json}").is_none());
-        assert!(parse_progress_line("GBWIZARD:").is_none());
-        assert!(parse_progress_line("").is_none());
-    }
-
-    #[test]
-    fn only_the_final_event_ends_the_run() {
-        let event = |id: &str, state: &str| super::ProgressEvent {
-            id: id.to_string(),
-            state: state.to_string(),
-            message: String::new(),
-            elapsed_ms: 0,
-        };
-        assert!(is_terminal(&event("components", "ready")));
-        assert!(is_terminal(&event("vault", "failed")));
-        assert!(!is_terminal(&event("vault", "ready")));
-        assert!(!is_terminal(&event("components", "starting")));
-        assert!(!is_terminal(&event("botserver", "ready")));
-    }
-
-    #[test]
-    fn the_stderr_tail_never_splits_a_character() {
-        let mut short = String::from("ok\n");
-        trim_stderr_tail(&mut short);
-        assert_eq!(short, "ok\n");
-
-        // A one-byte prefix plus 5000 two-byte characters: the raw byte cut
-        // lands in the middle of a character, so it has to move forward.
-        let mut buffer = format!("a{}", "é".repeat(5000));
-        let before = buffer.len();
-        assert!(before > STDERR_MAX_BYTES);
-        trim_stderr_tail(&mut buffer);
-        assert!(buffer.len() <= STDERR_MAX_BYTES);
-        assert!(buffer.chars().all(|c| c == 'é'));
-        assert!(!buffer.is_empty());
-    }
 }
