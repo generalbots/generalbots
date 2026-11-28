@@ -3,6 +3,12 @@
 
     const MAX_ERRORS = 50;
     const REPORT_ENDPOINT = '/api/client-errors';
+    // The desktop window first shows the bundled copy of this page
+    // (tauri://localhost or http(s)://tauri.localhost) before it navigates to
+    // the server. That origin has no API, so a report would fail and be
+    // retried every second until the navigation lands; keep errors local there.
+    const BUNDLED_ORIGIN = window.location.protocol === 'tauri:' ||
+        window.location.hostname === 'tauri.localhost';
     let errorQueue = [];
     let isReporting = false;
 
@@ -19,6 +25,7 @@
     }
 
     async function reportErrors() {
+        if (BUNDLED_ORIGIN) { errorQueue = []; return; }
         if (isReporting || errorQueue.length === 0) return;
 
         isReporting = true;
