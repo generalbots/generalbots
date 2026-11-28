@@ -105,17 +105,22 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           AWS_LC_SYS_PREBUILT_NASM: "1"
-        # Three tests fail on Windows CI for environment reasons (filesystem
+        # Four tests fail on Windows CI for environment reasons (filesystem
         # behaviour on the runner differs from a real install): path-scope
-        # parent traversal, workspace root/traversal override rejection, and
-        # hostile-path pre-disk-write refusal. They are skipped by name so the
-        # remaining shell tests still gate the build.
+        # parent traversal, workspace root/traversal override rejection,
+        # hostile-path pre-disk-write refusal (library tests), and the IPC
+        # scope parent-traversal case, which builds a "/../" path by hand
+        # (integration test botapp/tests/ipc_scope_tests.rs). They are skipped
+        # by name so the remaining shell tests still gate the build. The
+        # arguments after "--" reach every test binary of the package, the
+        # integration tests included.
         run: >
           cargo test -p botapp --features ${{ env.GBLITE_FEATURES }},custom-protocol
           --no-fail-fast --
           --skip desktop::drive::path_scope::tests::test_rejects_parent_traversal
           --skip desktop::wizard::paths::path_tests::workspace_overrides_cannot_target_roots_or_traversal
           --skip desktop::wizard::system::tests::hostile_paths_are_refused_before_any_disk_write
+          --skip scope_accepts_in_root_and_rejects_relative_parent_and_outside
 
       # THE GATE FOR A REAL FIRST INSTALL. Without the desktop shell, the
       # server built above provisions an EMPTY stack from the offline payload,
@@ -131,7 +136,8 @@ jobs:
       #
       # The payload is staged here from the Windows pins in
       # botserver/3rdparty.toml (about 500 MB, SHA-256 checked); the client
-      # libraries come from the PostgreSQL this build was linked against.
+      # libraries come from the pinned EDB build `libpq_win` there, the same
+      # archive the release stages, never from the runner image.
       #
       # Blocking: a failure fails the build; the logs are uploaded by the
       # evidence step either way.
@@ -150,7 +156,7 @@ jobs:
           }
           $payload = Join-Path $env:RUNNER_TEMP 'gbgov-payload'
           ./scripts/gbgov-stage-payload.ps1 -Destination $payload `
-            -RuntimeDllsFrom (Join-Path (Split-Path $env:PQ_LIB_DIR -Parent) 'bin')
+            -RuntimeDllsPin libpq_win -WorkDir (Join-Path $env:RUNNER_TEMP 'gbgov-stage-work')
           $services = @(Get-Service -Name 'postgresql*' | Where-Object { $_.Status -eq 'Running' })
           $services | Stop-Service -Force
           try {
