@@ -117,14 +117,16 @@ pub fn initialize_vault_local(base_path: &std::path::Path) -> Result<()> {
         }
     }
 
+    // A new Vault is sealed: store and use the unseal keys before anything
+    // else talks to it.
+    secrets::write(secrets::UNSEAL_KEYS_SECRET, &unseal_keys.join("\n"))?;
+    unseal_vault(base_path, &vault_bin, &vault_addr)?;
+
     let scoped = secrets::create_scoped_token(&vault_addr, &root_token, &ca_cert, &vault_bin)?;
     secrets::write(secrets::VAULT_TOKEN_SECRET, &scoped)?;
-    secrets::write(secrets::UNSEAL_KEYS_SECRET, &unseal_keys.join("\n"))?;
     secrets::load_token_into_env()?;
 
     secrets::write_env_file(&std::path::PathBuf::from(".env"), &vault_addr, Some(&ca_cert))?;
-
-    unseal_vault(base_path, &vault_bin, &vault_addr)?;
 
     ensure_kv_mount(&vault_addr, &root_token, &ca_cert, &vault_bin)?;
     seed_vault_defaults(&vault_addr, &root_token, &ca_cert, &vault_bin)?;

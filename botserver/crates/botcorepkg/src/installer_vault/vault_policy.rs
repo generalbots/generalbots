@@ -33,6 +33,28 @@ path "sys/capabilities-self" {
 }
 "#;
 
+/// The root token is discarded after init, so the sidecar token can never be
+/// re-issued: it is periodic (no maximum lifetime) and renewed at each start.
+/// A plain TTL token would stop working for good at the system maximum TTL.
+pub const SIDECAR_TOKEN_PERIOD: &str = "768h";
+
+/// Renew the scoped token with itself (`auth/token/renew-self`, granted by the
+/// default policy). A failure is only logged: the token may still be valid.
+pub fn renew_scoped_token(vault_addr: &str, token: &str, ca_cert: &Path, vault_bin: &Path) {
+    let output = vault_command(vault_bin)
+        .and_then(|command| Ok(command.env("VAULT_ADDR", vault_addr)?.env("VAULT_TOKEN", token)?))
+        .and_then(|command| with_tls(command, ca_cert))
+        .and_then(|command| Ok(command.args(&["token", "renew", "-format=json"])?.execute()?));
+    match output {
+        Ok(output) if output.status.success() => log::info!("Scoped Vault token renewed"),
+        Ok(output) => warn!(
+            "Scoped Vault token renewal failed: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        ),
+        Err(e) => warn!("Scoped Vault token renewal could not run: {e}"),
+    }
+}
+
 fn vault_command(vault_bin: &Path) -> Result<SafeCommand> {
     let vault_bin_str = vault_bin.to_string_lossy().to_string();
     SafeCommand::new(&vault_bin_str).context("Cannot run vault")
@@ -97,9 +119,9 @@ pub fn create_scoped_token(
         .args(&[
             "token",
             "create",
+            "-orphan",
             &format!("-policy={SIDECAR_POLICY}"),
-            "-ttl=720h",
-            "-renewable=true",
+            &format!("-period={SIDECAR_TOKEN_PERIOD}"),
             "-format=json",
         ])?
         .execute()?;

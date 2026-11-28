@@ -99,6 +99,7 @@ pub fn recover_existing_vault(base_path: &std::path::Path) -> Result<()> {
     secrets::load_token_into_env()?;
     match secrets::read(secrets::VAULT_TOKEN_SECRET) {
         Ok(token) => {
+            secrets::renew_scoped_token(&vault_addr, &token, &ca_cert, &vault_bin);
             ensure_kv_mount(&vault_addr, &token, &ca_cert, &vault_bin)?;
             if vault_seeds_exist(&vault_addr, &token, &ca_cert, &vault_bin)? {
                 info!("Vault credentials already exist, skipping seed on recovery");

@@ -7,6 +7,7 @@
 //! `unseal`), so both trees name the same Vault step the same way.
 
 pub mod container_env;
+pub mod secret_location;
 pub mod secret_store;
 mod credentials;
 mod initialize_local;

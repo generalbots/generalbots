@@ -17,7 +17,9 @@ use botlib::security::SafeCommand;
 use log::{info, warn};
 use std::path::{Path, PathBuf};
 
-pub use super::vault_policy::{create_scoped_token, SIDECAR_POLICY, SIDECAR_POLICY_TEXT};
+pub use super::vault_policy::{
+    create_scoped_token, renew_scoped_token, SIDECAR_POLICY, SIDECAR_POLICY_TEXT,
+};
 
 /// Credential directory created by `desktop/os` (root:gbsvc 0750).
 pub const CREDENTIAL_DIR: &str = "/etc/generalbots/credentials";
@@ -131,7 +133,7 @@ pub(crate) fn write_private(path: &Path, value: &str) -> Result<()> {
 }
 
 /// Resolve the secret directory. The appliance directory wins when provisioned;
-/// development installs fall back to a per-process private temp directory.
+/// otherwise see [`super::secret_location::fallback_directory`].
 pub fn directory() -> Result<PathBuf> {
     let configured = std::env::var("GB_SECRET_DIR")
         .ok()
@@ -140,7 +142,7 @@ pub fn directory() -> Result<PathBuf> {
     let path = match configured {
         Some(path) => path,
         None if Path::new(CREDENTIAL_DIR).is_dir() => PathBuf::from(CREDENTIAL_DIR),
-        None => std::env::temp_dir().join(format!("gb-vault-secrets-{}", std::process::id())),
+        None => super::secret_location::fallback_directory(),
     };
     let created = !path.exists();
     std::fs::create_dir_all(&path)
@@ -189,6 +191,12 @@ pub fn write(name: &str, value: &str) -> Result<PathBuf> {
         info!("Stored secret {name} through the root helper");
         return Ok(path);
     }
+    // Windows has no file modes to keep other accounts out: seal the secret
+    // with DPAPI for the current user instead.
+    #[cfg(windows)]
+    crate::protected_file::write_secret(&path, value)
+        .with_context(|| format!("Cannot write secret {name}"))?;
+    #[cfg(not(windows))]
     write_private(&path, value)?;
     Ok(path)
 }
@@ -196,7 +204,7 @@ pub fn write(name: &str, value: &str) -> Result<PathBuf> {
 fn read_direct(name: &str) -> Result<String> {
     let path = directory()?.join(name);
     secure_file(&path)?;
-    let content = std::fs::read_to_string(&path)
+    let content = crate::protected_file::read_secret(&path)
         .with_context(|| format!("Cannot read secret {name}"))?;
     audit_open(name);
     Ok(content.trim_end().to_string())
@@ -290,15 +298,17 @@ pub fn sanitized_init_json(value: &serde_json::Value) -> serde_json::Value {
 }
 
 /// `.env` entries for the sidecar: address and a *path* to the scoped token,
-/// never the token value itself and never the root token.
+/// never the token value itself and never the root token. Paths are quoted so
+/// a Windows path (`C:\Users\…`) parses.
 pub fn env_lines(vault_addr: &str, ca_cert: Option<&Path>) -> Result<String> {
+    use super::secret_location::env_path;
     let path = directory()?.join(VAULT_TOKEN_SECRET);
     let mut lines = format!(
         "# Vault Configuration (auto-generated, #2498)\nVAULT_ADDR={vault_addr}\nVAULT_TOKEN_FILE={}\n",
-        path.display()
+        env_path(&path)
     );
     if let Some(ca_cert) = ca_cert {
-        lines.push_str(&format!("VAULT_CACERT={}\n", ca_cert.display()));
+        lines.push_str(&format!("VAULT_CACERT={}\n", env_path(ca_cert)));
     }
     Ok(lines)
 }

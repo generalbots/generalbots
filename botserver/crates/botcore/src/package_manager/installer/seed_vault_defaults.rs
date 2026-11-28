@@ -293,6 +293,7 @@ impl PackageManager {
 
         match scoped_token {
             Ok(token) => {
+                secrets::renew_scoped_token(&vault_addr, &token, &ca_cert, &vault_bin);
                 self.ensure_kv_mount(&vault_addr, &token, &ca_cert, &vault_bin);
                 if self.vault_seeds_exist(&vault_addr, &token, &ca_cert, &vault_bin)? {
                     info!("Vault credentials already exist, skipping seed on recovery");

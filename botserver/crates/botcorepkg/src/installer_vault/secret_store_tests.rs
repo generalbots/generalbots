@@ -43,6 +43,15 @@ fn generated_stack_has_no_plaintext_vault_secrets() -> Result<(), Box<dyn Error>
         generated.contains("OTHER=value"),
         "unrelated settings lost: {generated}"
     );
+    // Every line parses as dotenv, and the token path reads back as written.
+    let parsed: Vec<(String, String)> =
+        dotenvy::from_read_iter(generated.as_bytes()).collect::<Result<_, _>>()?;
+    let token_file = parsed
+        .iter()
+        .find(|(key, _)| key == "VAULT_TOKEN_FILE")
+        .map(|(_, value)| std::path::PathBuf::from(value))
+        .ok_or("VAULT_TOKEN_FILE not parsed")?;
+    assert_eq!(token_file.file_name(), Some(std::ffi::OsStr::new(secrets::VAULT_TOKEN_SECRET)));
 
     // The scoped token itself is stored outside the stack, with no world access.
     let token_path = secrets::write(secrets::VAULT_TOKEN_SECRET, "hvs.SCOPED")?;
@@ -50,8 +59,10 @@ fn generated_stack_has_no_plaintext_vault_secrets() -> Result<(), Box<dyn Error>
         token_path.starts_with(&dir),
         "secret written into the stack"
     );
-    let stored = std::fs::read_to_string(&token_path)?;
-    assert_eq!(stored, "hvs.SCOPED");
+    assert_eq!(secrets::read(secrets::VAULT_TOKEN_SECRET)?, "hvs.SCOPED");
+    // On Windows the stored file is sealed for the current user.
+    let raw = std::fs::read(&token_path)?;
+    assert_eq!(crate::protected_file::is_sealed(&raw), cfg!(windows));
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
@@ -81,10 +92,7 @@ fn generated_stack_has_no_plaintext_vault_secrets() -> Result<(), Box<dyn Error>
         if !path.is_file() {
             continue;
         }
-        let content = match std::fs::read_to_string(&path) {
-            Ok(content) => content,
-            Err(error) => return Err(error.into()),
-        };
+        let content = String::from_utf8_lossy(&std::fs::read(&path)?).into_owned();
         assert!(
             !content.contains("VAULT_TOKEN="),
             "{} contains VAULT_TOKEN=",

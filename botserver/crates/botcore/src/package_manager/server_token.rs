@@ -169,6 +169,14 @@ pub fn ensure_scoped_token(stack: &Path) {
     if !cfg!(windows) || !stack.join(INIT_FILE).is_file() {
         return;
     }
+    // A stack set up through the first-run secret store (#2498) keeps no
+    // recovery token; its scoped token is renewed when Vault is recovered.
+    let store = botcorepkg::installer_vault::secret_store::VAULT_TOKEN_SECRET;
+    if !stack.join(TOKEN_FILE).is_file()
+        && botcorepkg::installer_vault::secret_store::read(store).is_ok()
+    {
+        return;
+    }
     let vault = Vault {
         bin: botcorepkg::secrets_engine::cli_path(stack),
         addr: std::env::var("VAULT_ADDR")

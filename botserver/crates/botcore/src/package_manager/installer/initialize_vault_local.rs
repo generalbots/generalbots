@@ -141,18 +141,12 @@ impl PackageManager {
             .collect();
 
         // #2498 — the root token stays in memory for init-time CLI calls only.
-        // Persist a scoped token in the private credential store instead.
-        let scoped = botcorepkg::installer_vault::secret_store::create_scoped_token(
-            &vault_addr, &root_token, &ca_cert, &vault_bin,
-        )?;
-        botcorepkg::installer_vault::secret_store::write(
-            botcorepkg::installer_vault::secret_store::VAULT_TOKEN_SECRET, &scoped,
-        )?;
+        // The unseal keys are stored first: a new Vault is sealed, and nothing
+        // else can be done with it until they are used.
         botcorepkg::installer_vault::secret_store::write(
             botcorepkg::installer_vault::secret_store::UNSEAL_KEYS_SECRET,
             &unseal_keys.join("\n"),
         )?;
-        botcorepkg::installer_vault::secret_store::load_token_into_env()?;
 
         // Save a sanitized init.json: no root token and no unseal keys.
         let init_json = self.base_path.join("conf/vault/init.json");
@@ -171,6 +165,18 @@ impl PackageManager {
             }
         }
         info!("Created {} (no secret material)", init_json.display());
+
+        // Unseal Vault (need 3 keys from the private store)
+        self.unseal_vault(&vault_bin, &vault_addr)?;
+
+        // A scoped token in the private credential store, never the root one.
+        let scoped = botcorepkg::installer_vault::secret_store::create_scoped_token(
+            &vault_addr, &root_token, &ca_cert, &vault_bin,
+        )?;
+        botcorepkg::installer_vault::secret_store::write(
+            botcorepkg::installer_vault::secret_store::VAULT_TOKEN_SECRET, &scoped,
+        )?;
+        botcorepkg::installer_vault::secret_store::load_token_into_env()?;
 
         // `.env` references the scoped token; it never contains a token value.
         let env_file = std::path::PathBuf::from(".env");
@@ -191,9 +197,6 @@ impl PackageManager {
                 log::warn!("Could not remove legacy unseal-key file {}: {e}", legacy_keys.display());
             }
         }
-
-        // Unseal Vault (need 3 keys from the private store)
-        self.unseal_vault(&vault_bin, &vault_addr)?;
 
         info!("Vault initialized and unsealed; scoped token stored outside the stack");
 
