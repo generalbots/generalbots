@@ -357,7 +357,7 @@ pub async fn load_config(
     pool: &botcore::shared::utils::DbPool,
 ) -> Result<AppConfig, std::io::Error> {
     info!("Loading config from database after template sync...");
-    let refreshed_cfg = AppConfig::from_database(pool).unwrap_or_else(|e| {
+    let mut refreshed_cfg = AppConfig::from_database(pool).unwrap_or_else(|e| {
         warn!(
             "Failed to load config from database: {}, falling back to env",
             e
@@ -367,6 +367,8 @@ pub async fn load_config(
             AppConfig::default()
         })
     });
+    refreshed_cfg.server.host =
+        super::bind_policy::effective_bind_ip(super::bind_policy::product_no_security()).to_string();
     let config = std::sync::Arc::new(refreshed_cfg.clone());
     info!(
         "Server configured to listen on {}:{}",

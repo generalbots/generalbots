@@ -13,53 +13,15 @@ pub(crate) async fn listen(app: Router, port: u16, no_security: bool) -> std::io
     // In single-user desktop/no_security mode the API must not be reachable
     // from the network. Bind to loopback only and refuse explicit non-loopback
     // host configuration to avoid exposing an unauthenticated surface.
-    let host = std::env::var("BOTSERVER_HOST").unwrap_or(Default::default());
-    if no_security && !host.is_empty() {
-        let host_trimmed = host.trim();
-        let is_loopback_host = matches!(
-            host_trimmed,
-            "127.0.0.1" | "localhost" | "::1" | "[::1]"
-        );
-        if !is_loopback_host {
-            return Err(std::io::Error::other(format!(
-                "Refusing to start in no_security mode: BOTSERVER_HOST '{}' is not loopback",
-                host_trimmed
-            )));
-        }
+    let host = super::bind_policy::configured_host();
+    if no_security && !host.trim().is_empty() && !super::bind_policy::is_loopback_host(&host) {
+        return Err(std::io::Error::other(format!(
+            "Refusing to start in no_security mode: BOTSERVER_HOST '{}' is not loopback",
+            host.trim()
+        )));
     }
 
-    // A desktop edition is one person's computer: only the shell on the same
-    // machine talks to the server, so it listens on loopback as well. Setting
-    // BOTSERVER_HOST to a non-loopback address opens it to the network on
-    // purpose (sign-in is required in that mode).
-    let desktop_edition = botcore::product::PRODUCT_CONFIG
-        .read()
-        .map(|product| product.edition.as_deref() == Some("desktop"))
-        .unwrap_or(false);
-    let host_is_default = matches!(
-        host.trim(),
-        "" | "127.0.0.1" | "localhost" | "::1" | "[::1]"
-    );
-    // #2477 — the General Bots OS appliance is a laptop on café Wi-Fi. Shell
-    // mode used to publish the login form, the API and the suite on every
-    // interface because the product is not `no_security`; the bind address now
-    // follows the same rule as the desktop edition and stays on loopback
-    // unless the operator sets BOTSERVER_HOST explicitly *and* opts in with
-    // GB_ALLOW_LAN=1 (an environment flag, off by default; the image's
-    // nftables `gb_lan_allowed` set is the matching host-side gate — no
-    // Settings switch exists yet).
-    let lan_opt_in = std::env::var("GB_ALLOW_LAN")
-        .map(|value| value == "1" || value.eq_ignore_ascii_case("true"))
-        .unwrap_or(false);
-    let shell_edition = botcore::product::is_shell_mode();
-    let ip = if no_security
-        || ((desktop_edition || shell_edition) && host_is_default)
-        || (shell_edition && !lan_opt_in)
-    {
-        std::net::IpAddr::from([127, 0, 0, 1])
-    } else {
-        std::net::IpAddr::from([0, 0, 0, 0])
-    };
+    let ip = super::bind_policy::effective_bind_ip(no_security);
     let addr = SocketAddr::new(ip, port);
 
     let disable_tls = std::env::var("BOTSERVER_DISABLE_TLS")

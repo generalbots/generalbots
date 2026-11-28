@@ -19,6 +19,7 @@ mod init;
 #[cfg(feature = "security")]
 pub mod init_tls;
 pub mod init_tasks;
+mod bind_policy;
 pub mod listen_impl;
 #[cfg(feature = "directory")]
 pub mod local_recovery;
