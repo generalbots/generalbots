@@ -126,7 +126,7 @@ jobs:
       # The scan steps above are the gate and run on both hosts (#2744).
       - name: Upload SARIF
         if: ${{ always() && github.server_url == 'https://github.com' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
-        uses: github/codeql-action/upload-sarif@9418214df1f2c4b8128c770156c409013b07d6b9 # v3.39.3
+        uses: github/codeql-action/upload-sarif@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v4.39.4
         with:
           sarif_file: /tmp/osv.sarif
           category: osv-scanner
@@ -162,7 +162,7 @@ jobs:
       # both hosts.
       - name: Upload npm SARIF
         if: ${{ always() && github.server_url == 'https://github.com' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
-        uses: github/codeql-action/upload-sarif@9418214df1f2c4b8128c770156c409013b07d6b9 # v3.39.3
+        uses: github/codeql-action/upload-sarif@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v4.39.4
         with:
           sarif_file: /tmp/osv-npm.sarif
           category: osv-scanner-npm
@@ -222,7 +222,7 @@ jobs:
       # The gitleaks scan above is the gate and runs on both hosts (#2744).
       - name: Upload SARIF
         if: ${{ always() && github.server_url == 'https://github.com' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
-        uses: github/codeql-action/upload-sarif@9418214df1f2c4b8128c770156c409013b07d6b9 # v3.39.3
+        uses: github/codeql-action/upload-sarif@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v4.39.4
         with:
           sarif_file: /tmp/gitleaks.sarif
           category: gitleaks
