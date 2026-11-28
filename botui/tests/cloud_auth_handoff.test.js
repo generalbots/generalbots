@@ -56,8 +56,8 @@ const browserDoc = { _value: "", get cookie() { return this._value; }, set cooki
   if (m && m[1] === SSO.KEY) this._value = m[2] ? m[1] + "=" + m[2] : "";
 } };
 global.document = browserDoc;
-global.location = { hostname: "login.pragmatismo.com.br", protocol: "https:" };
-const bh = SSO.create({ _host: "login.pragmatismo.com.br", _secure: true });
+global.location = { hostname: "login.generalbots.org", protocol: "https:" };
+const bh = SSO.create({ _host: "login.generalbots.org", _secure: true });
 check(browserDoc.cookie.indexOf(SSO.KEY + "=") === 0, "browser handoff writes state cookie without an explicit _doc");
 check(SSO.consume(bh.state, bh.ts, { _doc: browserDoc }) === true, "browser-issued state is consumable");
 delete global.document;
@@ -71,8 +71,8 @@ check(SSO.trustedOrigin("https://cloud.example", "https://login.example") === "h
 // Shared-cookie domain must be the registrable domain, never a public suffix.
 check(SSO.cookieDomain("localhost") === "", "localhost uses a host-only cookie");
 check(SSO.cookieDomain("127.0.0.1") === "", "loopback IP uses a host-only cookie");
-check(SSO.cookieDomain("login.pragmatismo.com.br") === ".pragmatismo.com.br", "login host shares registrable domain");
-check(SSO.cookieDomain("cloud.pragmatismo.com.br") === ".pragmatismo.com.br", "cloud host shares registrable domain");
+check(SSO.cookieDomain("login.generalbots.org") === ".generalbots.org", "login host shares registrable domain");
+check(SSO.cookieDomain("cloud.generalbots.org") === ".generalbots.org", "cloud host shares registrable domain");
 check(SSO.cookieDomain("") === "" && SSO.cookieDomain("..") === "", "hostile host yields no domain");
 
 const self = SSO.selfTest();

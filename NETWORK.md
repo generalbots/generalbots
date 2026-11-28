@@ -161,9 +161,9 @@ The production build serves all assets locally; no CDN is required at runtime.
 
 These are contacted only by the full cloud build and are absent from desktop-local:
 
-- `pragmatismo.com.br`, `cloud.pragmatismo.com.br`, `login.pragmatismo.com.br`
-- `chat.pragmatismo.com.br` (bot API gateway)
-- `alm.pragmatismo.com.br:4747` (Forgejo / CI)
+- `pragmatismo.com.br`, `cloud.generalbots.org`, `login.generalbots.org`
+- `chat.generalbots.org` (bot API gateway)
+- `alm.generalbots.org:4747` (Forgejo / CI)
 - General Bots control plane / license servers
 - Zitadel identity provider (self-hosted in prod)
 

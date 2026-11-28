@@ -134,7 +134,7 @@ mod csrf_origin_tests {
         Request::builder()
             .method("POST")
             .uri(path)
-            .header("host", "login.pragmatismo.com.br")
+            .header("host", "login.generalbots.org")
             .header("origin", origin)
             .header("content-type", "application/json")
             .body(Body::from("{}"))
@@ -162,7 +162,7 @@ mod csrf_origin_tests {
     async fn a_same_origin_post_passes_the_auth_exemption() {
         for path in ["/api/cloud/auth/login", "/api/cloud/auth/signup"] {
             let response = app()
-                .oneshot(post_request(path, "https://login.pragmatismo.com.br"))
+                .oneshot(post_request(path, "https://login.generalbots.org"))
                 .await
                 .expect("response");
             assert_eq!(

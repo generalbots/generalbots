@@ -107,8 +107,9 @@ pub struct EmailAccountRequest {
     /// `password` (default) or `oauth2`.
     #[serde(default)]
     pub auth_mode: Option<String>,
-    /// Provider identifier when `auth_mode` is `oauth2` (`microsoft`, `google`).
-    #[serde(default)]
+    /// Provider identifier when `auth_mode` is `oauth2` (`zitadel` when the
+    /// token comes from the suite session). `provider` is accepted as an alias.
+    #[serde(default, alias = "provider")]
     pub oauth_provider: Option<String>,
 }
 

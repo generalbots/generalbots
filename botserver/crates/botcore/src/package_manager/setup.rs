@@ -1,6 +1,10 @@
 use anyhow::Result;
 use log::{info, warn};
+use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
+
+use crate::package_manager::stalwart_oidc;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DirectoryConfig {
@@ -13,6 +17,11 @@ pub struct DirectoryConfig {
     pub project_id: String,
     pub api_url: String,
     pub service_account_key: Option<String>,
+    /// Client credentials of the Stalwart OIDC app in Zitadel (mail SSO).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stalwart_client_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stalwart_client_secret: Option<String>,
 }
 
 pub struct DirectorySetup {
@@ -66,22 +75,52 @@ impl DirectorySetup {
         info!("Created OAuth application with client_id: {client_id}");
 
         // Step 5: Create config
-        let config = DirectoryConfig {
+        let mut config = DirectoryConfig {
             base_url: self.base_url.clone(),
             issuer_url: self.base_url.clone(),
             issuer: self.base_url.clone(),
             client_id,
             client_secret,
             redirect_uri: "/auth/callback".to_string(),
-            project_id,
+            project_id: project_id.clone(),
             api_url: self.base_url.clone(),
             service_account_key: None,
+            stalwart_client_id: None,
+            stalwart_client_secret: None,
         };
 
-        // Step 6: Save config
+        // Step 6: Provision Stalwart's OIDC app and point its directory at Zitadel.
+        self.configure_stalwart(&mut config, &project_id).await?;
+
+        // Step 7: Save config
         self.save_config(&config)?;
 
         Ok(config)
+    }
+
+    /// Create or reuse the Stalwart OIDC app, then write its introspection
+    /// settings into `<stack>/conf/email/config.toml`. The issuer is taken from
+    /// the directory config (with `base_url` as the legacy fallback).
+    async fn configure_stalwart(&self, config: &mut DirectoryConfig, project_id: &str) -> Result<()> {
+        let auth_header = self.get_auth_header()?;
+        let (client_id, client_secret) =
+            stalwart_oidc::provision_oidc_app(&self.http_client, &self.base_url, &auth_header, project_id)
+                .await?;
+
+        let issuer = if config.issuer_url.trim().is_empty() {
+            &config.base_url
+        } else {
+            &config.issuer_url
+        };
+        let endpoint = stalwart_oidc::introspection_url(issuer);
+
+        let stack_path = crate::shared::utils::get_stack_path();
+        let config_path = PathBuf::from(stack_path).join("conf/email/config.toml");
+        stalwart_oidc::write_stalwart_config(&config_path, &endpoint, &client_id, &client_secret)?;
+
+        config.stalwart_client_id = Some(client_id);
+        config.stalwart_client_secret = Some(client_secret);
+        Ok(())
     }
 
     async fn wait_for_zitadel(&self) -> Result<()> {
@@ -330,9 +369,6 @@ impl DirectorySetup {
     }
 }
 
-use std::path::PathBuf;
-use reqwest::Client;
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -349,10 +385,39 @@ mod tests {
             project_id: "12345".to_string(),
             api_url: "".to_string(),
             service_account_key: None,
+            stalwart_client_id: Some("stalwart_client".to_string()),
+            stalwart_client_secret: Some("stalwart_secret".to_string()),
         };
 
-        let json = serde_json::to_string(&config).unwrap();
-        assert!(json.contains("test_client"));
-        assert!(json.contains("test_secret"));
+        let value = serde_json::to_value(&config);
+        assert!(value.is_ok());
+        if let Ok(value) = value {
+            assert_eq!(
+                value.get("client_id").and_then(|v| v.as_str()),
+                Some("test_client")
+            );
+            assert_eq!(
+                value.get("client_secret").and_then(|v| v.as_str()),
+                Some("test_secret")
+            );
+            assert_eq!(
+                value.get("stalwart_client_id").and_then(|v| v.as_str()),
+                Some("stalwart_client")
+            );
+            assert_eq!(
+                value.get("stalwart_client_secret").and_then(|v| v.as_str()),
+                Some("stalwart_secret")
+            );
+        }
+
+        let mut without_stalwart = config;
+        without_stalwart.stalwart_client_id = None;
+        without_stalwart.stalwart_client_secret = None;
+        let value = serde_json::to_value(&without_stalwart);
+        assert!(value.is_ok());
+        if let Ok(value) = value {
+            assert!(!value.as_object().is_some_and(|o| o.contains_key("stalwart_client_id")));
+            assert!(!value.as_object().is_some_and(|o| o.contains_key("stalwart_client_secret")));
+        }
     }
 }

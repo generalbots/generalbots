@@ -395,7 +395,7 @@ mod origin_tests {
 
     #[test]
     fn accepts_a_same_origin_header() {
-        let req = request("login.pragmatismo.com.br", None, Some("https://login.pragmatismo.com.br"), None);
+        let req = request("login.generalbots.org", None, Some("https://login.generalbots.org"), None);
         assert!(is_same_origin(&req));
     }
 
@@ -411,13 +411,13 @@ mod origin_tests {
 
     #[test]
     fn rejects_a_foreign_origin_even_with_a_matching_forwarded_host() {
-        let req = request("login.pragmatismo.com.br", None, Some("https://evil.example"), None);
+        let req = request("login.generalbots.org", None, Some("https://evil.example"), None);
         assert!(!is_same_origin(&req));
     }
 
     #[test]
     fn rejects_a_request_without_origin_or_referer() {
-        let req = request("login.pragmatismo.com.br", None, None, None);
+        let req = request("login.generalbots.org", None, None, None);
         assert!(!is_same_origin(&req));
     }
 

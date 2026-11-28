@@ -33,7 +33,7 @@ function gbSsoDomain(host) {
   if (!host || host === "localhost" || host === "127.0.0.1" || host === "::1") return "";
   if (!/^[a-z0-9.-]+$/i.test(host)) return "";
   var labels = host.split(".");
-  // login.pragmatismo.com.br -> .pragmatismo.com.br (never the public suffix).
+  // login.generalbots.org -> .generalbots.org (never the public suffix).
   if (labels.length > 2 && labels.every(function (l) { return /^[a-z0-9-]+$/i.test(l); })) {
     return "." + labels.slice(1).join(".");
   }

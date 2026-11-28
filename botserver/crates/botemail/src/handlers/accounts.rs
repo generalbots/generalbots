@@ -5,6 +5,7 @@ use axum::{
 };
 use base64::{engine::general_purpose, Engine as _};
 use diesel::prelude::*;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -67,13 +68,16 @@ pub async fn add_email_account(
     if auth_mode != "password" && auth_mode != "oauth2" {
         return Err(EmailError(format!("Unsupported auth_mode '{auth_mode}'")));
     }
-    if auth_mode == "oauth2" {
-        // An OAuth2 account needs tokens, which only the provider consent flow
-        // can supply. Storing one without them would create a mailbox that can
-        // never authenticate.
-        return Err(EmailError(
-            "OAuth2 accounts are connected through the provider consent flow".to_string(),
-        ));
+    let is_oauth2 = auth_mode == "oauth2";
+    if is_oauth2 {
+        // Microsoft/Google mailboxes are created by the consent callback. This
+        // endpoint creates accounts backed by the suite's Zitadel session token.
+        let provider = request.oauth_provider.as_deref().unwrap_or("");
+        if !provider.eq_ignore_ascii_case(crate::oauth::ZITADEL_PROVIDER) {
+            return Err(EmailError(format!(
+                "Unsupported OAuth2 provider '{provider}' for direct account creation"
+            )));
+        }
     }
     if request.email.trim().is_empty() || request.username.trim().is_empty() {
         return Err(EmailError(
@@ -88,24 +92,41 @@ pub async fn add_email_account(
 
     #[cfg(feature = "mail")]
     {
-        let auth = ImapAuth::Password {
-            username: request.username.clone(),
-            password: request.password.clone(),
-        };
-        if let Err(e) = validate_mailbox(request.imap_server.clone(), request.imap_port, auth).await
-        {
-            // The account is rejected rather than stored: an unreachable host
-            // would otherwise fail on every background pass while the user sees
-            // an empty inbox with no explanation.
-            return Err(EmailError(format!(
-                "Could not connect to {}: {e}",
-                request.imap_server
-            )));
+        // OAuth2 accounts have no mailbox password to check; their token is
+        // stored by the connect endpoint and verified on the first sync.
+        if !is_oauth2 {
+            let auth = ImapAuth::Password {
+                username: request.username.clone(),
+                password: request.password.clone(),
+            };
+            if let Err(e) =
+                validate_mailbox(request.imap_server.clone(), request.imap_port, auth).await
+            {
+                // The account is rejected rather than stored: an unreachable host
+                // would otherwise fail on every background pass while the user sees
+                // an empty inbox with no explanation.
+                return Err(EmailError(format!(
+                    "Could not connect to {}: {e}",
+                    request.imap_server
+                )));
+            }
         }
     }
 
     let account_id = Uuid::new_v4();
-    let encrypted_password = encrypt_password(&request.password);
+    // OAuth2 accounts carry no mailbox password; the suite token is stored by
+    // the connect endpoint before the first sync or send.
+    let encrypted_password = if is_oauth2 {
+        String::new()
+    } else {
+        encrypt_password(&request.password)
+    };
+    let oauth_provider = if is_oauth2 {
+        crate::oauth::ZITADEL_PROVIDER.to_string()
+    } else {
+        String::new()
+    };
+    let resp_auth_mode = auth_mode.clone();
 
     let resp_email = request.email.clone();
     let resp_display_name = request.display_name.clone();
@@ -130,8 +151,8 @@ pub async fn add_email_account(
 
         diesel::sql_query(
             "INSERT INTO user_email_accounts
-            (id, user_id, email, display_name, imap_server, imap_port, smtp_server, smtp_port, username, password_encrypted, is_primary, is_active, auth_mode)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)"
+            (id, user_id, email, display_name, imap_server, imap_port, smtp_server, smtp_port, username, password_encrypted, is_primary, is_active, auth_mode, oauth_provider)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)"
         )
             .bind::<diesel::sql_types::Uuid, _>(account_id)
             .bind::<diesel::sql_types::Uuid, _>(current_user_id)
@@ -145,7 +166,8 @@ pub async fn add_email_account(
             .bind::<diesel::sql_types::Text, _>(&encrypted_password)
             .bind::<diesel::sql_types::Bool, _>(request.is_primary)
             .bind::<diesel::sql_types::Bool, _>(true)
-            .bind::<diesel::sql_types::Text, _>("password")
+            .bind::<diesel::sql_types::Text, _>(&auth_mode)
+            .bind::<diesel::sql_types::Text, _>(&oauth_provider)
             .execute(&mut db_conn)
             .map_err(|e| format!("Failed to insert account: {e}"))?;
 
@@ -168,11 +190,94 @@ pub async fn add_email_account(
             is_primary: resp_is_primary,
             is_active: true,
             created_at: chrono::Utc::now().to_rfc3339(),
-            auth_mode: "password".to_string(),
+            auth_mode: resp_auth_mode,
             last_sync_at: None,
             last_error: None,
         }),
         message: Some("Email account added successfully".to_string()),
+    }))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ConnectOAuthRequest {
+    pub access_token: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct OAuthConnectData {
+    pub account_id: String,
+    pub provider: String,
+    pub connected: bool,
+}
+
+#[derive(Debug, diesel::QueryableByName)]
+struct OwnedAccountRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    account_id: Uuid,
+}
+
+/// Logs the real cause server-side and returns a generic client message.
+fn sanitized_error(context: &str, detail: &str) -> EmailError {
+    EmailError(
+        botsecurity_core::error_sanitizer::log_and_sanitize_str(detail, context, None)
+            .message,
+    )
+}
+
+/// Stores a suite session token on an OAuth2 mail account after verifying that
+/// the authenticated caller owns it. The token is never echoed or logged.
+pub async fn connect_account_oauth(
+    State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
+    Path(account_id): Path<String>,
+    Json(request): Json<ConnectOAuthRequest>,
+) -> Result<Json<ApiResponse<OAuthConnectData>>, EmailError> {
+    let context = "email::oauth::connect";
+    let Ok(caller_id) = extract_user_from_session(&headers) else {
+        return Err(sanitized_error(context, "Authentication required"));
+    };
+    let account_uuid = Uuid::parse_str(&account_id)
+        .map_err(|_| sanitized_error(context, "Invalid account ID"))?;
+    if request.access_token.trim().is_empty() {
+        return Err(sanitized_error(context, "Access token is required"));
+    }
+
+    let pool = state.pool.clone();
+    let token = request.access_token;
+    tokio::task::spawn_blocking(move || -> Result<(), String> {
+        let mut conn = pool.get().map_err(|e| format!("DB connection error: {e}"))?;
+        let owned = diesel::sql_query(
+            "SELECT id AS account_id FROM user_email_accounts \
+             WHERE id = $1 AND user_id = $2 AND is_active = true",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(account_uuid)
+        .bind::<diesel::sql_types::Uuid, _>(caller_id)
+        .get_result::<OwnedAccountRow>(&mut conn)
+        .optional()
+        .map_err(|e| format!("Failed to verify account ownership: {e}"))?
+        .is_some();
+        if !owned {
+            return Err("The email account does not exist or is not owned by the caller".to_string());
+        }
+        crate::oauth::store_credentials(
+            &mut conn,
+            account_uuid,
+            crate::oauth::ZITADEL_PROVIDER,
+            &token,
+        )
+    })
+    .await
+    .map_err(|e| sanitized_error(context, &format!("Task join error: {e}")))?
+    .map_err(|e| sanitized_error(context, &e))?;
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(OAuthConnectData {
+            account_id: account_uuid.to_string(),
+            provider: crate::oauth::ZITADEL_PROVIDER.to_string(),
+            connected: true,
+        }),
+        message: Some("Email account connected".to_string()),
     }))
 }
 

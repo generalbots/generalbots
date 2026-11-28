@@ -9,9 +9,13 @@
 //!
 //! * `MAIL_OAUTH_MICROSOFT_CLIENT_ID` / `MAIL_OAUTH_MICROSOFT_CLIENT_SECRET`
 //! * `MAIL_OAUTH_GOOGLE_CLIENT_ID` / `MAIL_OAUTH_GOOGLE_CLIENT_SECRET`
+//! * `ZITADEL_CLIENT_ID` / `ZITADEL_CLIENT_SECRET`
 //!
 //! The redirect URI must be registered with the provider and point back at the
 //! callback route (`/api/email/oauth/callback`).
+//!
+//! General Bots mail accounts can also reuse the suite's Zitadel session token,
+//! stored directly by the account connect flow with provider `zitadel`.
 
 use base64::{engine::general_purpose, Engine as _};
 use chrono::{DateTime, Duration, Utc};
@@ -19,8 +23,10 @@ use diesel::prelude::*;
 use serde::Deserialize;
 use uuid::Uuid;
 
-/// Access tokens are treated as expired this long before their stated expiry,
-/// so a token that is about to lapse is refreshed instead of failing a sync.
+mod zitadel;
+pub use zitadel::{api_base as zitadel_api_base, client_credentials, store_credentials, ZITADEL_PROVIDER};
+
+/// Access tokens are refreshed this long before their stated expiry.
 const EXPIRY_SKEW_SECS: i64 = 60;
 
 /// Providers that expose mail over OAuth2.
@@ -28,6 +34,7 @@ const EXPIRY_SKEW_SECS: i64 = 60;
 pub enum MailOAuthProvider {
     Microsoft,
     Google,
+    Zitadel,
 }
 
 impl MailOAuthProvider {
@@ -36,6 +43,7 @@ impl MailOAuthProvider {
         match self {
             Self::Microsoft => "microsoft",
             Self::Google => "google",
+            Self::Zitadel => ZITADEL_PROVIDER,
         }
     }
 
@@ -45,23 +53,32 @@ impl MailOAuthProvider {
         match value.to_ascii_lowercase().as_str() {
             "microsoft" | "m365" | "outlook" | "office365" | "exchange" => Some(Self::Microsoft),
             "google" | "gmail" => Some(Self::Google),
+            "zitadel" | "generalbots" => Some(Self::Zitadel),
             _ => None,
         }
     }
 
-    fn authorize_url(self) -> &'static str {
+    fn authorize_url(self) -> String {
         match self {
-            Self::Microsoft => {
-                "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
-            }
-            Self::Google => "https://accounts.google.com/o/oauth2/v2/auth",
+            Self::Microsoft => "https://login.microsoftonline.com/common/oauth2/v2.0/authorize".to_string(),
+            Self::Google => "https://accounts.google.com/o/oauth2/v2/auth".to_string(),
+            Self::Zitadel => zitadel_api_base()
+                .map(|base| format!("{base}/oauth/v2/authorize"))
+                .unwrap_or_default(),
         }
     }
 
-    fn token_url(self) -> &'static str {
+    /// Token endpoint; Zitadel's comes from the directory configuration.
+    fn token_url(self) -> Result<String, String> {
         match self {
-            Self::Microsoft => "https://login.microsoftonline.com/common/oauth2/v2.0/token",
-            Self::Google => "https://oauth2.googleapis.com/token",
+            Self::Microsoft => Ok("https://login.microsoftonline.com/common/oauth2/v2.0/token".to_string()),
+            Self::Google => Ok("https://oauth2.googleapis.com/token".to_string()),
+            Self::Zitadel => {
+                let base = zitadel_api_base().ok_or_else(|| {
+                    "Zitadel directory URL is not configured; set GB_DIRECTORY_URL or secret/gbo/directory".to_string()
+                })?;
+                Ok(format!("{base}/oauth/v2/token"))
+            }
         }
     }
 
@@ -74,6 +91,7 @@ impl MailOAuthProvider {
                  https://outlook.office.com/SMTP.Send"
             }
             Self::Google => "https://mail.google.com/",
+            Self::Zitadel => "openid profile email offline_access",
         }
     }
 
@@ -82,6 +100,8 @@ impl MailOAuthProvider {
         match self {
             Self::Microsoft => "outlook.office365.com",
             Self::Google => "imap.gmail.com",
+            // A suite-backed mailbox supplies its servers in the add request.
+            Self::Zitadel => "",
         }
     }
 
@@ -90,6 +110,7 @@ impl MailOAuthProvider {
         match self {
             Self::Microsoft => "smtp.office365.com",
             Self::Google => "smtp.gmail.com",
+            Self::Zitadel => "",
         }
     }
 
@@ -105,6 +126,7 @@ impl MailOAuthProvider {
                 "MAIL_OAUTH_GOOGLE_CLIENT_ID",
                 "MAIL_OAUTH_GOOGLE_CLIENT_SECRET",
             ),
+            Self::Zitadel => return client_credentials(),
         };
         let client_id = std::env::var(id_key).ok()?;
         let client_secret = std::env::var(secret_key).ok()?;
@@ -200,7 +222,8 @@ pub async fn exchange_code(
         ("redirect_uri", redirect_uri),
         ("grant_type", "authorization_code"),
     ];
-    post_token_request(provider.token_url(), &form).await
+    let url = provider.token_url()?;
+    post_token_request(&url, &form).await
 }
 
 /// Exchanges a refresh token for a fresh access token.
@@ -217,7 +240,8 @@ pub async fn refresh_access_token(
         ("grant_type", "refresh_token"),
         ("scope", provider.scopes()),
     ];
-    post_token_request(provider.token_url(), &form).await
+    let url = provider.token_url()?;
+    post_token_request(&url, &form).await
 }
 
 /// Authentication mechanism an account uses against IMAP and SMTP.
@@ -264,12 +288,18 @@ struct AccountAuthRow {
     token_expires_at: Option<DateTime<Utc>>,
 }
 
-/// Loads the authentication material for an account.
-///
-/// Password accounts decrypt the stored password. OAuth2 accounts reuse the
-/// stored access token while it is valid and otherwise exchange the refresh
-/// token for a new one, persisting the result so the next use reuses it. Shared
-/// by the mailbox sync worker and the SMTP send path.
+/// Builds XOAUTH2 credentials from a bearer token, including suite tokens.
+pub(crate) fn token_credentials(username: String, token: String) -> MailboxCredentials {
+    MailboxCredentials {
+        username,
+        secret: token,
+        mechanism: MailMechanism::Xoauth2,
+    }
+}
+
+/// Loads the authentication material for an account. Password accounts decrypt
+/// the stored password; OAuth2 accounts reuse a valid access token or refresh
+/// it. Shared by the mailbox sync worker and the SMTP send path.
 pub fn resolve_credentials(
     conn: &mut diesel::PgConnection,
     account_id: Uuid,
@@ -305,11 +335,7 @@ pub fn resolve_credentials(
         (Some(_), Some(expiry)) if expiry > Utc::now() + Duration::seconds(EXPIRY_SKEW_SECS)
     );
     if let Some(token) = stored_token.filter(|_| token_is_usable) {
-        return Ok(MailboxCredentials {
-            username: account.username,
-            secret: token,
-            mechanism: MailMechanism::Xoauth2,
-        });
+        return Ok(token_credentials(account.username, token));
     }
 
     let refresh_token = decode_secret(
@@ -328,11 +354,7 @@ pub fn resolve_credentials(
     let tokens = refresh_token_blocking(provider, &client_id, &client_secret, &refresh_token)?;
     persist_tokens(conn, account_id, &tokens)?;
 
-    Ok(MailboxCredentials {
-        username: account.username,
-        secret: tokens.access_token,
-        mechanism: MailMechanism::Xoauth2,
-    })
+    Ok(token_credentials(account.username, tokens.access_token))
 }
 
 /// Refreshes a token from a synchronous context, which is where the sync worker

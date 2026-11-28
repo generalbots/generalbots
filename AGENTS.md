@@ -27,7 +27,7 @@ GOAL: Process all github issues off-line first codeing, let github ci do the wor
 8080 = botserver API · 3000 = suite · 4000 = cloud · 5000 = login
 - Test suite: http://localhost:3000 | cloud: http://localhost:4000 | login: http://localhost:5000
 - Test login here: http://localhost:5000/login
-- **Login/Signup exclusivity:** `login.pragmatismo.com.br` (port 5000) is the **only** domain serving login/signup. Port 4000 (cloud) does NOT serve them — `/login` or `/signup` on 4000 redirects to 5000.
+- **Login/Signup exclusivity:** `login.generalbots.org` (port 5000) is the **only** domain serving login/signup. Port 4000 (cloud) does NOT serve them — `/login` or `/signup` on 4000 redirects to 5000.
 
 ### Mandatory Browser Testing
 - 🚨 **ALL bot tests MUST be done via browser (Chrome CDP port 9222).** ❌ FORBIDDEN to use WebSocket (node wscat, direct WS scripts) — only the browser reflects the real state of chat, suggestions, buttons, network errors.
@@ -128,7 +128,7 @@ Read AGENTS.md. You own issue #<N> "<title>". Root-cause it offline and fix it.
 |------|---------|--------|---------|------|---------|
 | **3000** | Suite (botui) | `localhost:3000` | `botui/ui/suite/*.html` — HTMX apps, chat, desktop | ✅ GB_LOGIN_URL injected | Reverse proxy → botserver `/api/*`, `/ws` |
 | **4000** | Cloud (botui) | `localhost:4000` | `botui/ui/cloud/*.html` — store, dashboard, plans, offers | ❌ No login/signup — redirects → 5000 | URL rewriting (`/store` → `store.html`), GB_LOGIN_URL injected |
-| **5000** | Login (botui) | `login.pragmatismo.com.br` | `botui/ui/login/*.html` — login, signup | ✅ Only domain with auth | Serves CSS/JS/images from cloud via proxy |
+| **5000** | Login (botui) | `login.generalbots.org` | `botui/ui/login/*.html` — login, signup | ✅ Only domain with auth | Serves CSS/JS/images from cloud via proxy |
 | **8080** | API (botserver) | `localhost:8080` | API endpoints + fragments | ✅ Bearer token | `/api/*`, `/cloud/partials/*`, `/ws` |
 | **—** | Desktop (botapp) | Tauri 2 | Shell wrapper | N/A | N/A |
 
@@ -849,9 +849,9 @@ All crates MUST use `Some(...)` when the corresponding feature is active:
 | Domain | Port | Serves | Notes |
 |--------|------|--------|-------|
 | `pragmatismo.com.br` | Caddy → 4000 | Landing + Cloud store/Plans | Static landing + cloud UI via botui |
-| `cloud.pragmatismo.com.br` | Caddy → 4000 | Cloud dashboard, store, plans | Same botui cloud server, different proxy route |
-| `chat.pragmatismo.com.br` | Caddy → 8080 | Bot API, WebSocket | Proxied directly to botserver |
-| `login.pragmatismo.com.br` | Caddy → 5000 | Login, signup | Botui login server |
+| `cloud.generalbots.org` | Caddy → 4000 | Cloud dashboard, store, plans | Same botui cloud server, different proxy route |
+| `chat.generalbots.org` | Caddy → 8080 | Bot API, WebSocket | Proxied directly to botserver |
+| `login.generalbots.org` | Caddy → 5000 | Login, signup | Botui login server |
 
 **Store page** (`/store` or `/cloud/store`): served by botui on port 4000 (`botui/ui/cloud/store.html`); loads products via `GET /api/catalog/products` (public). If the API is offline, `calc.js` uses local estimates (fallback).
 

@@ -6,6 +6,7 @@ pub mod installer;
 pub mod os;
 pub mod safe_staging;
 pub mod setup;
+pub mod stalwart_oidc;
 pub mod server_token;
 pub mod openbao_boot;
 pub mod alm_setup;
@@ -130,6 +131,8 @@ pub async fn setup_directory() -> anyhow::Result<crate::package_manager::setup::
                             },
                             api_url: secrets.get("api_url").cloned().unwrap_or_else(|| base_url.clone()),
                             service_account_key: secrets.get("service_account_key").cloned(),
+                            stalwart_client_id: secrets.get("stalwart_client_id").cloned(),
+                            stalwart_client_secret: secrets.get("stalwart_client_secret").cloned(),
                         };
                         return Ok(config);
                     }
@@ -176,6 +179,12 @@ pub async fn setup_directory() -> anyhow::Result<crate::package_manager::setup::
             secrets.insert("api_url".to_string(), config.api_url.clone());
             if let Some(key) = config.service_account_key.as_deref() {
                 secrets.insert("service_account_key".to_string(), key.to_string());
+            }
+            if let Some(id) = config.stalwart_client_id.as_deref() {
+                secrets.insert("stalwart_client_id".to_string(), id.to_string());
+            }
+            if let Some(secret) = config.stalwart_client_secret.as_deref() {
+                secrets.insert("stalwart_client_secret".to_string(), secret.to_string());
             }
 
             match secrets_manager.put_secret(botcoresecrets::SecretPaths::DIRECTORY, secrets).await {

@@ -6,7 +6,7 @@
  * Populates the three template slots declared in mail.html with real, functional
  * markup wired to the existing backend endpoints:
  *   - mailTplSlot1 : main mail layout (folder sidebar + message list + detail)
- *   - mailTplSlot2 : compose modal body (compose form posting to /api/email/send)
+ *   - mailTplSlot2 : compose modal body (compose form posting JSON to /api/email/send)
  *   - mailTplSlot3 : add-account modal body (form posting to /api/email/accounts/add)
  *
  * No dummy / placeholder markup. Everything is bound to real endpoints.
@@ -111,8 +111,12 @@
 
   // ---- Slot 2: compose modal body ---------------------------------------------
   var composeForm = [
-    '<form id="compose-form" class="compose-form"',
-    '      hx-post="/api/email/send" hx-target="#mail-content" hx-swap="innerHTML">',
+    // /api/email/send requires JSON (account_id, to, subject, body, is_html).
+    // An htmx hx-post would send form-encoded data and the API answers 415, so
+    // modules/01_compose.js owns submission with fetch + application/json.
+    '<form id="compose-form" class="compose-form">',
+    '  <select id="compose-account" name="account_id" class="compose-input"',
+    '          aria-label="Account" data-i18n-aria-label="mail-dialog-account-name"></select>',
     '  <div class="compose-row">',
     '    <input type="email" name="to" id="compose-to" class="compose-input" placeholder="To" data-i18n-placeholder="label-to" required />',
     '    <button type="button" class="btn-link" onclick="toggleCcBcc()">Cc/Bcc</button>',
@@ -145,6 +149,7 @@
     '       data-placeholder="Write your message…"></div>',
     '  <input type="hidden" name="body" id="compose-body-hidden" />',
     '  <div id="compose-attachments" class="compose-attachments"></div>',
+    '  <div id="compose-status" class="compose-status" role="status" aria-live="polite"></div>',
     '  <div class="compose-actions">',
     '    <button type="submit" class="btn-primary" onclick="prepareSubmit()">Send</button>',
     '    <button type="button" class="btn-secondary" onclick="saveDraft()">Save Draft</button>',

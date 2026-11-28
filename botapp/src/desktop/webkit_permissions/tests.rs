@@ -30,9 +30,9 @@ fn test_bundled_origins_grant_audio_and_video() {
 fn test_product_domains_grant_only_over_https() {
     let allowed = [
         "https://pragmatismo.com.br/store",
-        "https://cloud.pragmatismo.com.br/dashboard",
-        "https://chat.pragmatismo.com.br/default",
-        "https://login.pragmatismo.com.br/login",
+        "https://cloud.generalbots.org/dashboard",
+        "https://chat.generalbots.org/default",
+        "https://login.generalbots.org/login",
         "https://generalbots.org/",
         "https://beiner.generalbots.org/drive",
         "https://BEINER.generalbots.org:443/drive",
@@ -46,9 +46,9 @@ fn test_product_domains_grant_only_over_https() {
     }
 
     let denied = [
-        "http://chat.pragmatismo.com.br/default",
-        "https://chat.pragmatismo.com.br:8443/default",
-        "https://evil.pragmatismo.com.br/",
+        "http://chat.generalbots.org/default",
+        "https://chat.generalbots.org:8443/default",
+        "https://evil.generalbots.org/",
         "https://pragmatismo.com.br.evil.example/",
         "https://a.b.generalbots.org/drive",
         "https://evilgeneralbots.org/drive",

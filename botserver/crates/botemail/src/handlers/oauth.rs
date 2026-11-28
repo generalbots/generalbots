@@ -162,6 +162,15 @@ pub async fn start_mail_oauth(
             request.provider
         )));
     };
+    if provider == MailOAuthProvider::Zitadel {
+        // The suite already holds a Zitadel session; there is no separate
+        // consent screen. The token is stored by the account connect endpoint.
+        return Err(EmailError(
+            "Zitadel mail accounts use the suite session token; connect them with \
+             POST /api/email/accounts/:account_id/oauth"
+                .to_string(),
+        ));
+    }
     let email = request.email.trim().to_string();
     if email.is_empty() {
         return Err(EmailError("The mailbox address is required".to_string()));

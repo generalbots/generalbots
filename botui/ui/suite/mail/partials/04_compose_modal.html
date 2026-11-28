@@ -35,13 +35,19 @@
                 </button>
             </div>
         </div>
-        <form
-            id="compose-form"
-            hx-post="/api/email/send"
-            hx-target="#mail-content"
-            hx-swap="innerHTML"
-        >
+        <!-- JSON submission is handled in modules/01_compose.js: the API
+             requires application/json, not an htmx form-encoded body. -->
+        <form id="compose-form">
             <div class="compose-fields">
+                <div class="field-row">
+                    <select
+                        id="compose-account"
+                        name="account_id"
+                        class="compose-input"
+                        aria-label="Account"
+                        data-i18n-aria-label="mail-dialog-account-name"
+                    ></select>
+                </div>
                 <div class="field-row">
                     <label>To:</label>
                     <input
@@ -97,6 +103,7 @@
             ></div>
             <input type="hidden" name="body" id="compose-body-hidden" />
             <div class="compose-attachments" id="compose-attachments"></div>
+            <div id="compose-status" class="compose-status" role="status" aria-live="polite"></div>
             <div class="compose-footer">
                 <div class="compose-options">
                     <label class="option-checkbox">

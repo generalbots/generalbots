@@ -37,7 +37,7 @@ fn login_url() -> String {
     std::env::var("LOGIN_URL")
         .ok()
         .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| "https://login.pragmatismo.com.br".to_string())
+        .unwrap_or_else(|| "https://login.generalbots.org".to_string())
 }
 
 fn extract_bearer(headers: &HeaderMap) -> Option<String> {

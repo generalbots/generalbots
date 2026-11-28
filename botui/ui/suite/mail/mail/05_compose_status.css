@@ -1,0 +1,8 @@
+/* JSON compose submission feedback. Tokens only (DESIGN-SYSTEM.md). */
+.compose-status:not(:empty) {
+    padding: var(--id-space-2) var(--id-space-3);
+    border-radius: var(--id-radius-control);
+    background: var(--id-accent-soft);
+    color: var(--id-accent-text);
+    font-size: var(--id-text-sm);
+}

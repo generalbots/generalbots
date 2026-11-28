@@ -33,6 +33,7 @@ const PRODUCT_HOSTS: &[&str] = &[
     "cloud.pragmatismo.com.br",
     "chat.pragmatismo.com.br",
     "login.pragmatismo.com.br",
+    "login.generalbots.org",
     "generalbots.org",
 ];
 

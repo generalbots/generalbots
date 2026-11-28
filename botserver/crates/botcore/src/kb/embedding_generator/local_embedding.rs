@@ -6,10 +6,13 @@ use std::path::{Path, PathBuf};
 /// when its model is not installed.
 pub(crate) fn is_loopback_embedding_url(url: &str) -> bool {
     match url::Url::parse(url) {
-        Ok(parsed) => matches!(
-            parsed.host_str(),
-            Some("localhost") | Some("127.0.0.1") | Some("::1")
-        ),
+        Ok(parsed) => match parsed.host_str() {
+            Some(host) => {
+                let host = host.trim_start_matches('[').trim_end_matches(']');
+                matches!(host, "localhost" | "127.0.0.1" | "::1")
+            }
+            None => false,
+        },
         Err(_) => false,
     }
 }
