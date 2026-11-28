@@ -679,7 +679,7 @@ SET BOT MEMORY rate_key, current_count + 1
 
 ## See Also
 
-- [TALK TO](./keyword-talk.md#talk-to) - Send messages to specific recipients
+- [TALK TO](./keyword-talk.md#talk-to---specific-recipients) - Send messages to specific recipients
 - [SET SCHEDULE](./keyword-set-schedule.md) - Time-based automation
 - [ON](./keyword-on.md) - Database trigger events
 - [USE KB](./keyword-use-kb.md) - Knowledge base integration

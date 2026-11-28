@@ -218,7 +218,7 @@ bot.example.com {
     
     # WebSocket (sticky sessions)
     handle /ws* {
-        reverse_proxy botserver-1:9000 botserver-2:9000 {
+        reverse_proxy botserver-1:8080 botserver-2:8080 {
             lb_policy cookie
             health_uri /api/health
             health_interval 10s
@@ -227,7 +227,7 @@ bot.example.com {
     
     # API (round robin)
     handle /api/* {
-        reverse_proxy botserver-1:9000 botserver-2:9000 {
+        reverse_proxy botserver-1:8080 botserver-2:8080 {
             lb_policy round_robin
             fail_duration 30s
         }
@@ -261,7 +261,7 @@ Every service exposes `/health`:
 ```json
 {
   "status": "healthy",
-  "version": "7.0.0",
+  "version": "7.1.2",
   "checks": {
     "database": {"status": "ok", "latency_ms": 5},
     "cache": {"status": "ok", "latency_ms": 2},

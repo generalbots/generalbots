@@ -634,4 +634,4 @@ curl -X POST \
 - Configure monitoring and alerting
 - Set up automated testing
 
-For more information on webhook security, see [Security Considerations](./README.md#security-considerations).
+For more information on webhook security, see [Security Notes](./README.md#security-notes).

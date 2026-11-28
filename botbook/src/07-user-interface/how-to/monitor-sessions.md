@@ -209,11 +209,11 @@ The dashboard shows the health of all components:
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
 │  ● PostgreSQL      Running    v16.2       24/100 connections           │
-│  ● Qdrant          Running    v1.9.2      1.2M vectors                 │
-│  ● OtterIO           Running    v2024.01    45.2 GB stored               │
+│  ● Qdrant          Running    v1.20.0     1.2M vectors                 │
+│  ● OtterIO          Running    2026-11-25  45.2 GB stored               │
 │  ● BotModels       Running    v2.1.0      LLM active                   │
-│  ● Vault           Sealed     v1.15.0     156 secrets                  │
-│  ● Cache           Running    v7.2.4      94.2% hit rate               │
+│  ● OpenBao         Sealed     v2.7.3      156 secrets                  │
+│  ● Cache           Running    v9.1.3      94.2% hit rate               │
 │  ● InfluxDB        Running    v2.7.3      2,450 pts/sec                │
 │                                                                         │
 │  Legend: ● Running  ● Warning  ● Stopped                               │

@@ -192,6 +192,11 @@ def check_versions(book: Path) -> list[Violation]:
     if not current:
         return [Violation("VERSION_DRIFT", "Cargo.toml", 1, "version", "no version in Cargo.toml")]
     out: list[Violation] = []
+    # Bare product versions (`7.0.0` with no "General Bots"/v prefix) were the
+    # most common drift: the prefixed regex above never saw them. Only the
+    # current product major is checked, so migration ids like 6.5.31 and
+    # third-party pins are not mistaken for product claims.
+    bare = re.compile(rf"\b{re.escape(current.split('.')[0])}\.\d+\.\d+\b")
     for path in pages(book):
         rel = path.relative_to(book).as_posix()
         for number, line in enumerate(read(path).splitlines(), 1):
@@ -199,6 +204,10 @@ def check_versions(book: Path) -> list[Violation]:
                 claimed = match.group(1) or match.group(2)
                 if match.group(1) is None and claimed.split(".")[0] not in PRODUCT_MAJORS:
                     continue
+                if claimed != current:
+                    out.append(Violation("VERSION_DRIFT", f"botbook/src/{rel}", number, claimed,
+                                         f"claims version {claimed}, Cargo.toml has {current}"))
+            for claimed in bare.findall(line):
                 if claimed != current:
                     out.append(Violation("VERSION_DRIFT", f"botbook/src/{rel}", number, claimed,
                                          f"claims version {claimed}, Cargo.toml has {current}"))
@@ -289,6 +298,7 @@ SELF_TEST_CASES = {
     "LINK_MISSING": ("extra/bad-link.md", "# Bad link\n\nSee [missing](./does-not-exist.md).\n"),
     "BAD_ANCHOR": ("extra/bad-anchor.md", "# Bad anchor\n\nSee [wrong](./good.md#nope).\n"),
     "VERSION_DRIFT": ("extra/bad-version.md", "# Bad version\n\nGeneral Bots v6.4.0 shipped this.\n"),
+    "VERSION_DRIFT_BARE": ("extra/bad-bare-version.md", "# Bad bare version\n\n7.0.0 shipped this.\n"),
     "PORT_DRIFT": ("extra/bad-port.md", "# Bad port\n\nThe botserver listens on port 9999.\n"),
 }
 
@@ -316,7 +326,8 @@ def self_test() -> int:
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(body, encoding="utf-8")
             fresh = {v.key() for v in run_all(book)} - baseline
-            if kind not in {key[0] for key in fresh}:
+            expected = kind.replace("_BARE", "")
+            if expected not in {key[0] for key in fresh}:
                 failures.append(f"{kind}: injected defect not reported")
             if kind != "SUMMARY_EMPTY":
                 target.unlink()

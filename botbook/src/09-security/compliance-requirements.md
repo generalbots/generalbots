@@ -382,7 +382,7 @@ pg_dump -h localhost -U postgres generalbots | \
 oc mirror drive/generalbots /backup/drive_${BACKUP_DATE}/
 
 # Qdrant snapshot
-curl -X POST "http://localhost:6333/collections/botserver/snapshots"
+curl -X POST "http://localhost:6333/collections/{collection}/snapshots"
 ```
 
 ### Network Security

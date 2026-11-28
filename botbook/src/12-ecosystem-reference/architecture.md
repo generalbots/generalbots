@@ -208,10 +208,12 @@ Isolated test environments for complete system integration:
 
 Each test gets dedicated service instances:
 
-- **Database**: Separate PostgreSQL cluster on port 5433
-- **Cache**: Separate Redis instance on port 6380
-- **Storage**: Separate OtterIO instance on port 9001
-- **API**: Separate botserver on port 8000
+Each isolated instance uses its service's default port on a separate host:
+
+- **Database**: PostgreSQL on 5432
+- **Cache**: Redis on 6379
+- **Storage**: OtterIO on 9000/9100
+- **API**: botserver on 8080
 
 ### Network Isolation
 

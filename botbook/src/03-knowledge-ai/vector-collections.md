@@ -12,7 +12,7 @@ When botserver encounters a .gbkb folder, it scans for documents in supported fo
 
 This automatic process means no manual indexing configuration is required. Add files to a folder, and they become searchable. Remove files, and they disappear from search results.
 
-> **Accuracy note (September 2026).** Documents are indexed as whole-file records. There is no text chunking step and no overlap between chunks, which is why long documents can lose precision — see [Retrieval and RAG](./hybrid-search.md#limits--what-these-modes-are-not).
+> **Accuracy note (September 2026).** Documents are indexed as whole-file records. There is no text chunking step and no overlap between chunks, which is why long documents can lose precision — see [Retrieval and RAG](./hybrid-search.md#limits-what-these-modes-are-not).
 
 ## The Indexing Pipeline
 

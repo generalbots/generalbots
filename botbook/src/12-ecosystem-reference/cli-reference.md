@@ -319,7 +319,7 @@ botserver vault health
 
 ```
 * Vault is healthy
-  Address: http://10.16.164.100:8200
+  Address: https://vault.internal:8200
 ```
 
 **Output (failure):**
@@ -350,7 +350,7 @@ botserver version [--all]
 ```bash
 # Simple version
 botserver version
-# Output: botserver 7.0.0
+# Output: botserver 7.1.2
 
 # Detailed version with all components
 botserver version --all
@@ -359,7 +359,7 @@ botserver version --all
 **Output with --all:**
 
 ```
-botserver 7.0.0
+botserver 7.1.2
 
 Build Information:
   rustc: rustc 1.83.0 (90b35a623 2024-11-26)
@@ -812,7 +812,7 @@ botserver vault put gbo/audit enabled=true
 
 ```bash
 # Example: Only allow botserver container to reach Vault
-iptables -A INPUT -p tcp --dport 8200 -s 10.16.164.33 -j ACCEPT
+iptables -A INPUT -p tcp --dport 8200 -s <trusted-host-ip> -j ACCEPT
 iptables -A INPUT -p tcp --dport 8200 -j DROP
 ```
 

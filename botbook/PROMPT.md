@@ -1,6 +1,6 @@
 # botbook Development Guide
 
-**Version:** 6.7.0
+**Version:** 7.1.2
 **Purpose:** Documentation for General Bots (mdBook)
 
 ---
@@ -82,7 +82,7 @@ botbook/
 - All documentation MUST match actual source code
 - Extract real keywords from botserver/src/basic/keywords/
 - Use actual examples from botserver/templates/
-- Version numbers must be 6.7.0
+- Version numbers must be 7.1.2
 - No placeholder content - only verified features
 ```
 
@@ -273,7 +273,7 @@ After testing each tool, document:
 - **Clarity** - Accessible to BASIC enthusiasts
 - **Keywords** - NEVER use underscores - always spaces
 - **NO ASCII art** - Use SVG diagrams only
-- **Version 6.7.0** - Always reference 6.7.0
+- **Version 7.1.2** - Always reference 7.1.2
 - **GIT WORKFLOW** - ALWAYS push to ALL repositories (github, pragmatismo)
 - **TESTING** - Test tools ONE BY ONE, fix ALL errors before moving to next tool
 - **NO STOP** - DO NOT STOP testing until ALL tools have ZERO errors - fix immediately and re-test

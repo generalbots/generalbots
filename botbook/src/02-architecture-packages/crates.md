@@ -1,7 +1,7 @@
 # Module Structure 🟡 BETA
 
 `botserver` is **not** a single crate. The repository is a Cargo workspace with
-**123 members**, version **7.0.0** (`[workspace.package] version` in the root
+**123 members**, version **7.1.2** (`[workspace.package] version` in the root
 `Cargo.toml`). Two vendored office-document crates (`3rdparty/docx-rs`,
 `3rdparty/umya-spreadsheet`) are explicitly excluded from the workspace.
 

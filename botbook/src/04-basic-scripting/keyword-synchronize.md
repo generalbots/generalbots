@@ -96,10 +96,6 @@ LOOP
 TALK "Synced " + totalSynced + " records to " + tableName
 ```
 
-## Used In
-
-- [Bling ERP Template](../../../templates/bling.gbai/) - ERP synchronization scripts
-
 ## Related Keywords
 
 - [GET](./keyword-get.md) - HTTP GET requests

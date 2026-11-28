@@ -1,6 +1,6 @@
 # Adding Dependencies 🟡 BETA
 
-botserver is a single-crate Rust application, so all dependencies are managed through the root `Cargo.toml` file. This guide covers how to add, update, and manage dependencies effectively.
+This is a 123-member Cargo workspace; shared versions live in `[workspace.dependencies]` in the root `Cargo.toml`. This guide covers how to add, update, and manage dependencies effectively.
 
 ## Adding a Dependency
 
@@ -36,7 +36,7 @@ Cargo supports several version constraint formats to control which versions are 
 ```toml
 [dependencies]
 # Exact version
-diesel = "=2.1.0"
+jsonwebtoken = "=10.4.0"
 
 # Minimum version
 anyhow = ">=1.0.0"
@@ -54,7 +54,7 @@ You can add dependencies directly from Git repositories when you need unreleased
 
 ```toml
 [dependencies]
-rhai = { git = "https://github.com/therealprof/rhai.git", branch = "features/use-web-time" }
+your-crate = { git = "https://github.com/org/repo.git", branch = "main" }
 ```
 
 For reproducible builds, pin to a specific commit using the `rev` field:
@@ -73,11 +73,10 @@ my-crate = { git = "https://github.com/user/repo", tag = "v1.0.0" }
 
 ### Optional Dependencies
 
-Some dependencies aren't always needed and can be marked as optional. These won't be compiled unless explicitly enabled through feature flags:
+Some dependencies aren't always needed and can be marked as optional. These won't be compiled unless explicitly enabled through feature flags. In this workspace `qdrant-client = "1.20"` and `rhai = { version = "1.23", features = ["sync"] }` are required, not optional:
 
 ```toml
 [dependencies]
-qdrant-client = { version = "1.12", optional = true }
 imap = { version = "3.0.0-alpha.15", optional = true }
 ```
 
@@ -114,7 +113,7 @@ The HTTP layer is built on `axum` as the primary web framework, with `tower` pro
 
 ### Async Runtime
 
-Asynchronous execution is powered by `tokio` with its full feature set enabled. Supporting crates include `tokio-stream` for stream utilities, `async-trait` for async trait definitions, `async-stream` for async stream macros, and `async-lock` for asynchronous locking primitives.
+Asynchronous execution is powered by `tokio` with `default-features = false` and only the features the workspace needs. Supporting crates include `tokio-stream` for stream utilities, `async-trait` for async trait definitions, `async-stream` for async stream macros, and `async-lock` for asynchronous locking primitives.
 
 ### Database
 
@@ -175,7 +174,7 @@ cargo search jsonwebtoken
 # Exactly one crypto backend must be selected. `aws_lc_rs` reuses the AWS-LC
 # library already pulled in by rustls and keeps the `rsa`/`crypto-bigint`
 # chain (RUSTSEC-2023-0071, RUSTSEC-2026-0387) out of the lockfile.
-jsonwebtoken = { version = "10.3", features = ["aws_lc_rs", "use_pem"] }
+jsonwebtoken = { version = "=10.4.0", features = ["aws_lc_rs", "use_pem"] }
 ```
 
 ### 3. Update Dependencies
@@ -441,7 +440,7 @@ Good documentation makes dependencies easier to maintain. Add comments in `Cargo
 ```toml
 [dependencies]
 # JWT token generation and validation (aws-lc-rs backend, see above)
-jsonwebtoken = { version = "10.3", features = ["aws_lc_rs", "use_pem"] }
+jsonwebtoken = { version = "=10.4.0", features = ["aws_lc_rs", "use_pem"] }
 ```
 
 Document usage in your code with doc comments that explain the dependency's role:

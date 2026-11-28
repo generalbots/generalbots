@@ -30,7 +30,9 @@ in the repository's `SECURITY.md` and the security report.
 | Database | PostgreSQL no longer trusts `0.0.0.0/0`; external 5432 blocked |
 | Containers | No `security.privileged`; Incus socket and Chromium CDP proxies restricted to their client containers |
 | OS packages | All security updates applied; only held Incus packages (bot) and the kernel package (desktops, reboot pending) remain |
-| Service binaries | Caddy **2.11.9**, Forgejo **17.0.1**, Zitadel **4.20.1**, Vault **2.2.1**, LiveKit **1.13.11** and OtterIO **RELEASE.2025-10-15T17-29-55Z** deployed and verified (OtterIO built from the official source tag; `otterio --version` checked) |
+| Service binaries | Current pins in `botserver/3rdparty.toml`: Caddy **2.11.9**, Forgejo **17.0.1**, Zitadel **4.20.1**, OpenBao **2.7.3** (secrets component `vault`), LiveKit **1.13.11**, OtterIO **RELEASE.2026-11-25T20-30-00Z** |
+
+The pins above are the current manifest values; the dated list below records what was installed during the original 2026-11-06 run.
 
 ## Fixes applied during the verification
 

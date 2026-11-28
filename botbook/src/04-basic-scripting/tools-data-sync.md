@@ -1024,5 +1024,5 @@ SET BOT MEMORY "sync_priority_source", "erp"
 - [WEBHOOK](./keyword-webhook.md) - Creating webhook endpoints
 - [ON](./keyword-on.md) - Database trigger events
 - [SET SCHEDULE](./keyword-set-schedule.md) - Scheduled tasks
-- [Data Operations](./keywords.md#database--data-operations) - Database keywords
+- [Generated BASIC reference](./generated/index.md) - Database keywords and signatures
 - [Consolidated Examples](./examples-consolidated.md) - More complete examples

@@ -312,7 +312,7 @@ chown root:root /opt/gbo/secrets/vault-unseal-keys
 **In your .env:**
 
 ```env
-VAULT_ADDR=http://10.16.164.168:8200
+VAULT_ADDR=https://vault.internal:8200
 VAULT_TOKEN=<root-token>
 VAULT_UNSEAL_KEYS_FILE=/opt/gbo/secrets/vault-unseal-keys
 ```

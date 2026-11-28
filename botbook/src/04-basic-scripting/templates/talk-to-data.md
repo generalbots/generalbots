@@ -531,7 +531,7 @@ END IF
 
 - [ai-search.bas](./ai-search.md) - Search documents with AI
 - [analytics-dashboard.bas](./analytics-dashboard.md) - System monitoring
-- [billing](../apps/billing.md) - Financial, inventory & procurement (formerly standalone ERP)
+- [billing](../../07-user-interface/apps/billing.md) - Financial, inventory & procurement (formerly standalone ERP)
 
 ---
 

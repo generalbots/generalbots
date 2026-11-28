@@ -353,7 +353,7 @@ bot.example.com {
                 window 1m
             }
         }
-        reverse_proxy botserver:9000
+        reverse_proxy botserver:8080
     }
 }
 ```
@@ -491,7 +491,7 @@ Health check response:
 ```json
 {
   "status": "healthy",
-  "version": "7.0.0",
+  "version": "7.1.2",
   "uptime": 86400,
   "checks": {
     "database": "ok",

@@ -46,7 +46,7 @@ Returns version information for all system components.
     },
     "cache": {
       "engine": "Valkey",
-      "version": "7.2.4"
+      "version": "7.1.2"
     },
     "storage": {
       "engine": "OtterIO",

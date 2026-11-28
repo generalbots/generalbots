@@ -294,7 +294,7 @@ quality with no script change.
 - the bot configuration has `botmodels-enabled,true` (see
   [Configuration](#configuration)), and
 - the service is actually reachable at the address the server uses, e.g.
-  `BOTMODELS_HOST=http://<bot-host>:8082` in the botserver unit.
+  `BOTMODELS_HOST=http://<bot-host>:8082` in the service environment.
 
 Check reachability — a connection-refused (`000`) result is the usual cause of
 a degraded classification:

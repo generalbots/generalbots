@@ -4,13 +4,13 @@ After bootstrap, botserver services are immediately accessible via **IP addresse
 
 ## Zero Configuration: IP Access (Default)
 
-botserver certificates include `127.0.0.1` as a Subject Alternative Name (SAN), so **mTLS works immediately** via IP address without any system changes.
+The API listens on `127.0.0.1:8080` in development. Requests use a bearer token from `POST /api/auth`; the browser UIs are served separately on ports 3000 (suite), 4000 (cloud) and 5000 (login).
 
 ### Service Ports
 
 | Component | Description | IP:Port |
 |-----------|-------------|---------|
-| api | Main botserver API | `127.0.0.1:8443` (HTTPS) / `127.0.0.1:9000` (HTTP) |
+| api | Main botserver API (Bearer token) | `127.0.0.1:8080` |
 | tables | PostgreSQL database | `127.0.0.1:5432` |
 | drive | Object storage (S3-compatible) | `127.0.0.1:9000` |
 | cache | Redis cache | `127.0.0.1:6379` |
@@ -25,14 +25,12 @@ botserver certificates include `127.0.0.1` as a Subject Alternative Name (SAN), 
 ### Quick Test
 
 ```bash
-# Test API (no config needed)
-curl -k https://127.0.0.1:8443/health
+# Unauthenticated health check
+curl -s http://127.0.0.1:8080/health
 
-# With mTLS client certificate
-curl --cert ./botserver-stack/conf/system/certificates/api/client.crt \
-     --key ./botserver-stack/conf/system/certificates/api/client.key \
-     --cacert ./botserver-stack/conf/system/certificates/ca/ca.crt \
-     https://127.0.0.1:8443/api/status
+# Authenticated API call
+curl -s http://127.0.0.1:8080/api/bots \
+     -H "Authorization: Bearer <token>"
 ```
 
 ### Code Examples
@@ -42,58 +40,30 @@ curl --cert ./botserver-stack/conf/system/certificates/api/client.crt \
 import requests
 
 response = requests.get(
-    "https://127.0.0.1:8443/api/bots",
-    cert=("./botserver-stack/conf/system/certificates/api/client.crt",
-          "./botserver-stack/conf/system/certificates/api/client.key"),
-    verify="./botserver-stack/conf/system/certificates/ca/ca.crt"
+    "http://127.0.0.1:8080/api/bots",
+    headers={"Authorization": f"Bearer {token}"}
 )
 print(response.json())
 ```
 
 #### Node.js
 ```javascript
-const https = require('https');
-const fs = require('fs');
-
-const options = {
-  hostname: '127.0.0.1',
-  port: 8443,
-  path: '/api/bots',
-  method: 'GET',
-  cert: fs.readFileSync('./botserver-stack/conf/system/certificates/api/client.crt'),
-  key: fs.readFileSync('./botserver-stack/conf/system/certificates/api/client.key'),
-  ca: fs.readFileSync('./botserver-stack/conf/system/certificates/ca/ca.crt')
-};
-
-https.request(options, (res) => {
-  res.on('data', (d) => process.stdout.write(d));
-}).end();
+const response = await fetch('http://127.0.0.1:8080/api/bots', {
+  headers: { Authorization: `Bearer ${token}` }
+});
+console.log(await response.json());
 ```
 
 #### Rust
 ```rust
-use reqwest::Certificate;
-use std::fs;
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let cert = fs::read("./botserver-stack/conf/system/certificates/api/client.crt")?;
-    let key = fs::read("./botserver-stack/conf/system/certificates/api/client.key")?;
-    let ca = fs::read("./botserver-stack/conf/system/certificates/ca/ca.crt")?;
-    
-    let identity = reqwest::Identity::from_pem(&[cert, key].concat())?;
-    let ca_cert = Certificate::from_pem(&ca)?;
-    
-    let client = reqwest::Client::builder()
-        .identity(identity)
-        .add_root_certificate(ca_cert)
-        .build()?;
-    
+    let client = reqwest::Client::new();
     let response = client
-        .get("https://127.0.0.1:8443/api/bots")
+        .get("http://127.0.0.1:8080/api/bots")
+        .bearer_auth(token)
         .send()
         .await?;
-    
     println!("{}", response.text().await?);
     Ok(())
 }
