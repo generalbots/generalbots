@@ -34,7 +34,7 @@
             items.push({ label: A.t("drive.rename", "Rename"), icon: "M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z", action: "rename" });
         }
         if (!opts.noDelete) {
-            items.push({ label: pt ? "Apagar" : "Delete", icon: "M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2", action: "delete", danger: true });
+            items.push({ label: A.t("drive.delete", "Delete"), icon: "M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2", action: "delete", danger: true });
         }
 
         var html = "";
