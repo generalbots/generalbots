@@ -42,16 +42,35 @@ fn git_commit() -> Option<String> {
 }
 
 /// The files that move when a commit lands or the branch changes, so the
-/// stamp is refreshed without re-running the script on every build.
+/// stamp is refreshed without re-running the script on every build. Outside a
+/// git checkout (a source tarball) every `git` call fails and nothing is
+/// watched. A detached HEAD is covered by `HEAD` itself, which holds the hash.
 fn git_refs_to_watch() -> Vec<String> {
-    let mut refs = vec!["HEAD".to_string(), "packed-refs".to_string()];
-    if let Some(branch) = git(&["symbolic-ref", "-q", "HEAD"]) {
-        refs.push(branch);
-    }
-    refs.iter()
+    let mut watched: Vec<String> = ["HEAD", "packed-refs"]
+        .iter()
         .filter_map(|name| git(&["rev-parse", "--git-path", name]))
         .filter(|path| std::path::Path::new(path).is_file())
-        .collect()
+        .collect();
+    let branch = git(&["symbolic-ref", "-q", "HEAD"])
+        .and_then(|name| git(&["rev-parse", "--git-path", &name]));
+    let branch_path = branch.as_deref().map(std::path::Path::new);
+    if let Some(path) = branch_path.and_then(branch_watch_path) {
+        watched.push(path.display().to_string());
+    }
+    watched
+}
+
+/// The loose ref file of the current branch, or, when the branch lives only in
+/// `packed-refs` (no loose file until the next commit writes one), the nearest
+/// existing directory under `refs/` that the new file will appear in.
+fn branch_watch_path(path: &std::path::Path) -> Option<&std::path::Path> {
+    if path.is_file() {
+        return Some(path);
+    }
+    path.ancestors()
+        .skip(1)
+        .take_while(|dir| dir.components().any(|part| part.as_os_str() == "refs"))
+        .find(|dir| dir.is_dir())
 }
 
 fn utc_today() -> String {
