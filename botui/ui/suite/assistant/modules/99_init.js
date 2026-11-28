@@ -57,7 +57,8 @@
         }
         A.botName = window.__INITIAL_BOT_NAME__ || pathBot;
 
-        /* 5. Auth gate */
+        /* 5. Auth gate (after the desktop shell's session, if any, is stored) */
+        if (window.__GB_SHELL_SESSION__) { await window.__GB_SHELL_SESSION__; }
         var noSecurity = A.productConfig && A.productConfig.no_security === true;
         if (!noSecurity) {
             var token = A.getToken();

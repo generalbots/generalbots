@@ -93,6 +93,21 @@
         }
     } catch (e) { /* storage unavailable */ }
 
+    /* Desktop shell: take the session it minted for this launch, once, over
+       IPC; the shell never puts it in the URL. The auth gate awaits this. */
+    try {
+        var ti = window.__TAURI_INTERNALS__;
+        if (ti && typeof ti.invoke === "function") {
+            window.__GB_SHELL_SESSION__ = ti.invoke("take_desktop_session", {})
+                .then(function (s) {
+                    if (typeof s === "string" && s && s.split(".").length !== 3) {
+                        localStorage.setItem("gb-access-token", s);
+                    }
+                })
+                .catch(function () { /* no shell, or no session to take */ });
+        }
+    } catch (e) { /* no shell bridge */ }
+
     /* Tauri / sidecar origin: when served by the Tauri asset protocol,
        all API and WS calls must target the sidecar HTTP server.
        Preserve any value set before this script (e.g. by the test harness). */
