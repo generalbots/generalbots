@@ -218,9 +218,11 @@ pub fn is_trusted_window(
     if !parsed.username().is_empty() || parsed.password().is_some() {
         return false;
     }
+    // Windows serves the bundled documents on `http://tauri.localhost` (or
+    // `https://` when a window opts into it), always on the default port.
     match (parsed.scheme(), parsed.host_str()) {
-        ("tauri", Some("localhost")) => true,
-        ("https", Some("tauri.localhost")) => true,
+        ("tauri", Some("localhost")) => parsed.port().is_none(),
+        ("http" | "https", Some("tauri.localhost")) => parsed.port().is_none(),
         ("http", Some("localhost" | "127.0.0.1")) => {
             dev_server && parsed.port_or_known_default() == Some(DEV_ORIGIN_PORT)
         }
@@ -257,6 +259,7 @@ mod tests {
     fn trusted_window_accepts_bundled_documents() {
         for document in [
             "tauri://localhost/wizard/index.html",
+            "http://tauri.localhost/wizard/index.html",
             "https://tauri.localhost/wizard/index.html",
         ] {
             assert!(
@@ -283,6 +286,9 @@ mod tests {
             "file:///etc/passwd",
             "javascript:alert(1)",
             "tauri://localhost.evil.example/wizard/index.html",
+            "http://tauri.localhost.evil.example/wizard/index.html",
+            "http://tauri.localhost:8081/wizard/index.html",
+            "http://user@tauri.localhost/wizard/index.html",
             "http://user@localhost:3000/wizard/index.html",
             "http://localhost:3001/wizard/index.html",
             "http://localhost/wizard/index.html",

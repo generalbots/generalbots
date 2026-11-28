@@ -54,14 +54,20 @@ pub(super) fn parse_suite_url(raw: &str) -> Option<Url> {
 }
 
 /// The app's own document origin, loaded before the handoff to the sidecar.
-/// `WebviewUrl::App` resolves to `tauri://localhost` everywhere except
-/// Windows/Android, where the custom protocol is `https://tauri.localhost`.
-/// Both must be permitted or the navigation hook would blank the window on
-/// startup. `.localhost` is reserved by RFC 6761 and cannot resolve off-host.
+/// `WebviewUrl::App` resolves to `tauri://localhost` on macOS and Linux. On
+/// Windows and Android the custom protocol is `http://tauri.localhost`, or
+/// `https://tauri.localhost` when a window opts into the HTTPS scheme. All of
+/// them must be permitted or the navigation hook blanks the window on startup.
+/// `.localhost` is reserved by RFC 6761 and cannot resolve off-host. The
+/// custom protocol is served on the default port only, so an explicit port
+/// (which would reach whatever loopback server listens there) is refused.
 fn is_app_document(url: &Url) -> bool {
+    if url.port().is_some() || !url.username().is_empty() || url.password().is_some() {
+        return false;
+    }
     match url.scheme() {
         "tauri" => url.host_str() == Some("localhost"),
-        "https" => url.host_str() == Some("tauri.localhost"),
+        "http" | "https" => url.host_str() == Some("tauri.localhost"),
         _ => false,
     }
 }
@@ -136,7 +142,9 @@ mod tests {
     fn main_navigation_allows_the_app_document_but_no_external_origin() {
         for doc in [
             "tauri://localhost/suite/desktop.html",
+            "http://tauri.localhost/suite/desktop.html",
             "https://tauri.localhost/suite/desktop.html",
+            "http://tauri.localhost:80/index.html",
         ] {
             let url = tauri::Url::parse(doc).expect("valid app URL");
             assert!(
@@ -147,5 +155,28 @@ mod tests {
         }
         let external = tauri::Url::parse("https://evil.example/").expect("valid URL");
         assert!(!is_allowed_main_navigation(&external));
+    }
+
+    /// Look-alikes of the app document: another port, another host under the
+    /// same name, credentials, or a scheme the custom protocol never uses.
+    #[test]
+    fn app_document_look_alikes_are_refused() {
+        for hostile in [
+            "http://tauri.localhost:8081/suite/desktop.html",
+            "https://tauri.localhost:8443/suite/desktop.html",
+            "tauri://localhost:9000/suite/desktop.html",
+            "http://tauri.localhost.evil.example/suite/desktop.html",
+            "http://evil.tauri.localhost/suite/desktop.html",
+            "http://user@tauri.localhost/suite/desktop.html",
+            "http://localhost/suite/desktop.html",
+            "ftp://tauri.localhost/suite/desktop.html",
+            "file://tauri.localhost/suite/desktop.html",
+        ] {
+            let url = tauri::Url::parse(hostile).expect("valid URL");
+            assert!(
+                !is_allowed_main_navigation(&url),
+                "accepted a look-alike of the app document: {hostile}"
+            );
+        }
     }
 }
