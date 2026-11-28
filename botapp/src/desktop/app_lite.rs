@@ -31,7 +31,8 @@ pub fn run() {
         crate::build_info::build_date()
     );
 
-    let context: tauri::Context<tauri::Wry> = tauri::generate_context!();
+    let context: tauri::Context<tauri::Wry> =
+        crate::desktop::favicon::with_app_icon(tauri::generate_context!());
     let running_identifier = context.config().identifier.clone();
     crate::desktop::legacy_data::migrate_legacy_data_dir(&running_identifier);
     crate::desktop::edition_migration::migrate(&running_identifier);

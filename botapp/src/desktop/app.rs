@@ -278,7 +278,7 @@ pub fn run() {
 
             Ok(())
         })
-        .build(tauri::generate_context!());
+        .build(crate::desktop::favicon::with_app_icon(tauri::generate_context!()));
 
     match app {
         Ok(app) => {

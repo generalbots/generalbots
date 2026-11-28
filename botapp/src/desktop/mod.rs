@@ -43,6 +43,7 @@ pub(crate) fn sidecar_port() -> u16 {
 pub mod drive;
 #[cfg(target_os = "linux")]
 pub mod dbus_isolation;
+pub mod favicon;
 pub mod fs_scope;
 pub mod i18n;
 #[cfg(feature = "desktop-local")]
