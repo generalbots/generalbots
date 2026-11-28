@@ -277,7 +277,7 @@ window.GBWizardLocales["pt-BR"] = {
   "step.network": "Modo de rede",
   "heading.network": "Escolha o modo de rede",
   "network.lead": "Controle se esta instalação entra na rede de pares ou permanece totalmente offline.",
-  "network.p2p.title": "P2P — Entrar na rede de pares (recomendado)",
+  "network.p2p.title": "P2P — Entrar na rede de pares",
   "network.p2p.desc": "Habilita recursos futuros como links compartilhados gratuitos e descoberta de pares. Nenhum dado sai desta máquina até você compartilhar algo explicitamente.",
   "network.offline.title": "Offline — Sem identidade de rede",
   "network.offline.desc": "Mantém todas as conexões em 127.0.0.1. Sem recursos de pares; links compartilhados funcionam apenas na sua rede local.",

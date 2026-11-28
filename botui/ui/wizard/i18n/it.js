@@ -35,7 +35,7 @@ window.GBWizardLocales["it"] = {
   "heading.finish": "Pronto per aprire l'assistente",
 
   "network.lead": "Controlla se questa installazione si unisce alla rete peer o rimane completamente offline.",
-  "network.p2p.title": "P2P — Unisca alla rete peer (consigliato)",
+  "network.p2p.title": "P2P — Unisciti alla rete peer",
   "network.p2p.desc": "Abilita funzionalità future come l'inoltro gratuito di link condivisi e la scoperta peer. Nessun dato lascia questo computer finché non condivide esplicitamente qualcosa.",
   "network.offline.title": "Offline — Nessuna identità di rete",
   "network.offline.desc": "Mantiene ogni connessione su 127.0.0.1. Nessuna funzione peer; i link condivisi funzionano solo sulla rete locale.",

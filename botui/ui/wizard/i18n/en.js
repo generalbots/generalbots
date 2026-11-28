@@ -35,7 +35,7 @@ window.GBWizardLocales["en"] = {
   "heading.finish": "Ready to open the assistant",
 
   "network.lead": "Control whether this installation joins the peer network or stays entirely offline.",
-  "network.p2p.title": "P2P — Join peer network (recommended)",
+  "network.p2p.title": "P2P — Join peer network",
   "network.p2p.desc": "Enables future features such as free shared-link relaying and peer discovery. No data leaves this machine until you explicitly share something.",
   "network.offline.title": "Offline — No network identity",
   "network.offline.desc": "Keeps every connection on 127.0.0.1. No peer features; shared links work on your local network only.",

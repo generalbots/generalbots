@@ -79,6 +79,8 @@
         draft.workspace = Object.assign(draft.workspace, saved.workspace || {});
         draft.services = (saved.services && !Array.isArray(saved.services)) ? saved.services : {};
         Object.keys(draft.services).forEach(function (id) { draft.services[id].client_secret = ""; });
+        /* Only "p2p" is an opt-in; anything else stays on the offline default. */
+        draft.network = { mode: saved.network && saved.network.mode === "p2p" ? "p2p" : "offline" };
         if (saved.appearance && saved.appearance.accent) {
           draft.appearance = { accent: saved.appearance.accent };
         }

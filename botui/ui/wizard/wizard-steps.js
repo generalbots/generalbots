@@ -151,17 +151,17 @@
         '<div class="field-grid">' +
           '<div class="field">' +
             '<label class="radio-label">' +
-              '<input type="radio" name="networkMode" id="networkModeP2P" value="p2p"' + (p2p ? " checked" : "") + " />" +
-              " " + esc(t("network.p2p.title")) +
-            "</label>" +
-            '<span class="hint">' + esc(t("network.p2p.desc")) + "</span>" +
-          "</div>" +
-          '<div class="field">' +
-            '<label class="radio-label">' +
               '<input type="radio" name="networkMode" id="networkModeOffline" value="offline"' + (!p2p ? " checked" : "") + " />" +
               " " + esc(t("network.offline.title")) +
             "</label>" +
             '<span class="hint">' + esc(t("network.offline.desc")) + "</span>" +
+          "</div>" +
+          '<div class="field">' +
+            '<label class="radio-label">' +
+              '<input type="radio" name="networkMode" id="networkModeP2P" value="p2p"' + (p2p ? " checked" : "") + " />" +
+              " " + esc(t("network.p2p.title")) +
+            "</label>" +
+            '<span class="hint">' + esc(t("network.p2p.desc")) + "</span>" +
           "</div>" +
         "</div>" +
       "</div>" +

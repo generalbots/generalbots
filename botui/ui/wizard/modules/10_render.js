@@ -187,7 +187,7 @@
   function bindNetwork() {
     Array.prototype.forEach.call(document.querySelectorAll('input[name="networkMode"]'), function (input) {
       input.addEventListener("change", function () {
-        draft.network = draft.network || { mode: "p2p" };
+        draft.network = draft.network || { mode: "offline" };
         draft.network.mode = input.value === "offline" ? "offline" : "p2p";
         persistDraft();
       });

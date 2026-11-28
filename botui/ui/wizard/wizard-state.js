@@ -117,7 +117,9 @@
       model: freeModel(),
       workspace: { path: "", size: "standard" },
       services: {},
-      network: { mode: "p2p" },
+      // The shell persists only "p2p" as an opt-in; anything else is the
+      // offline default, so the page starts on offline too.
+      network: { mode: "offline" },
       appearance: { accent: "" },
       // Windows agent mode requires WSL2; Chat/Drive-only users can skip all
       // agent-related setup. Persisted so re-runs remember the choice (#1937).

@@ -256,7 +256,7 @@ window.GBWizardLocales["de"] = {
   "step.network": "Netzwerkmodus",
   "heading.network": "Wählen Sie Ihren Netzwerkmodus",
   "network.lead": "Legen Sie fest, ob diese Installation dem Peer-Netzwerk beitritt oder vollständig offline bleibt.",
-  "network.p2p.title": "P2P — Peer-Netzwerk beitreten (empfohlen)",
+  "network.p2p.title": "P2P — Peer-Netzwerk beitreten",
   "network.p2p.desc": "Ermöglicht künftige Funktionen wie kostenloses Weiterleiten geteilter Links und Peer-Erkennung. Keine Daten verlassen diesen Rechner, bis Sie etwas ausdrücklich teilen.",
   "network.offline.title": "Offline — Keine Netzwerkidentität",
   "network.offline.desc": "Behält alle Verbindungen auf 127.0.0.1. Keine Peer-Funktionen; geteilte Links funktionieren nur in Ihrem lokalen Netzwerk.",
