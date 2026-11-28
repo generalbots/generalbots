@@ -1,3 +1,4 @@
+# Relocked 2026-11-28 for the locally staged Mail compose polish (identity-token CSS overrides): mail loc +45. Growth is user-requested UI styling; subsequent changes remain shrink-only.
 # Relocked 2026-11-27 after merging 10 gbgov commits and porting every new Assistant module to Chat/Drive/Settings: chat js_modules +1/loc +24, drive +1/+25, editor loc +15, settings +1/+21. All growth is shipped, user-requested parity code; subsequent changes remain shrink-only.
 # Per-app complexity budget (#2120).
 #
@@ -187,7 +188,7 @@ loc = 2138
 [apps."mail"]
 routes = 36
 js_modules = 8
-loc = 4823
+loc = 4868
 
 [apps."meet"]
 routes = 13

@@ -386,6 +386,51 @@ input:checked + .toggle-switch::after {
     font-size: 0.75rem;
 }
 
+/* Compose polish for the template-based dialog in mail-templates.js
+   (slot mailTplSlot2). Identity tokens only; no new colours or fonts. */
+#compose-modal[open] {
+    width: min(46rem, 94vw);
+    max-width: 94vw;
+    height: min(40rem, 88vh);
+    padding: 0;
+    border: 1px solid var(--id-border);
+    border-radius: var(--id-radius-card);
+    box-shadow: var(--id-shadow-float);
+    background: var(--id-surface);
+    color: var(--id-text);
+}
+#mailTplSlot2 { display: flex; flex: 1; min-height: 0; }
+.compose-form { display: flex; flex-direction: column; gap: var(--id-space-2); flex: 1; min-height: 0; padding: var(--id-space-4); }
+.compose-row, .cc-bcc { display: flex; align-items: center; gap: var(--id-space-2); }
+.compose-input {
+    flex: 1; min-width: 0;
+    padding: var(--id-space-2) var(--id-space-3);
+    border: 1px solid var(--id-border);
+    border-radius: var(--id-radius-control);
+    background: var(--id-surface-alt);
+    color: var(--id-text);
+    font: var(--id-font);
+    font-size: var(--id-text-base);
+}
+.compose-toolbar { border-bottom: 1px solid var(--id-border); padding: var(--id-space-2) 0; }
+.compose-toolbar .btn-icon { border-radius: var(--id-radius-control); color: var(--id-muted); }
+.compose-toolbar .btn-icon:hover { background: var(--id-accent-soft); color: var(--id-accent-text); }
+#compose-modal .compose-body {
+    flex: 1; min-height: 12rem; overflow-y: auto;
+    padding: var(--id-space-3);
+    border: 1px solid var(--id-border);
+    border-radius: var(--id-radius-panel);
+    background: var(--id-surface-alt);
+    font: var(--id-font);
+    font-size: var(--id-text-base);
+}
+.compose-input:focus-visible, #compose-modal .compose-body:focus-visible,
+.compose-toolbar .btn-icon:focus-visible {
+    outline: none;
+    box-shadow: var(--id-focus);
+}
+.compose-actions { justify-content: flex-end; padding-top: var(--id-space-2); }
+.compose-actions .btn-primary { background: var(--id-accent); color: var(--id-on-accent); }
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
