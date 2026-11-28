@@ -20,6 +20,6 @@ Base URL: `http://localhost:8080` — see
 | POST | `/api/editor/save` | schema not modeled | no | `botserver/crates/boteditor/src/routes.rs` |
 | GET | `/api/editor/save-as` | schema not modeled | no | `botserver/crates/boteditor/src/routes.rs` |
 | POST | `/api/editor/save-as` | schema not modeled | no | `botserver/crates/boteditor/src/routes.rs` |
-| POST | `/api/editor/undo` | registered in crates/boteditor/src/routes.rs | yes | `botserver/crates/boteditor/src/routes.rs` |
+| POST | `/api/editor/undo` | schema not modeled | no | `botserver/crates/boteditor/src/routes.rs` |
 
 [All families](./README.md)

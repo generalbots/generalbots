@@ -16,5 +16,5 @@ Part of the [generated BASIC reference](./index.md). Status and purpose come fro
 
 | Function | Aliases | Status | Source | Docs | Purpose |
 |---|---|---|---|---|---|
-| `PLUGIN_CALL` | `plugin_call` | registered | `botserver/crates/botbasic_system/src/keywords/plugin_call.rs` | — | — |
-| `PLUGIN_LIST` | `plugin_list` | registered | `botserver/crates/botbasic_system/src/keywords/plugin_call.rs` | — | — |
+| `PLUGIN_CALL` | `plugin_call` | registered | `botserver/crates/botbasic_system/src/keywords/plugin_call.rs` | — | `PLUGIN_CALL` / `PLUGIN_LIST` (#2833). |
+| `PLUGIN_LIST` | `plugin_list` | registered | `botserver/crates/botbasic_system/src/keywords/plugin_call.rs` | — | `PLUGIN_CALL` / `PLUGIN_LIST` (#2833). |

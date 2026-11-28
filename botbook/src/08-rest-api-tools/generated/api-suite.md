@@ -2,7 +2,7 @@
 
 # API / suite
 
-225 routes in the `suite` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+224 routes in the `suite` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
@@ -198,7 +198,6 @@ Base URL: `http://localhost:8080` — see
 | POST | `/suite/slides/modals/ai` | schema not modeled | no | `botserver/crates/botslides/src/ui_fragments/mod.rs` |
 | GET | `/suite/slides/modals/animation` | schema not modeled | no | `botserver/crates/botslides/src/ui_fragments/mod.rs` |
 | POST | `/suite/slides/modals/animation` | schema not modeled | no | `botserver/crates/botslides/src/ui_fragments/mod.rs` |
-| GET | `/suite/slides/modals/background` | schema not modeled | no | `botserver/crates/botslides/src/ui_fragments/mod.rs` |
 | POST | `/suite/slides/modals/background` | schema not modeled | no | `botserver/crates/botslides/src/ui_fragments/mod.rs` |
 | GET | `/suite/slides/modals/export` | schema not modeled | no | `botserver/crates/botslides/src/ui_fragments/mod.rs` |
 | POST | `/suite/slides/modals/export` | schema not modeled | no | `botserver/crates/botslides/src/ui_fragments/mod.rs` |

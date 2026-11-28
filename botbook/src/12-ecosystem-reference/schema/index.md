@@ -10,7 +10,7 @@ This reference is generated from `botschema/src/**` (`table!`, `joinable!`) and
 python3 scripts/gen_schema_reference.py
 ```
 
-Tables: **306** · columns: **3580** · domains: **35** · join edges: **189** · `allow_tables_to_appear_in_same_query!` groups: **19**
+Tables: **306** · columns: **3582** · domains: **35** · join edges: **189** · `allow_tables_to_appear_in_same_query!` groups: **19**
 
 ## Domains
 

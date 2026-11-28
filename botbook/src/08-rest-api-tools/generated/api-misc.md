@@ -22,6 +22,15 @@ Families with fewer than 8 routes, grouped so the book stays navigable. `Invento
 | POST | `/api/activity` | schema not modeled | no | `botserver/src/main_module/routes/collab_routes/mod.rs` |
 | GET | `/api/activity/recent` | registered in crates/botcore/src/shared/analytics.rs | yes | `botserver/crates/botcore/src/shared/analytics/endpoints.rs` |
 
+## `advisories`
+
+| Method | Path | Summary | Inventory | Registered in |
+|---|---|---|---|---|
+| GET | `/api/advisories` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
+| POST | `/api/advisories` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
+| GET | `/api/advisories/:param` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
+| POST | `/api/advisories/:param` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
+
 ## `ai`
 
 | Method | Path | Summary | Inventory | Registered in |
@@ -242,21 +251,5 @@ Families with fewer than 8 routes, grouped so the book stays navigable. `Invento
 | GET | `/api/governance/incidents` | registered in crates/botmonitoring/src/governance.rs | yes | `botserver/crates/botmonitoring/src/governance.rs` |
 | POST | `/api/governance/incidents` | schema not modeled | no | `botserver/crates/botmonitoring/src/governance.rs` |
 | GET | `/api/governance/metrics` | registered in crates/botmonitoring/src/governance.rs | yes | `botserver/crates/botmonitoring/src/governance.rs` |
-| POST | `/api/governance/metrics` | schema not modeled | no | `botserver/crates/botmonitoring/src/governance.rs` |
-| POST | `/api/governance/sessions/kill` | registered in crates/botmonitoring/src/governance.rs | yes | `botserver/crates/botmonitoring/src/governance.rs` |
-
-## `health`
-
-| Method | Path | Summary | Inventory | Registered in |
-|---|---|---|---|---|
-| GET | `/health` | schema not modeled | no | `botserver/src/apps/integration_catalog/tests.rs` |
-| POST | `/health` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
-
-## `history`
-
-| Method | Path | Summary | Inventory | Registered in |
-|---|---|---|---|---|
-| GET | `/history` | schema not modeled | no | `botserver/crates/botmaintenance/src/create_cleanup_tables_migration.rs` |
-| POST | `/history` | schema not modeled | no | `botserver/crates/botmaintenance/src/create_cleanup_tables_migration.rs` |
 
 [All families](./README.md)

@@ -4,6 +4,27 @@
 
 Families with fewer than 8 routes, grouped so the book stays navigable. `Inventory` and `Registered in` mean the same as on the family pages.
 
+## `governance`
+
+| Method | Path | Summary | Inventory | Registered in |
+|---|---|---|---|---|
+| POST | `/api/governance/metrics` | schema not modeled | no | `botserver/crates/botmonitoring/src/governance.rs` |
+| POST | `/api/governance/sessions/kill` | registered in crates/botmonitoring/src/governance.rs | yes | `botserver/crates/botmonitoring/src/governance.rs` |
+
+## `health`
+
+| Method | Path | Summary | Inventory | Registered in |
+|---|---|---|---|---|
+| GET | `/health` | schema not modeled | no | `botserver/src/apps/integration_catalog/tests.rs` |
+| POST | `/health` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
+
+## `history`
+
+| Method | Path | Summary | Inventory | Registered in |
+|---|---|---|---|---|
+| GET | `/history` | schema not modeled | no | `botserver/crates/botmaintenance/src/create_cleanup_tables_migration.rs` |
+| POST | `/history` | schema not modeled | no | `botserver/crates/botmaintenance/src/create_cleanup_tables_migration.rs` |
+
 ## `i18n`
 
 | Method | Path | Summary | Inventory | Registered in |
@@ -29,8 +50,6 @@ Families with fewer than 8 routes, grouped so the book stays navigable. `Invento
 
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
-| GET | `/invitations/accept` | schema not modeled | no | `botserver/crates/botcore/src/organization_invitations/configure.rs` |
-| POST | `/invitations/accept` | schema not modeled | no | `botserver/crates/botcore/src/organization_invitations/configure.rs` |
 | GET | `/invitations/decline` | schema not modeled | no | `botserver/crates/botcore/src/organization_invitations/configure.rs` |
 | POST | `/invitations/decline` | schema not modeled | no | `botserver/crates/botcore/src/organization_invitations/configure.rs` |
 | GET | `/invitations/validate/:param` | schema not modeled | no | `botserver/crates/botcore/src/organization_invitations/configure.rs` |
@@ -49,6 +68,12 @@ Families with fewer than 8 routes, grouped so the book stays navigable. `Invento
 | DELETE | `/llm-tools` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
 | GET | `/llm-tools` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
 | POST | `/llm-tools` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
+
+## `local-recovery`
+
+| Method | Path | Summary | Inventory | Registered in |
+|---|---|---|---|---|
+| POST | `/local-recovery/reset` | schema not modeled | no | `botserver/src/main_module/local_recovery/mod.rs` |
 
 ## `login`
 
@@ -69,7 +94,6 @@ Families with fewer than 8 routes, grouped so the book stays navigable. `Invento
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
 | GET | `/api/manifest` | registered in src/main_module/routes/api_setup.rs | yes | `botserver/src/main_module/routes/api_setup.rs` |
-| POST | `/api/manifest` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
 
 ## `mcp`
 
@@ -159,6 +183,13 @@ Families with fewer than 8 routes, grouped so the book stays navigable. `Invento
 | PUT | `/api/pages/:param` | schema not modeled | no | `botserver/crates/botworkspaces/src/lib.rs` |
 | GET | `/api/pages/current` | schema not modeled | no | `botserver/crates/botworkspaces/src/ui_current.rs` |
 | PUT | `/api/pages/current` | schema not modeled | no | `botserver/crates/botworkspaces/src/ui_current.rs` |
+
+## `password`
+
+| Method | Path | Summary | Inventory | Registered in |
+|---|---|---|---|---|
+| GET | `/password` | schema not modeled | no | `botserver/crates/botcoredirectory/src/auth_routes/configure.rs` |
+| POST | `/password` | schema not modeled | no | `botserver/crates/botcoredirectory/src/auth_routes/configure.rs` |
 
 ## `ping`
 
@@ -250,23 +281,5 @@ Families with fewer than 8 routes, grouped so the book stays navigable. `Invento
 | GET | `/render/:param` | schema not modeled | no | `botserver/crates/botweba/src/configure_routes.rs` |
 | GET | `/render/:param/:param` | schema not modeled | no | `botserver/crates/botweba/src/configure_routes.rs` |
 | POST | `/render/:param/:param` | schema not modeled | no | `botserver/crates/botweba/src/configure_routes.rs` |
-
-## `repositories`
-
-| Method | Path | Summary | Inventory | Registered in |
-|---|---|---|---|---|
-| GET | `/repositories` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
-| POST | `/repositories` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
-| GET | `/repositories/:param/connect` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
-| POST | `/repositories/:param/connect` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
-| GET | `/repositories/:param/disconnect` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
-| POST | `/repositories/:param/disconnect` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
-
-## `resources`
-
-| Method | Path | Summary | Inventory | Registered in |
-|---|---|---|---|---|
-| DELETE | `/api/resources/:param` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
-| GET | `/api/resources/:param` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 
 [All families](./README.md)

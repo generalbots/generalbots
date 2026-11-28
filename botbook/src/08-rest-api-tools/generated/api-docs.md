@@ -2,7 +2,7 @@
 
 # API / docs
 
-102 routes in the `docs` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+104 routes in the `docs` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
@@ -10,6 +10,7 @@ Base URL: `http://localhost:8080` — see
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
 | GET | `/api/docs/:param` | schema not modeled | no | `botserver/crates/botdocs/src/lib.rs` |
+| GET | `/api/docs/:param/ast` | schema not modeled | no | `botserver/crates/botdocs/src/lib.rs` |
 | GET | `/api/docs/:param/collaborators` | schema not modeled | no | `botserver/crates/botdocs/src/lib.rs` |
 | GET | `/api/docs/:param/presence` | schema not modeled | no | `botserver/crates/botdocs/src/lib.rs` |
 | GET | `/api/docs/:param/selections` | schema not modeled | no | `botserver/crates/botdocs/src/lib.rs` |
@@ -71,6 +72,8 @@ Base URL: `http://localhost:8080` — see
 | GET | `/api/docs/history` | schema not modeled | no | `botserver/crates/botdocs/src/lib.rs` |
 | POST | `/api/docs/history` | schema not modeled | no | `botserver/crates/botdocs/src/lib.rs` |
 | POST | `/api/docs/import` | schema not modeled | no | `botserver/crates/botdocs/src/lib.rs` |
+| GET | `/api/docs/kb/search` | schema not modeled | no | `botserver/crates/botdocs/src/lib.rs` |
+| POST | `/api/docs/kb/search` | schema not modeled | no | `botserver/crates/botdocs/src/lib.rs` |
 | GET | `/api/docs/list` | schema not modeled | no | `botserver/crates/botdocs/src/lib.rs` |
 | GET | `/api/docs/load` | schema not modeled | no | `botserver/crates/botdocs/src/lib.rs` |
 | POST | `/api/docs/load` | schema not modeled | no | `botserver/crates/botdocs/src/lib.rs` |
@@ -84,7 +87,6 @@ Base URL: `http://localhost:8080` — see
 | GET | `/api/docs/search` | schema not modeled | no | `botserver/crates/botdocs/src/lib.rs` |
 | POST | `/api/docs/search` | schema not modeled | no | `botserver/crates/botdocs/src/lib.rs` |
 | GET | `/api/docs/shared/:param` | schema not modeled | no | `botserver/crates/botdocs/src/lib.rs` |
-| POST | `/api/docs/shared/:param` | schema not modeled | no | `botserver/crates/botdocs/src/lib.rs` |
 | POST | `/api/docs/style` | schema not modeled | no | `botserver/crates/botdocs/src/lib.rs` |
 | GET | `/api/docs/style/apply` | schema not modeled | no | `botserver/crates/botdocs/src/lib.rs` |
 | POST | `/api/docs/style/apply` | schema not modeled | no | `botserver/crates/botdocs/src/lib.rs` |

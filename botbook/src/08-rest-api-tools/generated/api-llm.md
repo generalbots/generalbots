@@ -2,7 +2,7 @@
 
 # API / llm
 
-39 routes in the `llm` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+42 routes in the `llm` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
@@ -23,6 +23,7 @@ Base URL: `http://localhost:8080` — see
 | POST | `/api/llm/config/modes` | schema not modeled | no | `botserver/crates/botsettings/src/model_config/mod.rs` |
 | GET | `/api/llm/config/test` | schema not modeled | no | `botserver/crates/botsettings/src/model_config/mod.rs` |
 | POST | `/api/llm/config/test` | schema not modeled | no | `botserver/crates/botsettings/src/model_config/mod.rs` |
+| GET | `/api/llm/limits` | schema not modeled | no | `botserver/src/main_module/routes/llm_limits.rs` |
 | GET | `/api/llm/local/activate` | schema not modeled | no | `botserver/crates/botsettings/src/on_device_ai/mod.rs` |
 | POST | `/api/llm/local/activate` | schema not modeled | no | `botserver/crates/botsettings/src/on_device_ai/mod.rs` |
 | DELETE | `/api/llm/local/hardware` | schema not modeled | no | `botserver/crates/botsettings/src/on_device_ai/mod.rs` |
@@ -42,6 +43,8 @@ Base URL: `http://localhost:8080` — see
 | GET | `/api/llm/local/models/:param/download` | schema not modeled | no | `botserver/crates/botsettings/src/on_device_ai/mod.rs` |
 | POST | `/api/llm/local/models/:param/download` | schema not modeled | no | `botserver/crates/botsettings/src/on_device_ai/mod.rs` |
 | GET | `/api/llm/local/profiles` | schema not modeled | no | `botserver/crates/botsettings/src/on_device_ai/mod.rs` |
+| GET | `/api/llm/local/restart` | schema not modeled | no | `botserver/crates/botsettings/src/on_device_ai/mod.rs` |
+| POST | `/api/llm/local/restart` | schema not modeled | no | `botserver/crates/botsettings/src/on_device_ai/mod.rs` |
 | GET | `/api/llm/runtime/install` | schema not modeled | no | `botserver/crates/botsettings/src/model_config/mod.rs` |
 | POST | `/api/llm/runtime/install` | schema not modeled | no | `botserver/crates/botsettings/src/model_config/mod.rs` |
 | GET | `/api/llm/runtime/jobs/:param` | schema not modeled | no | `botserver/crates/botsettings/src/model_config/mod.rs` |

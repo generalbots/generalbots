@@ -2,7 +2,7 @@
 
 # API / ai-accounts
 
-11 routes in the `ai-accounts` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+23 routes in the `ai-accounts` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
@@ -11,10 +11,22 @@ Base URL: `http://localhost:8080` — see
 |---|---|---|---|---|
 | GET | `/api/ai-accounts` | schema not modeled | no | `botserver/src/main_module/routes/ai_accounts.rs` |
 | POST | `/api/ai-accounts` | schema not modeled | no | `botserver/src/main_module/routes/ai_accounts.rs` |
+| PUT | `/api/ai-accounts` | schema not modeled | no | `botserver/src/main_module/routes/ai_accounts.rs` |
+| GET | `/api/ai-accounts/:param/connect` | schema not modeled | no | `botserver/src/main_module/routes/ai_accounts.rs` |
 | POST | `/api/ai-accounts/:param/connect` | schema not modeled | no | `botserver/src/main_module/routes/ai_accounts.rs` |
+| PUT | `/api/ai-accounts/:param/connect` | schema not modeled | no | `botserver/src/main_module/routes/ai_accounts.rs` |
+| GET | `/api/ai-accounts/:param/disconnect` | schema not modeled | no | `botserver/src/main_module/routes/ai_accounts.rs` |
 | POST | `/api/ai-accounts/:param/disconnect` | schema not modeled | no | `botserver/src/main_module/routes/ai_accounts.rs` |
+| PUT | `/api/ai-accounts/:param/disconnect` | schema not modeled | no | `botserver/src/main_module/routes/ai_accounts.rs` |
+| GET | `/api/ai-accounts/:param/models` | schema not modeled | no | `botserver/src/main_module/routes/ai_accounts.rs` |
+| POST | `/api/ai-accounts/:param/models` | schema not modeled | no | `botserver/src/main_module/routes/ai_accounts.rs` |
+| PUT | `/api/ai-accounts/:param/models` | schema not modeled | no | `botserver/src/main_module/routes/ai_accounts.rs` |
+| GET | `/api/ai-accounts/:param/reconnect` | schema not modeled | no | `botserver/src/main_module/routes/ai_accounts.rs` |
 | POST | `/api/ai-accounts/:param/reconnect` | schema not modeled | no | `botserver/src/main_module/routes/ai_accounts.rs` |
+| PUT | `/api/ai-accounts/:param/reconnect` | schema not modeled | no | `botserver/src/main_module/routes/ai_accounts.rs` |
+| GET | `/api/ai-accounts/:param/status` | schema not modeled | no | `botserver/src/main_module/routes/ai_accounts.rs` |
 | POST | `/api/ai-accounts/:param/status` | schema not modeled | no | `botserver/src/main_module/routes/ai_accounts.rs` |
+| PUT | `/api/ai-accounts/:param/status` | schema not modeled | no | `botserver/src/main_module/routes/ai_accounts.rs` |
 | POST | `/api/ai-accounts/:param/use-for-chat` | schema not modeled | no | `botserver/src/main_module/routes/ai_accounts.rs` |
 | POST | `/api/ai-accounts/:param/use-for-vibe` | schema not modeled | no | `botserver/src/main_module/routes/ai_accounts.rs` |
 | POST | `/api/ai-accounts/antigravity/code` | schema not modeled | no | `botserver/src/main_module/routes/ai_accounts.rs` |

@@ -2,7 +2,7 @@
 
 # API / sheet
 
-101 routes in the `sheet` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+103 routes in the `sheet` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
@@ -18,6 +18,8 @@ Base URL: `http://localhost:8080` — see
 | GET | `/api/sheet/:param/presence` | schema not modeled | no | `botserver/crates/botsheet/src/routes.rs` |
 | GET | `/api/sheet/:param/selections` | schema not modeled | no | `botserver/crates/botsheet/src/routes.rs` |
 | GET | `/api/sheet/:param/typing` | schema not modeled | no | `botserver/crates/botsheet/src/routes.rs` |
+| GET | `/api/sheet/:param/window` | schema not modeled | no | `botserver/crates/botsheet/src/routes.rs` |
+| POST | `/api/sheet/:param/window` | schema not modeled | no | `botserver/crates/botsheet/src/routes.rs` |
 | GET | `/api/sheet/ai` | schema not modeled | no | `botserver/crates/botsheet/src/routes.rs` |
 | POST | `/api/sheet/ai` | schema not modeled | no | `botserver/crates/botsheet/src/routes.rs` |
 | GET | `/api/sheet/ai/batch-evaluate` | schema not modeled | no | `botserver/crates/botsheet/src/routes.rs` |

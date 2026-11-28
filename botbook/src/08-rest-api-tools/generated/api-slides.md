@@ -31,7 +31,7 @@ Base URL: `http://localhost:8080` — see
 | POST | `/api/slides/element/update` | schema not modeled | no | `botserver/crates/botslides/src/routes.rs` |
 | POST | `/api/slides/export` | schema not modeled | no | `botserver/crates/botslides/src/routes.rs` |
 | GET | `/api/slides/import` | schema not modeled | no | `botserver/crates/botslides/src/routes.rs` |
-| POST | `/api/slides/import` | schema not modeled | no | `botserver/crates/botslides/src/routes.rs` |
+| POST | `/api/slides/import` | schema not modeled | no | `botserver/crates/botslides/src/handlers/import_tests.rs` |
 | GET | `/api/slides/list` | schema not modeled | no | `botserver/crates/botslides/src/routes.rs` |
 | POST | `/api/slides/list` | schema not modeled | no | `botserver/crates/botslides/src/routes.rs` |
 | GET | `/api/slides/load` | schema not modeled | no | `botserver/crates/botslides/src/routes.rs` |

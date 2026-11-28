@@ -2,7 +2,7 @@
 
 # API / apps
 
-48 routes in the `apps` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+47 routes in the `apps` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
@@ -10,7 +10,6 @@ Base URL: `http://localhost:8080` — see
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
 | GET | `/api/apps/catalog` | registered in src/apps/mod.rs | yes | `botserver/src/apps/installs.rs` |
-| POST | `/api/apps/catalog` | schema not modeled | no | `botserver/src/apps/installs.rs` |
 | GET | `/api/apps/install` | schema not modeled | no | `botserver/src/apps/installs.rs` |
 | POST | `/api/apps/install` | schema not modeled | no | `botserver/src/apps/installs.rs` |
 | GET | `/api/apps/install/stats` | schema not modeled | no | `botserver/src/apps/installs.rs` |

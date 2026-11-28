@@ -222,7 +222,7 @@ Indexes: `idx_chat_preferences_unique(user_id, COALESCE(bot_id, '00000000-0000-0
 
 ### message_history
 
-- Domain: `core` · Feature gate: `always available` · Migration: `6.8.5-run-events`
+- Domain: `core` · Feature gate: `always available` · Migration: `6.9.0-usage-engine-provider`
 - Rust source: `botschema/src/core.rs`
 
 | Column | SQL type | Null | Default | Key | References |
@@ -241,6 +241,8 @@ Indexes: `idx_chat_preferences_unique(user_id, COALESCE(bot_id, '00000000-0000-0
 | message_index | INTEGER | no | — | — | — |
 | run_id | UUID | yes | — | — | — |
 | thread_id | TEXT | yes | — | — | — |
+| llm_engine | VARCHAR(20) | yes | — | — | — |
+| llm_provider | VARCHAR(60) | yes | — | — | — |
 
 Indexes: `idx_message_history_created_at(created_at)`, `idx_message_history_run(run_id)`, `idx_message_history_session_id(session_id)`
 

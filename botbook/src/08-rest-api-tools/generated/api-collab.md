@@ -2,7 +2,7 @@
 
 # API / collab
 
-52 routes in the `collab` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+56 routes in the `collab` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
@@ -35,6 +35,9 @@ Base URL: `http://localhost:8080` — see
 | DELETE | `/api/collab/links/:param` | schema not modeled | no | `botserver/src/main_module/routes/collab_routes/mod.rs` |
 | GET | `/api/collab/links/:param` | schema not modeled | no | `botserver/src/main_module/routes/collab_routes/mod.rs` |
 | POST | `/api/collab/links/:param` | schema not modeled | no | `botserver/src/main_module/routes/collab_routes/mod.rs` |
+| DELETE | `/api/collab/links/all` | schema not modeled | no | `botserver/src/main_module/routes/collab_routes/mod.rs` |
+| GET | `/api/collab/links/all` | schema not modeled | no | `botserver/src/main_module/routes/collab_routes/mod.rs` |
+| POST | `/api/collab/links/all` | schema not modeled | no | `botserver/src/main_module/routes/collab_routes/mod.rs` |
 | DELETE | `/api/collab/mentions/me` | schema not modeled | no | `botserver/src/main_module/routes/collab_routes/mod.rs` |
 | GET | `/api/collab/mentions/me` | schema not modeled | no | `botserver/src/main_module/routes/collab_routes/mod.rs` |
 | POST | `/api/collab/mentions/me` | schema not modeled | no | `botserver/src/main_module/routes/collab_routes/mod.rs` |
@@ -50,11 +53,12 @@ Base URL: `http://localhost:8080` — see
 | DELETE | `/api/collab/permissions/me` | schema not modeled | no | `botserver/src/main_module/routes/collab_routes/mod.rs` |
 | GET | `/api/collab/permissions/me` | schema not modeled | no | `botserver/src/main_module/routes/collab_routes/mod.rs` |
 | POST | `/api/collab/permissions/me` | schema not modeled | no | `botserver/src/main_module/routes/collab_routes/mod.rs` |
-| DELETE | `/api/collab/permissions/transfer` | schema not modeled | no | `botserver/src/main_module/routes/collab_routes/mod.rs` |
 | GET | `/api/collab/permissions/transfer` | schema not modeled | no | `botserver/src/main_module/routes/collab_routes/mod.rs` |
 | POST | `/api/collab/permissions/transfer` | schema not modeled | no | `botserver/src/main_module/routes/collab_routes/mod.rs` |
 | GET | `/api/collab/presence` | schema not modeled | no | `botserver/src/main_module/routes/collab_routes/mod.rs` |
 | POST | `/api/collab/presence` | schema not modeled | no | `botserver/src/main_module/routes/collab_routes/mod.rs` |
+| POST | `/api/collab/undo` | schema not modeled | no | `botserver/src/main_module/routes/collab_routes/mod.rs` |
+| POST | `/api/collab/undo/seed` | schema not modeled | no | `botserver/src/main_module/routes/collab_routes/mod.rs` |
 | GET | `/api/collab/versions` | schema not modeled | no | `botserver/src/main_module/routes/collab_routes/mod.rs` |
 | POST | `/api/collab/versions` | schema not modeled | no | `botserver/src/main_module/routes/collab_routes/mod.rs` |
 | GET | `/api/collab/versions/:param` | schema not modeled | no | `botserver/src/main_module/routes/collab_routes/mod.rs` |

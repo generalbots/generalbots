@@ -2,7 +2,7 @@
 
 # API / meet
 
-32 routes in the `meet` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+31 routes in the `meet` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
@@ -10,33 +10,32 @@ Base URL: `http://localhost:8080` — see
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
 | POST | `/api/meet/join` | registered in crates/botmeet/src/lib.rs | yes | `botserver/crates/botmeet/src/configure.rs` |
-| GET | `/api/meet/minutes/:param` | registered in crates/botmeet/src/minutes/handlers.rs | yes | `botserver/crates/botmeet/src/minutes/handlers.rs` |
-| POST | `/api/meet/minutes/:param` | schema not modeled | no | `botserver/crates/botmeet/src/minutes/handlers.rs` |
-| PUT | `/api/meet/minutes/:param` | registered in crates/botmeet/src/minutes/handlers.rs | yes | `botserver/crates/botmeet/src/minutes/handlers.rs` |
-| GET | `/api/meet/minutes/:param/export/pdf` | registered in crates/botmeet/src/minutes/handlers.rs | yes | `botserver/crates/botmeet/src/minutes/handlers.rs` |
-| POST | `/api/meet/minutes/:param/export/pdf` | schema not modeled | no | `botserver/crates/botmeet/src/minutes/handlers.rs` |
-| GET | `/api/meet/minutes/:param/finalize` | schema not modeled | no | `botserver/crates/botmeet/src/minutes/handlers.rs` |
-| POST | `/api/meet/minutes/:param/finalize` | registered in crates/botmeet/src/minutes/handlers.rs | yes | `botserver/crates/botmeet/src/minutes/handlers.rs` |
-| POST | `/api/meet/minutes/:param/sign` | registered in crates/botmeet/src/minutes/handlers.rs | yes | `botserver/crates/botmeet/src/minutes/handlers.rs` |
-| GET | `/api/meet/minutes/:param/signatures` | registered in crates/botmeet/src/minutes/handlers.rs | yes | `botserver/crates/botmeet/src/minutes/handlers.rs` |
-| POST | `/api/meet/minutes/:param/signatures` | schema not modeled | no | `botserver/crates/botmeet/src/minutes/handlers.rs` |
-| GET | `/api/meet/minutes/bot/:param` | registered in crates/botmeet/src/minutes/handlers.rs | yes | `botserver/crates/botmeet/src/minutes/handlers.rs` |
-| POST | `/api/meet/minutes/bot/:param` | schema not modeled | no | `botserver/crates/botmeet/src/minutes/handlers.rs` |
-| PUT | `/api/meet/minutes/bot/:param` | schema not modeled | no | `botserver/crates/botmeet/src/minutes/handlers.rs` |
-| GET | `/api/meet/minutes/from/:param` | schema not modeled | no | `botserver/crates/botmeet/src/minutes/handlers.rs` |
-| POST | `/api/meet/minutes/from/:param` | registered in crates/botmeet/src/minutes/handlers.rs | yes | `botserver/crates/botmeet/src/minutes/handlers.rs` |
-| PUT | `/api/meet/minutes/from/:param` | schema not modeled | no | `botserver/crates/botmeet/src/minutes/handlers.rs` |
+| GET | `/api/meet/minutes/:param` | registered in crates/botmeet/src/minutes/handlers.rs | yes | `botserver/crates/botmeet/src/minutes/handlers/handlers_minutes.rs` |
+| POST | `/api/meet/minutes/:param` | schema not modeled | no | `botserver/crates/botmeet/src/minutes/handlers/handlers_minutes.rs` |
+| PUT | `/api/meet/minutes/:param` | registered in crates/botmeet/src/minutes/handlers.rs | yes | `botserver/crates/botmeet/src/minutes/handlers/handlers_minutes.rs` |
+| GET | `/api/meet/minutes/:param/export/pdf` | registered in crates/botmeet/src/minutes/handlers.rs | yes | `botserver/crates/botmeet/src/minutes/handlers/handlers_minutes.rs` |
+| POST | `/api/meet/minutes/:param/export/pdf` | schema not modeled | no | `botserver/crates/botmeet/src/minutes/handlers/handlers_minutes.rs` |
+| GET | `/api/meet/minutes/:param/finalize` | schema not modeled | no | `botserver/crates/botmeet/src/minutes/handlers/handlers_minutes.rs` |
+| POST | `/api/meet/minutes/:param/finalize` | registered in crates/botmeet/src/minutes/handlers.rs | yes | `botserver/crates/botmeet/src/minutes/handlers/handlers_minutes.rs` |
+| POST | `/api/meet/minutes/:param/sign` | registered in crates/botmeet/src/minutes/handlers.rs | yes | `botserver/crates/botmeet/src/minutes/handlers/handlers_minutes.rs` |
+| GET | `/api/meet/minutes/:param/signatures` | registered in crates/botmeet/src/minutes/handlers.rs | yes | `botserver/crates/botmeet/src/minutes/handlers/handlers_minutes.rs` |
+| POST | `/api/meet/minutes/:param/signatures` | schema not modeled | no | `botserver/crates/botmeet/src/minutes/handlers/handlers_minutes.rs` |
+| GET | `/api/meet/minutes/bot/:param` | registered in crates/botmeet/src/minutes/handlers.rs | yes | `botserver/crates/botmeet/src/minutes/handlers/handlers_minutes.rs` |
+| POST | `/api/meet/minutes/bot/:param` | schema not modeled | no | `botserver/crates/botmeet/src/minutes/handlers/handlers_minutes.rs` |
+| PUT | `/api/meet/minutes/bot/:param` | schema not modeled | no | `botserver/crates/botmeet/src/minutes/handlers/handlers_minutes.rs` |
+| GET | `/api/meet/minutes/from/:param` | schema not modeled | no | `botserver/crates/botmeet/src/minutes/handlers/handlers_minutes.rs` |
+| POST | `/api/meet/minutes/from/:param` | registered in crates/botmeet/src/minutes/handlers.rs | yes | `botserver/crates/botmeet/src/minutes/handlers/handlers_minutes.rs` |
+| PUT | `/api/meet/minutes/from/:param` | schema not modeled | no | `botserver/crates/botmeet/src/minutes/handlers/handlers_minutes.rs` |
 | POST | `/api/meet/mute-all` | registered in crates/botmeet/src/lib.rs | yes | `botserver/crates/botmeet/src/configure.rs` |
-| GET | `/api/meet/recordings` | schema not modeled | no | `botserver/crates/botmeet/src/minutes/handlers.rs` |
-| POST | `/api/meet/recordings` | registered in crates/botmeet/src/minutes/handlers.rs | yes | `botserver/crates/botmeet/src/minutes/handlers.rs` |
-| GET | `/api/meet/recordings/:param` | registered in crates/botmeet/src/minutes/handlers.rs | yes | `botserver/crates/botmeet/src/minutes/handlers.rs` |
-| POST | `/api/meet/recordings/:param` | schema not modeled | no | `botserver/crates/botmeet/src/minutes/handlers.rs` |
-| GET | `/api/meet/recordings/:param/transcribe` | schema not modeled | no | `botserver/crates/botmeet/src/minutes/handlers.rs` |
-| POST | `/api/meet/recordings/:param/transcribe` | registered in crates/botmeet/src/minutes/handlers.rs | yes | `botserver/crates/botmeet/src/minutes/handlers.rs` |
-| PUT | `/api/meet/recordings/:param/transcribe` | schema not modeled | no | `botserver/crates/botmeet/src/minutes/handlers.rs` |
-| GET | `/api/meet/recordings/bot/:param` | registered in crates/botmeet/src/minutes/handlers.rs | yes | `botserver/crates/botmeet/src/minutes/handlers.rs` |
-| POST | `/api/meet/recordings/bot/:param` | schema not modeled | no | `botserver/crates/botmeet/src/minutes/handlers.rs` |
-| PUT | `/api/meet/recordings/bot/:param` | schema not modeled | no | `botserver/crates/botmeet/src/minutes/handlers.rs` |
+| GET | `/api/meet/recordings` | schema not modeled | no | `botserver/crates/botmeet/src/minutes/handlers/handlers_minutes.rs` |
+| POST | `/api/meet/recordings` | registered in crates/botmeet/src/minutes/handlers.rs | yes | `botserver/crates/botmeet/src/minutes/handlers/handlers_minutes.rs` |
+| GET | `/api/meet/recordings/:param` | registered in crates/botmeet/src/minutes/handlers.rs | yes | `botserver/crates/botmeet/src/minutes/handlers/handlers_minutes.rs` |
+| POST | `/api/meet/recordings/:param` | schema not modeled | no | `botserver/crates/botmeet/src/minutes/handlers/handlers_minutes.rs` |
+| GET | `/api/meet/recordings/:param/transcribe` | schema not modeled | no | `botserver/crates/botmeet/src/minutes/handlers/handlers_minutes.rs` |
+| POST | `/api/meet/recordings/:param/transcribe` | registered in crates/botmeet/src/minutes/handlers.rs | yes | `botserver/crates/botmeet/src/minutes/handlers/handlers_minutes.rs` |
+| PUT | `/api/meet/recordings/:param/transcribe` | schema not modeled | no | `botserver/crates/botmeet/src/minutes/handlers/handlers_minutes.rs` |
+| GET | `/api/meet/recordings/bot/:param` | registered in crates/botmeet/src/minutes/handlers.rs | yes | `botserver/crates/botmeet/src/minutes/handlers/handlers_minutes.rs` |
+| POST | `/api/meet/recordings/bot/:param` | schema not modeled | no | `botserver/crates/botmeet/src/minutes/handlers/handlers_minutes.rs` |
 | DELETE | `/api/meet/trunks` | schema not modeled | no | `botserver/crates/botmeet/src/trunks.rs` |
 | GET | `/api/meet/trunks` | schema not modeled | no | `botserver/crates/botmeet/src/trunks.rs` |
 | POST | `/api/meet/trunks` | schema not modeled | no | `botserver/crates/botmeet/src/trunks.rs` |

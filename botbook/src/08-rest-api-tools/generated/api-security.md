@@ -2,7 +2,7 @@
 
 # API / security
 
-37 routes in the `security` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+41 routes in the `security` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
@@ -40,7 +40,11 @@ Base URL: `http://localhost:8080` — see
 | POST | `/api/security/protection/:param/update` | schema not modeled | no | `botserver/crates/botsecurity-protection/src/protection/api/configure_protection_routes.rs` |
 | GET | `/api/security/protection/clamav/quarantine` | schema not modeled | no | `botserver/crates/botsecurity-protection/src/protection/api/configure_protection_routes.rs` |
 | POST | `/api/security/protection/clamav/quarantine` | schema not modeled | no | `botserver/crates/botsecurity-protection/src/protection/api/configure_protection_routes.rs` |
+| GET | `/api/security/protection/clamav/quarantine/:param` | schema not modeled | no | `botserver/crates/botsecurity-protection/src/protection/api/configure_protection_routes.rs` |
 | POST | `/api/security/protection/clamav/quarantine/:param` | schema not modeled | no | `botserver/crates/botsecurity-protection/src/protection/api/configure_protection_routes.rs` |
+| GET | `/api/security/protection/lmd/quarantine` | schema not modeled | no | `botserver/crates/botsecurity-protection/src/protection/api/configure_protection_routes.rs` |
+| POST | `/api/security/protection/lmd/quarantine` | schema not modeled | no | `botserver/crates/botsecurity-protection/src/protection/api/configure_protection_routes.rs` |
+| POST | `/api/security/protection/lmd/quarantine/:param` | schema not modeled | no | `botserver/crates/botsecurity-protection/src/protection/api/configure_protection_routes.rs` |
 | GET | `/api/security/protection/status` | schema not modeled | no | `botserver/crates/botsecurity-protection/src/protection/api/configure_protection_routes.rs` |
 | POST | `/api/security/protection/status` | schema not modeled | no | `botserver/crates/botsecurity-protection/src/protection/api/configure_protection_routes.rs` |
 | POST | `/api/security/signatures/:param/validate` | schema not modeled | no | `botserver/crates/botsecurity/src/routes_security.rs` |

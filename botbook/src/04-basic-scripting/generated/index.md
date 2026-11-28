@@ -52,7 +52,7 @@ exists and none is needed: `AS`, `BREAK`, `CATCH`, `CONST`, `CONTINUE`, `DO`, `E
 
 The purpose column is filled from a `//!` module comment or the `///` doc
 comment of the owning function. Today it covers **25/290**
-keywords and **15/274** functions; `—` means the
+keywords and **17/274** functions; `—` means the
 source carries no doc comment, not that the keyword is undocumented here.
 
 ## Advertised but not registered

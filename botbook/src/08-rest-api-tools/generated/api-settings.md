@@ -2,7 +2,7 @@
 
 # API / settings
 
-57 routes in the `settings` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+59 routes in the `settings` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
@@ -11,6 +11,8 @@ Base URL: `http://localhost:8080` — see
 |---|---|---|---|---|
 | GET | `/api/settings/accounts/smtp` | schema not modeled | no | `botserver/crates/botsettings/src/lib.rs` |
 | POST | `/api/settings/accounts/smtp` | schema not modeled | no | `botserver/crates/botsettings/src/lib.rs` |
+| GET | `/api/settings/chat-profile` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
+| PUT | `/api/settings/chat-profile` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
 | GET | `/api/settings/custom-instructions` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
 | PUT | `/api/settings/custom-instructions` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
 | GET | `/api/settings/search` | schema not modeled | no | `botserver/crates/botsettings/src/lib.rs` |

@@ -2,13 +2,14 @@
 
 # API / legal
 
-20 routes in the `legal` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+21 routes in the `legal` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
 
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
+| POST | `/api/legal/approvals/:param/transition` | schema not modeled | no | `botserver/crates/botlegal/src/handle_request_data_deletion.rs` |
 | GET | `/api/legal/consent` | schema not modeled | no | `botserver/crates/botlegal/src/handle_request_data_deletion.rs` |
 | POST | `/api/legal/consent` | registered in crates/botlegal/src/lib.rs | yes | `botserver/crates/botlegal/src/handle_request_data_deletion.rs` |
 | PUT | `/api/legal/consent` | schema not modeled | no | `botserver/crates/botlegal/src/handle_request_data_deletion.rs` |

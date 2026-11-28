@@ -2,7 +2,7 @@
 
 # API / user
 
-56 routes in the `user` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+59 routes in the `user` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
@@ -37,6 +37,9 @@ Base URL: `http://localhost:8080` — see
 | DELETE | `/api/user/memory` | schema not modeled | no | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
 | GET | `/api/user/memory` | schema not modeled | no | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
 | PUT | `/api/user/memory` | schema not modeled | no | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
+| DELETE | `/api/user/memory-settings` | schema not modeled | no | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
+| GET | `/api/user/memory-settings` | schema not modeled | no | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
+| PUT | `/api/user/memory-settings` | schema not modeled | no | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
 | DELETE | `/api/user/memory/:param` | schema not modeled | no | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
 | GET | `/api/user/memory/:param` | schema not modeled | no | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
 | POST | `/api/user/memory/:param` | schema not modeled | no | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |

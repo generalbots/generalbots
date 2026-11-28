@@ -90,6 +90,8 @@ Indexes: `idx_cloud_audit_log_branch(branch_id, created_at DESC)`
 | trial_days | INTEGER | no | — | — | — |
 | redeemed_at | TIMESTAMPTZ | no | NOW() | — | — |
 
+Indexes: `cloud_voucher_redemptions_voucher_contact_uniq(voucher_id, contact_id)`
+
 ### cloud_vouchers
 
 - Domain: `cloud` · Feature gate: `#[cfg(feature = "cloud")]` · Migration: `6.5.17-cloud-vouchers`

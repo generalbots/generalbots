@@ -2,15 +2,14 @@
 
 # API / instagram
 
-10 routes in the `instagram` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+9 routes in the `instagram` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
 
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
-| GET | `/api/instagram/campaigns` | registered in crates/botinstagram/src/campaign.rs | yes | `botserver/crates/botinstagram/src/campaign.rs` |
-| POST | `/api/instagram/campaigns` | schema not modeled | no | `botserver/crates/botinstagram/src/campaign.rs` |
+| GET | `/api/instagram/campaigns` | registered in crates/botinstagram/src/campaign.rs | yes | `botserver/src/core/bot/endpoint_inventory_editor_email.rs` |
 | GET | `/api/instagram/campaigns/:param/images/:param` | registered in crates/botinstagram/src/campaign.rs | yes | `botserver/crates/botinstagram/src/campaign.rs` |
 | POST | `/api/instagram/campaigns/:param/images/:param` | schema not modeled | no | `botserver/crates/botinstagram/src/campaign.rs` |
 | POST | `/api/instagram/campaigns/:param/publish` | registered in crates/botinstagram/src/campaign.rs | yes | `botserver/crates/botinstagram/src/campaign.rs` |

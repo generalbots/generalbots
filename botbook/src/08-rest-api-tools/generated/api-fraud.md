@@ -2,7 +2,7 @@
 
 # API / fraud
 
-24 routes in the `fraud` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+26 routes in the `fraud` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
@@ -17,6 +17,7 @@ Base URL: `http://localhost:8080` — see
 | POST | `/api/fraud/blocklist` | schema not modeled | no | `botserver/crates/botfraud/src/handlers/routes.rs` |
 | DELETE | `/api/fraud/blocklist/:param` | registered in crates/botfraud/src/handlers.rs | yes | `botserver/crates/botfraud/src/handlers/routes.rs` |
 | GET | `/api/fraud/blocklist/:param` | schema not modeled | no | `botserver/crates/botfraud/src/handlers/routes.rs` |
+| POST | `/api/fraud/blocklist/:param` | schema not modeled | no | `botserver/crates/botfraud/src/handlers/routes.rs` |
 | DELETE | `/api/fraud/events` | schema not modeled | no | `botserver/crates/botfraud/src/handlers/routes.rs` |
 | GET | `/api/fraud/events` | registered in crates/botfraud/src/handlers.rs | yes | `botserver/crates/botfraud/src/handlers/routes.rs` |
 | POST | `/api/fraud/events` | schema not modeled | no | `botserver/crates/botfraud/src/handlers/routes.rs` |
@@ -29,6 +30,7 @@ Base URL: `http://localhost:8080` — see
 | POST | `/api/fraud/rules/:param` | schema not modeled | no | `botserver/crates/botfraud/src/handlers/routes.rs` |
 | PUT | `/api/fraud/rules/:param` | registered in crates/botfraud/src/handlers.rs | yes | `botserver/crates/botfraud/src/handlers/routes.rs` |
 | GET | `/api/fraud/stats` | registered in crates/botfraud/src/handlers.rs | yes | `botserver/crates/botfraud/src/handlers/routes.rs` |
+| POST | `/api/fraud/stats` | schema not modeled | no | `botserver/crates/botfraud/src/handlers/routes.rs` |
 | DELETE | `/api/fraud/transactions` | schema not modeled | no | `botserver/crates/botfraud/src/handlers/routes.rs` |
 | GET | `/api/fraud/transactions` | registered in crates/botfraud/src/handlers.rs | yes | `botserver/crates/botfraud/src/handlers/routes.rs` |
 | POST | `/api/fraud/transactions` | schema not modeled | no | `botserver/crates/botfraud/src/handlers/routes.rs` |

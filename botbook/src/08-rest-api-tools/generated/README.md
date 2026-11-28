@@ -33,12 +33,12 @@ request/response fields are invented here.
 
 ## Counts
 
-- method/path pairs parsed from route literals: **4265**
-- catalog entries: **801**
-- merged routes: **4297**
-- catalog-only (no route literal found): **32**
-- route-only (no catalog summary): **3496**
-- families: **189**
+- method/path pairs parsed from route literals: **4303**
+- catalog entries: **800**
+- merged routes: **4336**
+- catalog-only (no route literal found): **33**
+- route-only (no catalog summary): **3536**
+- families: **191**
 - `.nest(` calls (mount prefixes, unresolved): **9**
 
 A catalog-only entry is usually a route mounted inside a nested router;
@@ -49,13 +49,13 @@ A catalog-only entry is usually a route mounted inside a nested router;
 | Family | Routes | Pages |
 |---|---:|---|
 | `accounts` | 9 | [api-accounts](./api-accounts.md) |
-| `admin` | 40 | [api-admin](./api-admin.md) |
-| `agent` | 26 | [api-agent](./api-agent.md) |
-| `ai-accounts` | 11 | [api-ai-accounts](./api-ai-accounts.md) |
+| `admin` | 43 | [api-admin](./api-admin.md) |
+| `agent` | 30 | [api-agent](./api-agent.md) |
+| `ai-accounts` | 23 | [api-ai-accounts](./api-ai-accounts.md) |
 | `analytics` | 23 | [api-analytics](./api-analytics.md) |
 | `app-logs` | 8 | [api-app-logs](./api-app-logs.md) |
 | `approvals` | 20 | [api-approvals](./api-approvals.md) |
-| `apps` | 48 | [api-apps](./api-apps.md) |
+| `apps` | 47 | [api-apps](./api-apps.md) |
 | `attendance` | 45 | [api-attendance](./api-attendance.md) |
 | `attendant` | 48 | [api-attendant](./api-attendant.md) |
 | `auth` | 16 | [api-auth](./api-auth.md) |
@@ -69,7 +69,7 @@ A catalog-only entry is usually a route mounted inside a nested router;
 | `canvas` | 40 | [api-canvas](./api-canvas.md) |
 | `chat` | 24 | [api-chat](./api-chat.md) |
 | `cloud` | 124 | [api-cloud](./api-cloud.md) |
-| `collab` | 52 | [api-collab](./api-collab.md) |
+| `collab` | 56 | [api-collab](./api-collab.md) |
 | `compliance` | 61 | [api-compliance](./api-compliance.md) |
 | `computer` | 12 | [api-computer](./api-computer.md) |
 | `connectors` | 25 | [api-connectors](./api-connectors.md) |
@@ -83,31 +83,31 @@ A catalog-only entry is usually a route mounted inside a nested router;
 | `deployment` | 10 | [api-deployment](./api-deployment.md) |
 | `directory` | 67 | [api-directory](./api-directory.md) |
 | `dns` | 14 | [api-dns](./api-dns.md) |
-| `docs` | 102 | [api-docs](./api-docs.md) |
+| `docs` | 104 | [api-docs](./api-docs.md) |
 | `editor` | 12 | [api-editor](./api-editor.md) |
 | `email` | 71 | [api-email](./api-email.md) |
 | `erp` | 22 | [api-erp](./api-erp.md) |
 | `events` | 19 | [api-events](./api-events.md) |
 | `external-drives` | 14 | [api-external-drives](./api-external-drives.md) |
-| `files` | 64 | [api-files](./api-files.md) |
-| `fraud` | 24 | [api-fraud](./api-fraud.md) |
+| `files` | 65 | [api-files](./api-files.md) |
+| `fraud` | 26 | [api-fraud](./api-fraud.md) |
 | `git` | 17 | [api-git](./api-git.md) |
 | `goals` | 35 | [api-goals](./api-goals.md) |
 | `groups` | 49 | [api-groups](./api-groups.md) |
 | `handoff` | 15 | [api-handoff](./api-handoff.md) |
 | `hr` | 23 | [api-hr](./api-hr.md) |
 | `insights` | 16 | [api-insights](./api-insights.md) |
-| `instagram` | 10 | [api-instagram](./api-instagram.md) |
+| `instagram` | 9 | [api-instagram](./api-instagram.md) |
 | `itsm` | 10 | [api-itsm](./api-itsm.md) |
 | `jukebox` | 8 | [api-jukebox](./api-jukebox.md) |
 | `kyc` | 11 | [api-kyc](./api-kyc.md) |
 | `learn` | 36 | [api-learn](./api-learn.md) |
-| `legal` | 20 | [api-legal](./api-legal.md) |
-| `llm` | 39 | [api-llm](./api-llm.md) |
+| `legal` | 21 | [api-legal](./api-legal.md) |
+| `llm` | 42 | [api-llm](./api-llm.md) |
 | `m365` | 27 | [api-m365](./api-m365.md) |
 | `marketing` | 10 | [api-marketing](./api-marketing.md) |
 | `marketplace` | 11 | [api-marketplace](./api-marketplace.md) |
-| `meet` | 32 | [api-meet](./api-meet.md) |
+| `meet` | 31 | [api-meet](./api-meet.md) |
 | `memory` | 11 | [api-memory](./api-memory.md) |
 | `minutes` | 28 | [api-minutes](./api-minutes.md) |
 | `monitoring` | 56 | [api-monitoring](./api-monitoring.md) |
@@ -128,12 +128,12 @@ A catalog-only entry is usually a route mounted inside a nested router;
 | `sales` | 14 | [api-sales](./api-sales.md) |
 | `scim` | 26 | [api-scim](./api-scim.md) |
 | `search` | 13 | [api-search](./api-search.md) |
-| `security` | 37 | [api-security](./api-security.md) |
-| `settings` | 57 | [api-settings](./api-settings.md) |
-| `sheet` | 101 | [api-sheet](./api-sheet.md) |
+| `security` | 41 | [api-security](./api-security.md) |
+| `settings` | 59 | [api-settings](./api-settings.md) |
+| `sheet` | 103 | [api-sheet](./api-sheet.md) |
 | `slides` | 63 | [api-slides](./api-slides.md) |
 | `social` | 42 | [api-social](./api-social.md) |
-| `suite` | 225 | [api-suite](./api-suite.md) |
+| `suite` | 224 | [api-suite](./api-suite.md) |
 | `sync` | 13 | [api-sync](./api-sync.md) |
 | `system` | 17 | [api-system](./api-system.md) |
 | `tasks` | 58 | [api-tasks](./api-tasks.md) |
@@ -142,7 +142,7 @@ A catalog-only entry is usually a route mounted inside a nested router;
 | `tickets` | 57 | [api-tickets](./api-tickets.md) |
 | `timeclock` | 17 | [api-timeclock](./api-timeclock.md) |
 | `ui` | 273 | [api-ui](./api-ui.md) |
-| `user` | 56 | [api-user](./api-user.md) |
+| `user` | 59 | [api-user](./api-user.md) |
 | `users` | 59 | [api-users](./api-users.md) |
 | `vibe` | 195 | [api-vibe](./api-vibe.md) |
 | `video` | 86 | [api-video](./api-video.md) |

@@ -4,10 +4,23 @@
 
 Families with fewer than 8 routes, grouped so the book stays navigable. `Inventory` and `Registered in` mean the same as on the family pages.
 
+## `repositories`
+
+| Method | Path | Summary | Inventory | Registered in |
+|---|---|---|---|---|
+| GET | `/repositories` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
+| POST | `/repositories` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
+| GET | `/repositories/:param/connect` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
+| POST | `/repositories/:param/connect` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
+| GET | `/repositories/:param/disconnect` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
+| POST | `/repositories/:param/disconnect` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
+
 ## `resources`
 
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
+| DELETE | `/api/resources/:param` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
+| GET | `/api/resources/:param` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | POST | `/api/resources/:param` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | DELETE | `/resources/:param` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | GET | `/resources/:param` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
@@ -32,14 +45,6 @@ Families with fewer than 8 routes, grouped so the book stays navigable. `Invento
 | POST | `/api/runs/subagents` | schema not modeled | no | `botserver/src/main_module/routes/subagents.rs` |
 | GET | `/api/runs/tools` | native surface tool manifests (name, inputSchema, annotations) for run-event capable clients | yes | `botserver/src/core/bot/runs/tools.rs` |
 | GET | `/api/runs/ttft` | schema not modeled | no | `botserver/src/core/bot/runs/ttft.rs` |
-
-## `sandbox`
-
-| Method | Path | Summary | Inventory | Registered in |
-|---|---|---|---|---|
-| GET | `/api/sandbox/config` | schema not modeled | no | `botserver/src/core/bot/sandbox/routes.rs` |
-| GET | `/api/sandbox/status/:param` | schema not modeled | no | `botserver/src/core/bot/sandbox/routes.rs` |
-| GET | `/sandbox/ui/:param` | schema not modeled | no | `botserver/src/core/bot/sandbox/routes.rs` |
 
 ## `scan`
 
@@ -184,7 +189,6 @@ Families with fewer than 8 routes, grouped so the book stays navigable. `Invento
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
 | GET | `/api/whats-new` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
-| POST | `/api/whats-new` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
 
 ## `whiteboard`
 

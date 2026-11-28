@@ -2,7 +2,7 @@
 
 # API / admin
 
-40 routes in the `admin` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+43 routes in the `admin` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
@@ -29,6 +29,7 @@ Base URL: `http://localhost:8080` — see
 | GET | `/api/admin/dashboard/roles` | registered in crates/botsettings/src/admin_dashboard/mod.rs | yes | `botserver/crates/botsettings/src/admin_dashboard/mod.rs` |
 | POST | `/api/admin/dashboard/roles` | schema not modeled | no | `botserver/crates/botsettings/src/admin_dashboard/mod.rs` |
 | GET | `/api/admin/dashboard/stats` | registered in crates/botsettings/src/admin_dashboard/mod.rs | yes | `botserver/crates/botsettings/src/admin_dashboard/mod.rs` |
+| GET | `/api/admin/dlp/violations` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
 | GET | `/api/admin/dns` | registered in crates/botsettings/src/admin_dashboard/mod.rs | yes | `botserver/crates/botsettings/src/admin_dashboard/mod.rs` |
 | GET | `/api/admin/export-report` | registered in crates/botsettings/src/admin_dashboard/mod.rs | yes | `botserver/crates/botsettings/src/admin_dashboard/mod.rs` |
 | GET | `/api/admin/groups` | registered in crates/botsettings/src/admin_dashboard/mod.rs | yes | `botserver/crates/botsettings/src/admin_dashboard/mod.rs` |
@@ -43,7 +44,9 @@ Base URL: `http://localhost:8080` — see
 | POST | `/api/admin/invitations/bulk` | registered in crates/botsettings/src/admin_dashboard/mod.rs | yes | `botserver/crates/botsettings/src/admin_dashboard/mod.rs` |
 | DELETE | `/api/admin/invitations/resend/:param` | schema not modeled | no | `botserver/crates/botsettings/src/admin_dashboard/mod.rs` |
 | POST | `/api/admin/invitations/resend/:param` | registered in crates/botsettings/src/admin_dashboard/mod.rs | yes | `botserver/crates/botsettings/src/admin_dashboard/mod.rs` |
+| GET | `/api/admin/migrate/office365` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
 | POST | `/api/admin/migrate/office365` | registered in src/main_module/routes/api_setup.rs | yes | `botserver/src/main_module/routes/api_setup.rs` |
+| GET | `/api/admin/prompt-security/signals` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
 | GET | `/api/admin/stats/bots` | registered in crates/botsettings/src/admin_dashboard/mod.rs | yes | `botserver/crates/botsettings/src/admin_dashboard/mod.rs` |
 | GET | `/api/admin/stats/groups` | registered in crates/botsettings/src/admin_dashboard/mod.rs | yes | `botserver/crates/botsettings/src/admin_dashboard/mod.rs` |
 | GET | `/api/admin/stats/storage` | registered in crates/botsettings/src/admin_dashboard/mod.rs | yes | `botserver/crates/botsettings/src/admin_dashboard/mod.rs` |

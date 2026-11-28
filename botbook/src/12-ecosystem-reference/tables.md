@@ -188,7 +188,7 @@ Regenerate with `python3 scripts/gen_schema_reference.py`.
 | `meeting_rooms` | `meet` | 17 | 6.5.23-branch-scope-cleanup | [meet](./schema/meet.md) |
 | `meeting_transcriptions` | `meet` | 16 | 6.5.15.1-consolidated | [meet](./schema/meet.md) |
 | `meeting_whiteboards` | `meet` | 15 | 6.5.23-branch-scope-cleanup | [meet](./schema/meet.md) |
-| `message_history` | `core` | 14 | 6.8.5-run-events | [core](./schema/core-2.md) |
+| `message_history` | `core` | 16 | 6.9.0-usage-engine-provider | [core](./schema/core-2.md) |
 | `okr_activity_log` | `goals` | 13 | 6.5.23-branch-scope-cleanup | [goals](./schema/goals.md) |
 | `okr_alignments` | `goals` | 9 | 6.5.23-branch-scope-cleanup | [goals](./schema/goals.md) |
 | `okr_checkins` | `goals` | 12 | 6.5.23-branch-scope-cleanup | [goals](./schema/goals.md) |

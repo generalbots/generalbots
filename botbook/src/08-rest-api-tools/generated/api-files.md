@@ -2,7 +2,7 @@
 
 # API / files
 
-64 routes in the `files` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+65 routes in the `files` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
@@ -15,6 +15,7 @@ Base URL: `http://localhost:8080` — see
 | POST | `/api/files/bots` | registered in src/main_module/routes/api_setup.rs | yes | `botserver/src/core/bot/endpoint_inventory_editor_email.rs` |
 | ANY | `/api/files/bots/delete` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
 | POST | `/api/files/bots/delete` | registered in src/main_module/routes/api_setup.rs | yes | `botserver/src/core/bot/endpoint_inventory_editor_email.rs` |
+| ANY | `/api/files/bucket` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
 | ANY | `/api/files/buckets` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
 | GET | `/api/files/buckets` | registered in src/main_module/routes/api_setup.rs | yes | `botserver/src/core/bot/endpoint_inventory_editor_email.rs` |
 | ANY | `/api/files/copy` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
