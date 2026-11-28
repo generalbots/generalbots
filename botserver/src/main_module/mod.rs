@@ -37,6 +37,7 @@ pub mod state_builder;
 mod types;
 pub mod ui_plan;
 pub mod wizard_provision;
+mod stack_layout;
 
 pub use background::*;
 pub use cache::*;

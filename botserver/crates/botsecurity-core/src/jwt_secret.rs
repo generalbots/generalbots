@@ -308,46 +308,14 @@ pub fn config_file_path() -> PathBuf {
 /// The persisted secret, or `None` when the file is missing/unreadable or has
 /// no `saas_jwt_secret`.
 pub fn persisted_secret() -> Option<String> {
-    let content = std::fs::read_to_string(config_file_path()).ok()?;
-    let json: serde_json::Value = serde_json::from_str(&content).ok()?;
-    json.get(CONFIG_KEY)
-        .and_then(|value| value.as_str())
-        .map(str::to_string)
+    crate::jwt_secret_store::read_secret_at(&config_file_path(), CONFIG_KEY)
 }
 
-/// Writes the secret into the config file atomically: a temporary file in the
-/// same directory is renamed over the target, so a crash never leaves a
-/// half-written config behind.
-///
-/// The directory is never created here: a missing `conf/system` means the stack
-/// is not provisioned, and inventing one would shadow the real config later.
-/// That case is a persist failure, which fails closed in production.
+/// Writes the secret into the config file atomically, creating `conf/system`
+/// when the stack has none yet (an edition without the directory service never
+/// creates it). Any remaining failure fails closed in production.
 fn persist_secret(secret: &str) -> Result<(), String> {
-    let path = config_file_path();
-    let parent = path
-        .parent()
-        .ok_or_else(|| format!("{} has no parent directory", path.display()))?;
-    if !parent.is_dir() {
-        return Err(format!("directory {} does not exist", parent.display()));
-    }
-    let mut json = match std::fs::read_to_string(&path) {
-        Ok(content) => serde_json::from_str::<serde_json::Value>(&content)
-            .map_err(|e| format!("parse {}: {e}", path.display()))?,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => serde_json::json!({}),
-        Err(error) => return Err(format!("read {}: {error}", path.display())),
-    };
-    if !json.is_object() {
-        json = serde_json::json!({});
-    }
-    json[CONFIG_KEY] = serde_json::Value::String(secret.to_string());
-    let pretty = serde_json::to_string_pretty(&json).map_err(|e| format!("serialize: {e}"))?;
-    let temp = path.with_extension("json.tmp");
-    std::fs::write(&temp, format!("{pretty}\n"))
-        .map_err(|e| format!("write {}: {e}", temp.display()))?;
-    std::fs::rename(&temp, &path).map_err(|e| {
-        let _ = std::fs::remove_file(&temp);
-        format!("rename {}: {e}", path.display())
-    })
+    crate::jwt_secret_store::write_secret_at(&config_file_path(), CONFIG_KEY, secret)
 }
 
 /// Resolves the secret from the real environment and config file, without

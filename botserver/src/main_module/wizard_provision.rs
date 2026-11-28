@@ -367,6 +367,11 @@ pub async fn run() -> std::io::Result<()> {
     let pm = PackageManager::new(InstallMode::Local, tenant)
         .map_err(|e| std::io::Error::other(format!("package manager: {e}")))?;
 
+    let stack_root = botlib::security::get_stack_path();
+    for failure in super::stack_layout::ensure_standard_conf_dirs(std::path::Path::new(&stack_root)) {
+        eprintln!("provision: could not create a stack folder: {failure}");
+    }
+
     let plan = component_plan();
 
     // Diagnostic: report which product file is active and which services

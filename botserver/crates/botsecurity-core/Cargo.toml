@@ -40,4 +40,5 @@ zip = { workspace = true }
 workspace = true
 
 [dev-dependencies]
+tempfile = { workspace = true }
 tower = { workspace = true, features = ["util"] }

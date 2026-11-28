@@ -10,6 +10,7 @@ pub mod error_sanitizer;
 pub mod file_validation;
 pub mod headers;
 pub mod jwt_secret;
+mod jwt_secret_store;
 pub mod log_sanitizer;
 pub mod panic_handler;
 pub mod path_guard;

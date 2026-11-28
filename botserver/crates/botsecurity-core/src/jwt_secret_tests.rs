@@ -266,3 +266,51 @@ fn minter_and_verifier_agree_on_every_source() {
         assert_eq!(verified.sub, "user-1");
     }
 }
+
+/// Rehearsal 8: a fresh Lite stack has no `conf/system`. Production must still
+/// start on the first boot, and every later boot must reuse the same secret.
+#[test]
+fn a_fresh_stack_without_conf_system_keeps_one_secret_across_boots() {
+    use crate::jwt_secret_store::{read_secret_at, write_secret_at};
+    let root = tempfile::tempdir().expect("tempdir");
+    let path = root.path().join(CONFIG_FILE);
+    let persist = |secret: &str| write_secret_at(&path, CONFIG_KEY, secret);
+
+    let first = resolve_with(empty_inputs(), RELEASE, persist).expect("first boot starts");
+    assert_eq!(first.source, JwtSecretSource::Generated);
+
+    for _ in 0..2 {
+        let stored = read_secret_at(&path, CONFIG_KEY);
+        let inputs = JwtSecretInputs {
+            config_file_value: stored.as_deref(),
+            ..JwtSecretInputs::default()
+        };
+        let later = resolve_with(inputs, RELEASE, |_: &str| {
+            Err("a persisted secret must not be rewritten".to_string())
+        })
+        .expect("later boot starts");
+        assert_eq!(later.source, JwtSecretSource::ConfigFile);
+        assert_eq!(later.secret, first.secret);
+    }
+}
+
+#[test]
+fn an_existing_persisted_secret_is_kept_on_a_fresh_boot() {
+    use crate::jwt_secret_store::{read_secret_at, write_secret_at};
+    let root = tempfile::tempdir().expect("tempdir");
+    let path = root.path().join(CONFIG_FILE);
+    write_secret_at(&path, CONFIG_KEY, CONFIGURED).expect("seed");
+
+    let stored = read_secret_at(&path, CONFIG_KEY);
+    let inputs = JwtSecretInputs {
+        config_file_value: stored.as_deref(),
+        env_saas_jwt_secret: Some(FROM_ENV_SAAS),
+        ..JwtSecretInputs::default()
+    };
+    let resolved = resolve_with(inputs, RELEASE, |secret: &str| {
+        write_secret_at(&path, CONFIG_KEY, secret)
+    })
+    .expect("resolves");
+    assert_eq!(resolved.secret, CONFIGURED);
+    assert_eq!(read_secret_at(&path, CONFIG_KEY).as_deref(), Some(CONFIGURED));
+}
