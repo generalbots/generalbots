@@ -72,6 +72,14 @@ impl Tables<'_> {
     }
 }
 
+/// Reads the answer of `SELECT 1 FROM pg_database WHERE datname = 'botserver'`.
+/// This start path is the only place that creates the application database on
+/// Windows: it runs once the server accepts connections, so nothing retries
+/// against a port where no server listens yet.
+fn database_missing(exists_stdout: &[u8]) -> bool {
+    String::from_utf8_lossy(exists_stdout).trim() != "1"
+}
+
 impl PackageManager {
     pub(super) fn start_windows_tables(bin: &Path, data: &Path, logs: &Path, stack: &Path) -> Result<std::process::Child> {
         let tables = Tables {
@@ -121,12 +129,35 @@ impl PackageManager {
         if !exists.status.success() {
             return Err(anyhow::anyhow!("Local database did not accept SQL connections"));
         }
-        if String::from_utf8_lossy(&exists.stdout).trim() != "1"
+        if database_missing(&exists.stdout)
             && !tables.sql("CREATE DATABASE botserver WITH OWNER gbuser")?.status.success()
         {
             return Err(anyhow::anyhow!("Could not create the local application database"));
         }
         tables.require_passwords()?;
         SafeCommand::noop_child().map_err(Into::into)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::database_missing;
+
+    #[test]
+    fn an_existing_database_is_kept() {
+        assert!(!database_missing(b"1\n"));
+        assert!(!database_missing(b" 1\r\n"));
+    }
+
+    #[test]
+    fn an_empty_answer_means_the_database_must_be_created() {
+        assert!(database_missing(b""));
+        assert!(database_missing(b"\n"));
+    }
+
+    #[test]
+    fn an_unexpected_answer_is_not_taken_as_existing() {
+        assert!(database_missing(b"0\n"));
+        assert!(database_missing(b"11\n"));
     }
 }

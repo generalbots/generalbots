@@ -176,46 +176,6 @@ impl PackageManager {
         }
         self.run_commands(post_cmds, "local", &component.name)?;
 
-        if component.name == "tables" && self.os_type == OsType::Windows {
-            use diesel::pg::PgConnection;
-            use diesel::connection::SimpleConnection;
-            use diesel::Connection;
-            use std::time::Duration;
-
-            let pg_url = "postgres://gbuser@127.0.0.1:5432/postgres";
-            for attempt in 0..60 {
-                if attempt > 0 {
-                    std::thread::sleep(Duration::from_secs(2));
-                }
-                match PgConnection::establish(pg_url) {
-                    Ok(mut conn) => {
-                        info!("Connected to PostgreSQL, creating database botserver...");
-                        let result = conn.batch_execute("CREATE DATABASE botserver WITH OWNER gbuser");
-                        match result {
-                            Ok(_) => info!("Database botserver created successfully"),
-                            Err(e) => {
-                                let err_str = e.to_string();
-                                if err_str.contains("already exists") {
-                                    info!("Database botserver already exists");
-                                } else {
-                                    warn!("Failed to create database botserver: {}", e);
-                                }
-                            }
-                        }
-                        break;
-                    }
-                    Err(e) => {
-                        if attempt == 0 {
-                            info!("Waiting for PostgreSQL to be ready...");
-                        }
-                        if attempt >= 59 {
-                            warn!("Failed to connect to PostgreSQL after 60 attempts: {}", e);
-                        }
-                    }
-                }
-            }
-        }
-
         Ok(())
     }
     pub fn install_container_only(&self, component_name: &str) -> Result<InstallResult> {
