@@ -343,8 +343,31 @@
     }
   }
   function unlock() { if (locked) setLocked(false); }
+
+  // Web installs authenticate centrally on login.generalbots.org. The local
+  // lock widget is only for packaged/desktop builds, where GB_LOGIN_URL still
+  // points at this origin's /suite/login.html. Never show a second login form
+  // when a central login host is configured.
+  function centralLoginUrl() {
+    var raw = window.GB_LOGIN_URL || "";
+    if (!raw) return "";
+    try {
+      var url = new URL(raw, window.location.href);
+      if (url.origin !== window.location.origin) return url.toString();
+      var internal = url.pathname === "/suite/login.html" || url.pathname === "/suite/login";
+      return internal ? "" : url.toString();
+    } catch (e) { return ""; }
+  }
+
   function lock(reason) {
     if (locked) return;
+    var central = centralLoginUrl();
+    if (central) {
+      var target = new URL(central, window.location.href);
+      target.searchParams.set("redirect", window.location.href);
+      window.location.replace(target.toString());
+      return;
+    }
     lastReason = String(reason || "manual");
     setLocked(true, lastReason);
   }
