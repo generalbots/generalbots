@@ -46,6 +46,10 @@
 <link rel="stylesheet" href="/suite/assistant/assistant-files.css" />
 <link rel="stylesheet" href="/suite/assistant/assistant-turn-cards.css" />
 
+<!-- Central helpers used by the parity modules: formatters, storage reader and the gbLog the security bootstrap logs through. -->
+<script src="/suite/js/gb-shared_a.js"></script>
+<script src="/suite/js/gb-shared_b.js"></script>
+
 <!-- Security bootstrap: only the token module is needed; the fetch
      interceptor is omitted because it redirects on 401 from endpoints
      that do not accept session tokens (e.g. i18n/preference).
@@ -57,10 +61,6 @@
 <script src="/suite/assistant/i18n/en.js"></script>
 <script src="/suite/assistant/i18n/it.js"></script>
 <script src="/suite/assistant/i18n/ru.js"></script>
-
-<!-- Central helpers used by the parity modules: formatters + storage reader. -->
-<script src="/suite/js/gb-shared_a.js"></script>
-<script src="/suite/js/gb-shared_b.js"></script>
 
 <!-- Identity accent engine -->
 <script src="/suite/identity/accent.js"></script>
@@ -116,46 +116,13 @@
 
 <!-- Sidebar -->
 <aside id="gb-sidebar" class="gb-sidebar" role="navigation" aria-label="Sidebar">
-    <div class="gb-sidebar-top">
-        <div class="gb-sidebar-brand">
-            <span class="gb-wordmark" id="gbWordmark"></span>
-            <button class="gb-btn-icon gb-sidebar-collapse-btn" id="gbSidebarToggle"
-                    aria-label="Toggle sidebar" title="Toggle sidebar"
-                    data-i18n-aria-label="paper-toggle-sidebar" data-i18n-title="paper-toggle-sidebar">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2"/>
-                    <line x1="9" y1="3" x2="9" y2="21"/>
-                </svg>
-            </button>
+    <div class="gb-rail-head">
+        <div class="gb-app-switch">
+            <button type="button" class="gb-nav-item active" id="gbNavChat" data-view="chat" aria-label="Chat"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></i><span>Chat</span></button>
+            <button type="button" class="gb-nav-item" id="gbNavDrive" data-view="drive" aria-label="Drive"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg></i><span>Drive</span></button>
         </div>
-
-        <button class="gb-new-chat-btn" id="gbNewChat">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <line x1="12" y1="5" x2="12" y2="19"/>
-                <line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            <span data-i18n="assistant.new-chat">New chat</span>
-        </button>
-
-        <div class="gb-sidebar-search" id="gbSearchWrap">
-            <svg class="gb-search-icon" width="14" height="14" viewBox="0 0 24 24"
-                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <circle cx="11" cy="11" r="8"/>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-            <input type="text" id="gbSearchInput" class="gb-search-input"
-                   data-i18n-placeholder="assistant.search" />
-        </div>
-
-        <button class="gb-nav-item" id="gbNavDrive" data-view="drive">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-            </svg>
-            <span data-i18n="assistant.drive">Drive</span>
-        </button>
+        <strong class="gb-settings-label" data-i18n="assistant.settings">Configurações</strong>
+        <button class="gb-btn-icon" type="button" id="gbSidebarToggle" data-i18n-aria="shell.sidebar" aria-controls="gb-sidebar" aria-expanded="true" aria-label="Barra lateral"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3h18v18H3zM9 3v18"/></svg></i></button>
     </div>
     <div class="gb-rail-middle">
         <div class="gb-rail-chat">
@@ -329,7 +296,6 @@
 <script src="/suite/assistant/modules/09c_settings_instructions.js"></script>
 <script src="/suite/assistant/modules/09d_settings_profile.js"></script>
 <script src="/suite/assistant/modules/09_settings.js"></script>
-<script src="/suite/assistant/modules/09d_settings_shell.js"></script>
 <script src="/suite/assistant/modules/09e_settings_pages.js"></script>
 <script src="/suite/assistant/modules/09f_settings_memory.js"></script>
 <script src="/suite/assistant/modules/09g_settings_licenses.js"></script>
