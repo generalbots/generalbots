@@ -10,6 +10,10 @@ use botlib::i18n::{self, Locale};
 use serde_json::{json, Value};
 use std::fmt;
 
+#[path = "upload_error_reason.rs"]
+mod reason;
+use reason::{phrase, Reason};
+
 /// Why an upload was refused. The `code` is a catalogue message id, stable
 /// across locales, so clients can branch on it.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -109,33 +113,32 @@ impl UploadError {
                 i18n::translate(locale, code, &[("reason", reason)])
             }
             Self::ArchiveEncrypted => {
-                i18n::translate(locale, code, &[("reason", "encrypted entry")])
+                i18n::translate(locale, code, &[("reason", phrase(locale, Reason::EncryptedEntry))])
             }
             Self::ArchiveNested { .. } => {
-                i18n::translate(locale, code, &[("reason", "nested archive")])
+                i18n::translate(locale, code, &[("reason", phrase(locale, Reason::NestedArchive))])
             }
             Self::ArchiveMacro { .. } => {
-                i18n::translate(locale, code, &[("reason", "macro-bearing part")])
+                i18n::translate(locale, code, &[("reason", phrase(locale, Reason::MacroPart))])
             }
             Self::ArchiveCompressionRatio { .. } => {
-                i18n::translate(locale, code, &[("reason", "compression ratio too high")])
+                let reason = phrase(locale, Reason::CompressionRatio);
+                i18n::translate(locale, code, &[("reason", reason)])
             }
             Self::RelationshipTargetUnsafe { kind } => {
-                let reason = format!("unsafe external reference ({kind})");
+                let reason = format!("{} ({kind})", phrase(locale, Reason::UnsafeReference));
                 i18n::translate(locale, code, &[("reason", &reason)])
             }
-            Self::MalwareScannerMissing => i18n::translate(
-                locale,
-                code,
-                &[("message", "no malware scanner is configured")],
-            ),
-            Self::MalwareScanFailed => i18n::translate(
-                locale,
-                code,
-                &[("message", "the malware scan could not be completed")],
-            ),
+            Self::MalwareScannerMissing => {
+                let message = phrase(locale, Reason::ScannerMissing);
+                i18n::translate(locale, code, &[("message", message)])
+            }
+            Self::MalwareScanFailed => {
+                i18n::translate(locale, code, &[("message", phrase(locale, Reason::ScanFailed))])
+            }
             Self::MalwareDetected { .. } => {
-                i18n::translate(locale, code, &[("message", "malware detected")])
+                let message = phrase(locale, Reason::MalwareDetected);
+                i18n::translate(locale, code, &[("message", message)])
             }
             Self::Empty | Self::FilenameInvalid => i18n::get(locale, code),
         }
