@@ -14,7 +14,7 @@ pub use manager::SecretsManager;
 pub use paths::SecretPaths;
 pub use peer::peer_secret_sync;
 pub use service_configs::ServiceConfigResult;
-pub use sync::{csrf_secret_sync, put_csrf_secret_sync, secret_sync};
+pub use sync::{csrf_secret_sync, persist_csrf_secret_in_background, put_csrf_secret_sync, secret_sync};
 pub use tenant::{alm_config, app_runtime, internal_api_token, TenantSecrets};
 pub use vault_addr::{local_vault_addr, pick_vault_addr, vault_addr_from_env};
 

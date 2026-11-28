@@ -193,13 +193,15 @@ pub async fn run_axum_server(
         if resolved.source() == CsrfSecretSource::DesktopGenerated {
             // Persist to Vault so later boots sign with the same key.
             if let Some(hex) = resolved.as_vault_string() {
-                if botcoresecrets::put_csrf_secret_sync(&hex) {
-                    info!("CSRF signing secret generated and persisted to Vault");
-                } else {
-                    log::warn!(
-                        "Generated a CSRF signing secret but could not persist it \
-                         to Vault; tokens will not survive a restart"
-                    );
+                match botcoresecrets::put_csrf_secret_sync(&hex) {
+                    Ok(()) => info!("CSRF signing secret generated and persisted to Vault"),
+                    Err(reason) => {
+                        log::warn!(
+                            "Generated a CSRF signing secret but could not persist it \
+                             to Vault yet ({reason}); retrying in the background"
+                        );
+                        botcoresecrets::persist_csrf_secret_in_background(hex);
+                    }
                 }
             }
         } else if resolved.source() == CsrfSecretSource::Ephemeral {
