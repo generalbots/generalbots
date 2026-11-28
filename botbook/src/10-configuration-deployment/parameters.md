@@ -545,6 +545,12 @@ Multiple values separated by commas: `value1,value2,value3`
 2. **config.csv values** (override defaults)
 3. **Environment variables** (if implemented, override config)
 
+Environment variables are a separate, deployment-level surface from the
+`config.csv` parameters on this page: for the complete list of names the
+server, desktop shell, agent VM manager and BotModels service read, see
+[Environment Variables](./environment-variables.md). Secrets belong in Vault,
+not in configuration files or environment values.
+
 ## Special Values
 
 - `none` - Explicitly no value (for `llm-key`)

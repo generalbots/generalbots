@@ -682,6 +682,7 @@
 - [Chapter 10: Configuration & Deployment](./10-configuration-deployment/README.md)
    - [config.csv Format](./10-configuration-deployment/config-csv.md)
    - [Bot Parameters](./10-configuration-deployment/parameters.md)
+   - [Environment Variables](./10-configuration-deployment/environment-variables.md)
    - [LLM Configuration](./10-configuration-deployment/llm-config.md)
    - [Context Configuration](./10-configuration-deployment/context-config.md)
    - [Drive Integration](./10-configuration-deployment/drive.md)
