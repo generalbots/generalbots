@@ -8,18 +8,24 @@
 # `filename_win`, `sha256_win`), so a pin changed there is followed here. A
 # component with no Windows build pinned stops the script.
 #
-# -RuntimeDllsFrom copies the PostgreSQL client libraries the desktop shell
-# stages beside the server (botapp/src/desktop/sidecar.rs:89-99) from the `bin`
-# folder of the PostgreSQL the server was linked against.
+# The PostgreSQL client libraries the desktop shell stages beside the server
+# (botapp/src/desktop/sidecar.rs) are copied into the payload from one of:
+#   -RuntimeDllsPin <component>  the EDB binaries zip pinned in the manifest
+#                                (the release uses `libpq_win`), downloaded and
+#                                SHA-256 checked into -WorkDir, never into the
+#                                payload;
+#   -RuntimeDllsFrom <folder>    a `bin` folder already on the machine.
 #
 # Usage (Windows PowerShell 5.1 or PowerShell 7, from the repository root):
-#   scripts\gbgov-stage-payload.ps1 -Destination $env:TEMP\gbgov-payload
+#   scripts\gbgov-stage-payload.ps1 -Destination $env:TEMP\gbgov-payload -RuntimeDllsPin libpq_win
 
 param(
     [Parameter(Mandatory = $true)][string]$Destination,
     [string]$Manifest = 'botserver\3rdparty.toml',
     [string[]]$Components = @('openbao', 'tables', 'drive', 'mc'),
-    [string]$RuntimeDllsFrom = ''
+    [string]$RuntimeDllsFrom = '',
+    [string]$RuntimeDllsPin = '',
+    [string]$WorkDir = (Join-Path ([System.IO.Path]::GetTempPath()) 'gbgov-stage-work')
 )
 
 $ErrorActionPreference = 'Stop'
@@ -33,8 +39,7 @@ foreach ($line in Get-Content -LiteralPath $Manifest) {
     if ($section -and $line -match '^\s*([a-z0-9_]+)\s*=\s*"([^"]*)"') { $pins[$section][$Matches[1]] = $Matches[2] }
 }
 
-New-Item -ItemType Directory -Force $Destination | Out-Null
-foreach ($id in $Components) {
+function Save-Pinned([string]$id, [string]$folder) {
     $pin = $pins[$id]
     if (-not $pin) { throw "$Manifest has no [components.$id]" }
     $url = $pin['url_win']
@@ -42,10 +47,11 @@ foreach ($id in $Components) {
     if (-not $url -or -not $expected) { throw "component '$id' has no Windows build pinned in $Manifest (url_win, sha256_win)" }
     $name = $pin['filename_win']
     if (-not $name) { $name = $pin['filename'] }
-    $target = Join-Path $Destination $name
+    New-Item -ItemType Directory -Force $folder | Out-Null
+    $target = Join-Path $folder $name
     if ((Test-Path -LiteralPath $target) -and (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash -eq $expected) {
         Write-Host "already staged: $name (SHA-256 verified)"
-        continue
+        return $target
     }
     for ($attempt = 1; $attempt -le 3; $attempt++) {
         try { Invoke-WebRequest -Uri $url -OutFile $target -UseBasicParsing; break }
@@ -58,6 +64,20 @@ foreach ($id in $Components) {
     $actual = (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash.ToLowerInvariant()
     if ($actual -ne $expected.ToLowerInvariant()) { throw "checksum mismatch for ${name}: expected $expected, got $actual" }
     Write-Host ('staged {0} ({1:N1} MB, SHA-256 verified)' -f $name, ((Get-Item -LiteralPath $target).Length / 1MB))
+    return $target
+}
+
+if ($RuntimeDllsFrom -and $RuntimeDllsPin) { throw 'pass -RuntimeDllsFrom or -RuntimeDllsPin, not both' }
+
+New-Item -ItemType Directory -Force $Destination | Out-Null
+foreach ($id in $Components) { Save-Pinned $id $Destination | Out-Null }
+
+if ($RuntimeDllsPin) {
+    $zip = Save-Pinned $RuntimeDllsPin $WorkDir
+    $expanded = Join-Path $WorkDir $RuntimeDllsPin
+    if (Test-Path -LiteralPath $expanded) { Remove-Item -LiteralPath $expanded -Recurse -Force }
+    Expand-Archive -LiteralPath $zip -DestinationPath $expanded -Force
+    $RuntimeDllsFrom = Join-Path $expanded 'pgsql\bin'
 }
 
 if ($RuntimeDllsFrom) {
