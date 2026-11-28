@@ -1,4 +1,5 @@
 use super::*;
+use botlib::traits::DriveObjectInfo;
 
 pub(super) fn cached_quota() -> Option<QuotaResponse> {
     let cell = QUOTA_CACHE.get_or_init(|| std::sync::Mutex::new(None));
@@ -317,4 +318,18 @@ pub(super) fn is_platform_admin(state: &AppState, user: &AuthenticatedUser) -> b
     .get_result::<CountRow>(&mut conn)
     .map(|r| r.count > 0)
     .unwrap_or(false)
+}
+/// Bytes the person sees as used. Deleted files wait under `.trash/` until the
+/// retention purge removes them; they no longer count as the person's files.
+pub(super) fn visible_used_bytes(objects: &[DriveObjectInfo]) -> u64 {
+    objects
+        .iter()
+        .filter(|obj| !obj.key.starts_with(".trash/"))
+        .fold(0u64, |acc, obj| acc.saturating_add(obj.size))
+}
+/// Reply for a trash or restore: the stored bytes moved, so the next quota
+/// request recounts them.
+pub(super) fn trash_changed() -> Json<SuccessResponse> {
+    invalidate_quota();
+    Json(SuccessResponse { success: true })
 }

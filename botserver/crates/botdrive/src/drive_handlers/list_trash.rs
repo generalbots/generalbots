@@ -126,7 +126,7 @@ pub async fn trash_file(
             )
         })?;
         botlog::safe_info!("File moved to trash: {key} -> {trash_key}");
-        return Ok(Json(SuccessResponse { success: true }));
+        return Ok(trash_changed());
     }
 
     let folder_prefix = format!("{}/", key.trim_end_matches('/'));
@@ -191,7 +191,7 @@ pub async fn trash_file(
     })?;
 
     botlog::safe_info!("Folder moved to trash: {key} -> {trash_base}/{relative}");
-    Ok(Json(SuccessResponse { success: true }))
+    Ok(trash_changed())
 }
 pub async fn restore_trash(
     State(state): State<Arc<AppState>>,
@@ -329,7 +329,7 @@ pub async fn restore_trash(
         })?;
 
     botlog::safe_info!("Trash item restored: {}", row.original_path);
-    Ok(Json(SuccessResponse { success: true }))
+    Ok(trash_changed())
 }
 
 /// Deletes trash rows whose 30-day retention has elapsed. Returns the number

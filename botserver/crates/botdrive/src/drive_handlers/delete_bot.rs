@@ -165,12 +165,7 @@ pub async fn quota(
             let repo = Arc::clone(drive);
             tasks.spawn(async move {
                 match repo.list_objects_with_metadata(&bname, None).await {
-                    Ok(objects) => {
-                        let bytes = objects
-                            .iter()
-                            .fold(0u64, |acc, obj| acc.saturating_add(obj.size));
-                        Some(bytes)
-                    }
+                    Ok(objects) => Some(visible_used_bytes(&objects)),
                     Err(e) => {
                         warn!("quota: listing bucket '{bname}' failed: {e}");
                         None
