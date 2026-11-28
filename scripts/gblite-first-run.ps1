@@ -4,8 +4,18 @@
 # shell: lays out an app folder the way the installer does, runs
 # `botserver --provision-stack` on an EMPTY stack with the arguments, working
 # directory and environment the first-run wizard gives it, downloads forbidden,
-# then starts the server once on that stack. Whatever the base app needs and
-# the payload does not carry is a failure: that is the point of the check.
+# then starts the server on that stack, stops it with Ctrl+C, stops every
+# program of the stack as a restart of the computer would, and starts the
+# server again (scripts/gblite-first-run-boot.ps1). Whatever the base app needs
+# and the payload does not carry is a failure: that is the point of the check.
+#
+# Nothing a real first install lacks is handed over: no secret, token,
+# development switch or pre-seeded configuration (inherited variables are
+# removed, see $ClearedPattern), no Vault stand-in (the Vault of the payload),
+# and no folder the wizard does not create itself: the stack, `logs` and the
+# workspace (botapp/src/desktop/wizard/provision/components.rs:118-120). The
+# server gets what the shell sets for an offline install (sidecar.rs:253-290,
+# GB_DESKTOP_ALLOW_DOWNLOAD=0 as under GB_DESKTOP_OFFLINE=1).
 #
 # Usage (Windows PowerShell 5.1 or PowerShell 7, from the repository root):
 #   scripts\gblite-first-run.ps1 -Binary target\release\botserver.exe `
@@ -89,11 +99,15 @@ $OffPrograms = '^(valkey|redis|qdrant|zitadel)'
 $NeedFree = @(8200, 5432, 9100, 9101, 8080)
 $RuntimeDlls = 'libpq.dll', 'libcrypto-3-x64.dll', 'libssl-3-x64.dll', 'libiconv-2.dll', 'libintl-9.dll',
     'libwinpthread-1.dll', 'liblz4.dll', 'libzstd.dll', 'zlib1.dll'
-# Variables a new machine does not have and the server would obey: the two the
-# wizard removes, then the secrets address and token, tenant, services switched
-# back on, dotenv switch, stack alias, external cache and database password.
-$Cleared = 'DATABASE_URL', 'PG_URL', 'VAULT_ADDR', 'VAULT_TOKEN', 'VAULT_CACERT', 'GB_TENANT', 'GB_SERVICES_ON',
-    'GBO_NO_DOTENV', 'GBO_STACK_PATH', 'CACHE_URL', 'REDIS_URL', 'VALKEY_URL', 'BOOTSTRAP_DB_PASSWORD'
+# Variables a new machine does not have and the server would obey: every
+# inherited one with these prefixes is removed for the provisioner and the
+# server (secrets: CSRF_SECRET, JWT_SECRET, SAAS_JWT_SECRET, VAULT_TOKEN; the
+# development switch BOTSERVER_ENV and the dev fallbacks GB_ALLOW_DEV_*; the
+# secret folder GB_SECRET_DIR; service addresses, tenant, dotenv switch, stack
+# alias, external cache and database, model settings, log filter). Then only
+# what the wizard and the shell set is given back.
+$ClearedPattern = '^(BOTSERVER_|BOTUI_|BOT_|BOOTSTRAP_|GB_|GBO_|VAULT_|CSRF|JWT|SAAS_|CORS_|LLM_|OPENAI_|ANTHROPIC_|MOCK_|AGENT_|' +
+    'DIRECTORY_|ZITADEL|DRIVE_|MINIO|S3_|QDRANT|REDIS|VALKEY|CACHE_|DATABASE_|PG|RUST_LOG$)'
 # The wizard always starts on the free engine (botui/ui/wizard/wizard-state.js:63-86).
 $Wizard = @{
     GB_WIZARD_WORKSPACE = "$Stack\workspace"; GB_WIZARD_MODEL_MODE = 'free'; GB_WIZARD_LLM_PROVIDER = 'kilo'
@@ -110,7 +124,9 @@ $script:checks = New-Object System.Collections.ArrayList
 $script:envBackup = @{}
 $script:owned = $false; $script:locked = $false; $script:staged = $false; $script:provisioned = $false
 $script:bundled = @(); $script:skipPorts = @()
+$script:server = $null; $script:serverReady = $false; $script:serverLogs = @(); $script:credentialHashes = @{}
 . (Join-Path $PSScriptRoot 'gblite-first-run-lib.ps1')
+. (Join-Path $PSScriptRoot 'gblite-first-run-boot.ps1')
 
 function Invoke-Preflight {
     $ok = Test-Path -LiteralPath $Binary -PathType Leaf
@@ -175,7 +191,9 @@ function Invoke-Preflight {
 }
 
 function Invoke-Provisioning {
-    foreach ($name in $Cleared) { Set-ChildEnv $name $null }
+    foreach ($name in @(Get-ChildItem Env: | Where-Object { $_.Name -match $ClearedPattern } | ForEach-Object { $_.Name })) {
+        Set-ChildEnv $name $null
+    }
     foreach ($name in $Wizard.Keys) { Set-ChildEnv $name $Wizard[$name] }
     Set-ChildEnv 'PATH' "$Stack;$env:PATH"
     Set-ChildEnv 'BOTSERVER_STACK_PATH' $Stack
@@ -309,59 +327,6 @@ function Test-OffServices([string]$When) {
     Add-Check "none of them is running $When" ($running.Count -eq 0) ($running -join ', ')
 }
 
-function Invoke-Server {
-    foreach ($name in $Wizard.Keys) { Set-ChildEnv $name $null }
-    Set-ChildEnv 'AGENT_ALLOW_UNREGISTERED_IDENTITIES' '1'
-    # Agent mode variables, set only when the payload carries the wrapper
-    # (botapp/src/desktop/sidecar/agent_env.rs:19-40).
-    if ((Test-Path -LiteralPath "$Installers\incus.exe") -and -not $env:AGENT_INCUS_BIN) {
-        Set-ChildEnv 'AGENT_INCUS_BIN' "$Installers\incus.exe"
-        if (-not $env:GBO_WSL_DISTRO) { Set-ChildEnv 'GBO_WSL_DISTRO' 'GeneralBotsLite' }
-        if (-not $env:GBO_AGENT_RUNTIME_MARKER) { Set-ChildEnv 'GBO_AGENT_RUNTIME_MARKER' "$Stack\agent-runtime\ready.json" }
-    }
-    if (Test-Path -LiteralPath "$AppDir\.product.gblite") { Copy-Item -LiteralPath "$AppDir\.product.gblite" -Destination "$Stack\.product.gblite" -Force }
-    $out = "$Evidence\server.out.log"; $err = "$Evidence\server.err.log"
-    $started = Get-Date
-    $server = Start-Process -FilePath $AppBinary -ArgumentList '--noconsole' -WorkingDirectory $Stack -PassThru `
-        -WindowStyle Hidden -RedirectStandardOutput $out -RedirectStandardError $err
-    $null = $server.Handle
-    $ready = $false
-    while (-not $ready -and -not $server.HasExited -and ((Get-Date) - $started).TotalSeconds -lt $ServerTimeoutSec) {
-        Start-Sleep -Seconds 2
-        $ready = (Get-HttpStatus $Api) -eq 200
-    }
-    $seconds = [int]((Get-Date) - $started).TotalSeconds
-    $detail = "after $seconds s"
-    if (-not $ready) { $detail = "no answer in $seconds s"; if ($server.HasExited) { $detail = "the server ended with exit code $($server.ExitCode) after $seconds s" } }
-    Add-Check 'server answered /api/product' $ready $detail
-    if ($ready) {
-        $body = (Invoke-WebRequest -Uri $Api -UseBasicParsing -TimeoutSec 10).Content
-        Set-Content -LiteralPath "$Evidence\api-product.json" -Value $body
-        $got = @(($body | ConvertFrom-Json).services_off | ForEach-Object { [string]$_ } | Sort-Object)
-        $want = @($Off | ForEach-Object { $_.Id } | Sort-Object)
-        Add-Check '/api/product lists the services switched off' (($got -join ',') -eq ($want -join ',')) "services_off=$($got -join ',')"
-    }
-    $log = @(); $cacheLine = $false
-    for ($try = 0; $try -lt 10; $try++) {
-        $log = @(Read-Lines $out) + @(Read-Lines $err)
-        $cacheLine = @($log | Where-Object { $_ -match 'Cache initialized - built-in cache' }).Count -gt 0
-        if ($cacheLine -or -not $ready) { break }
-        Start-Sleep -Seconds 2
-    }
-    $trouble = @($log | Where-Object { $_ -match 'Built-in cache (could not start|did not answer|check failed)' }) | Select-Object -First 1
-    Add-Check 'server log has the built-in cache line' $cacheLine ("$trouble".Trim())
-    $loaded = @($log | Where-Object { $_ -match 'Loaded product configuration' }) | Select-Object -First 1
-    Add-Check 'server log shows the product configuration was loaded' ([bool]$loaded) ("$loaded".Trim())
-    $panic = @($log | Where-Object { $_ -match 'panicked at' }) | Select-Object -First 1
-    Add-Check 'server did not panic' (-not $panic) ("$panic".Trim())
-    $other = @($log | Where-Object { $_ -match $FetchLine -and $_ -match $OtherSystem })
-    $detail = ''; if ($other.Count -gt 0) { $detail = [regex]::Match($other[0], $OtherSystem).Value }
-    Add-Check 'server asked for no archive of another system' ($other.Count -eq 0) $detail
-    $offline = @($log | Where-Object { $_ -match 'Offline mode:' })
-    if ($offline.Count -gt 0) { Add-Note "the server wanted $($offline.Count) thing(s) the payload does not carry; first: $($offline[0].Trim())" }
-    if (-not $ready) { Show-Tail 'server output' $out; Show-Tail 'server errors' $err }
-}
-
 try {
     New-Item -ItemType Directory -Force $Evidence | Out-Null
     Remove-Item -LiteralPath "$Evidence\stack-logs" -Recurse -Force -ErrorAction SilentlyContinue
@@ -372,8 +337,15 @@ try {
         Test-BaseServices
         Test-OffServices 'after provisioning'
         if ($script:provisioned) {
-            Invoke-Server
+            Invoke-Server 'first'
             Test-OffServices 'after the first start of the server'
+            if ($script:serverReady) {
+                Stop-Server
+                if (Restart-Stack) {
+                    Invoke-Server 'second'
+                    Test-OffServices 'after the second start of the server'
+                }
+            } else { Add-Note 'no second start: the first one did not answer' }
         } else {
             Add-Note 'the server was not started: the wizard stops when provisioning fails (provision/mod.rs:60-61)'
             if ($ReadOnlyApp) { Add-Note 'the app folder was read-only in this run; the run without -ReadOnlyApp tells whether that is the cause' }
@@ -412,7 +384,7 @@ if ($env:GITHUB_STEP_SUMMARY) {
     @("### $title", '', '```') + @($script:checks | ForEach-Object { $_.Line }) + @('```') | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
 }
 if ($failed.Count -gt 0) {
-    if ($env:GITHUB_ACTIONS -eq 'true') { Write-Host "::warning title=gbgov first run::$($failed.Count) check(s) failed: $(@($failed | ForEach-Object { $_.Name }) -join '; ')" }
+    if ($env:GITHUB_ACTIONS -eq 'true') { Write-Host "::error title=gblite first run::$($failed.Count) check(s) failed: $(@($failed | ForEach-Object { $_.Name }) -join '; ')" }
     exit 1
 }
 exit 0
