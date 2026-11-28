@@ -50,11 +50,8 @@ pub(super) fn local_admin_user_id(email: &str, password: &str) -> Option<String>
             .and_then(|v| v.as_str())
             .unwrap_or("");
         let mut legacy_plaintext_match = false;
-        let matched = if !file_salt.is_empty() && !file_hash.is_empty() {
-            let mut hasher = Sha256::new();
-            hasher.update(file_salt.as_bytes());
-            hasher.update(password.as_bytes());
-            format!("{:x}", hasher.finalize()) == file_hash
+        let matched = if !file_hash.is_empty() {
+            super::super::local_admin::password_hash_matches(file_salt, file_hash, password)
         } else {
             let file_password = json.get("password").and_then(|v| v.as_str()).unwrap_or("");
             legacy_plaintext_match = !file_password.is_empty() && file_password == password;

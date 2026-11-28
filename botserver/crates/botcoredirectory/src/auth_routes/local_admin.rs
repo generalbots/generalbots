@@ -37,6 +37,25 @@ pub(super) fn salted_digest(salt: &str, password: &str) -> String {
     format!("{:x}", hasher.finalize())
 }
 
+/// Whether `password` matches a stored administrator digest. The desktop
+/// wizard writes an Argon2id PHC string (#2635); records written before it,
+/// and by a password change here, hold the SHA-256 of `salt || password`.
+pub(super) fn password_hash_matches(salt: &str, hash: &str, password: &str) -> bool {
+    if hash.starts_with("$argon2") {
+        use argon2::{Argon2, PasswordHash, PasswordVerifier};
+        return match PasswordHash::new(hash) {
+            Ok(parsed) => Argon2::default()
+                .verify_password(password.as_bytes(), &parsed)
+                .is_ok(),
+            Err(e) => {
+                warn!("Local admin: the stored Argon2 digest is malformed: {e}");
+                false
+            }
+        };
+    }
+    !salt.is_empty() && !hash.is_empty() && salted_digest(salt, password) == hash
+}
+
 /// The first administrator record on disk, optionally only the one for `email`.
 pub(super) fn find_admin_record(
     email: Option<&str>,
@@ -188,8 +207,8 @@ pub(super) fn local_admin_user_id(email: &str, password: &str) -> Option<String>
         let file_salt = json.get("password_salt").and_then(|v| v.as_str()).unwrap_or("");
         let file_hash = json.get("password_hash").and_then(|v| v.as_str()).unwrap_or("");
         let mut legacy_plaintext_match = false;
-        let matched = if !file_salt.is_empty() && !file_hash.is_empty() {
-            salted_digest(file_salt, password) == file_hash
+        let matched = if !file_hash.is_empty() {
+            password_hash_matches(file_salt, file_hash, password)
         } else {
             let file_password = json.get("password").and_then(|v| v.as_str()).unwrap_or("");
             legacy_plaintext_match = !file_password.is_empty() && file_password == password;
@@ -296,5 +315,40 @@ pub(super) fn persist_local_admin(state: &Arc<AppState>, user_id: &str, email: &
             "Local admin: could not reconcile users row for {}: {e}",
             email
         ),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{password_hash_matches, salted_digest};
+
+    fn argon2_phc(password: &str) -> String {
+        use argon2::password_hash::{rand_core::OsRng, SaltString};
+        use argon2::{Argon2, PasswordHasher};
+        let salt = SaltString::generate(&mut OsRng);
+        Argon2::default()
+            .hash_password(password.as_bytes(), &salt)
+            .expect("hash the fixture password")
+            .to_string()
+    }
+
+    /// The record the desktop wizard writes since #2635: the salt string next
+    /// to an Argon2id PHC string that embeds the same salt.
+    #[test]
+    fn a_wizard_argon2_record_verifies_its_own_password_only() {
+        let phc = argon2_phc("correct horse");
+        assert!(password_hash_matches("any-salt-field", &phc, "correct horse"));
+        assert!(password_hash_matches("", &phc, "correct horse"));
+        assert!(!password_hash_matches("any-salt-field", &phc, "wrong"));
+        assert!(!password_hash_matches("", "$argon2id$broken", "correct horse"));
+    }
+
+    #[test]
+    fn a_legacy_sha256_record_still_verifies() {
+        let hash = salted_digest("fixed-salt", "legacy-password");
+        assert!(password_hash_matches("fixed-salt", &hash, "legacy-password"));
+        assert!(!password_hash_matches("fixed-salt", &hash, "wrong"));
+        assert!(!password_hash_matches("", &hash, "legacy-password"));
+        assert!(!password_hash_matches("fixed-salt", "", "legacy-password"));
     }
 }
