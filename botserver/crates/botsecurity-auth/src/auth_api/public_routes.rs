@@ -184,6 +184,7 @@ pub fn platform_public_routes() -> Vec<PublicRoute> {
     // registered under the same prefix — e.g. `/suite/sheet/fragments/...` —
     // stays authenticated.
     routes.asset("/suite/*");
+    routes.read("/suite/about/licenses/NOTICE"); // static notice without an extension
     routes.asset("/static/*");
     routes.asset("/themes/*");
     routes.asset("/auth/*");

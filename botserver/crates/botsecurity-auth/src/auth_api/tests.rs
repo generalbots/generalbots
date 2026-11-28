@@ -426,3 +426,22 @@ async fn the_provider_chain_rejects_an_x_user_id_header_alone() {
     assert!(matches!(error, AuthError::MissingToken));
     assert_eq!(error.status_code(), StatusCode::UNAUTHORIZED);
 }
+
+/// Sobre > Licenses reads every file of the licence folder anonymously, the
+/// extensionless `NOTICE` included; a sibling route without an extension stays
+/// private.
+#[test]
+fn every_licence_notice_is_public_read() {
+    let config = AuthConfig::default()
+        .with_public_routes(super::platform_public_routes())
+        .with_private_routes(super::platform_private_routes());
+    for path in [
+        "/suite/about/licenses/NOTICE",
+        "/suite/about/licenses/LICENSES-desktop.md",
+        "/suite/about/licenses/licenses.js",
+    ] {
+        assert!(config.is_public_route(&Method::GET, path), "{path}");
+    }
+    assert!(!config.is_public_route(&Method::GET, "/suite/about/licenses/other"));
+    assert!(!config.is_public_route(&Method::POST, "/suite/about/licenses/NOTICE"));
+}
