@@ -17,6 +17,7 @@ use crate::desktop::i18n;
 use crate::desktop::no_window::NoConsoleWindow;
 use crate::desktop::sidecar::Sidecar;
 
+mod assistant_wait;
 mod directory_wait;
 fn api_product() -> String {
     crate::desktop::sidecar::probe::api_product_url()
@@ -323,10 +324,8 @@ pub(super) async fn start_assistant(
     sidecar
         .start(resource_dir.clone())
         .map_err(|e| format!("could not start the assistant: {e}"))?;
-    // A cold first boot runs migrations, seeds the vault and starts every
-    // service; 120 s was too tight and the wizard declared the assistant dead
-    // while it was still starting.
-    if Sidecar::wait_for_api(&api_product(), 300).await {
+    let first = assistant_wait::wait_for_assistant(sidecar, &api_product(), assistant_wait::FIRST_BOOT_DEADLINE).await;
+    if first == assistant_wait::WaitOutcome::Ready {
         // The identity provider's OAuth client is created by the assistant
         // during its first boot. Until that file exists the auth service cannot
         // initialise and the suite's sign-in answers 500. This is the single
@@ -375,7 +374,7 @@ pub(super) async fn start_assistant(
     // finishing (the identity provider writes its config a few seconds after
     // being reported ready). One deliberate retry with a fresh process beats
     // failing the whole first run.
-    log::warn!("assistant did not answer in 300s; restarting it once");
+    log::warn!("assistant did not become ready ({first:?}); restarting it once");
     progress(
         app,
         state,
@@ -391,7 +390,8 @@ pub(super) async fn start_assistant(
         progress(app, state, "botserver", "failed", &reason, 0);
         return Err(reason);
     }
-    if Sidecar::wait_for_api(&api_product(), 180).await {
+    let retry = assistant_wait::wait_for_assistant(sidecar, &api_product(), assistant_wait::RETRY_DEADLINE).await;
+    if retry == assistant_wait::WaitOutcome::Ready {
         progress(
             app,
             state,
@@ -400,12 +400,14 @@ pub(super) async fn start_assistant(
             "Assistant service is ready",
             0,
         );
-        Ok(())
-    } else {
-        let reason = "The assistant did not answer in time. Open the log folder for details.";
-        progress(app, state, "botserver", "failed", reason, 0);
-        Err(reason.to_string())
+        return Ok(());
     }
+    let log = Sidecar::log_path();
+    let last_error = assistant_wait::last_error_line(&log);
+    let reason = assistant_wait::failure_reason(retry, assistant_wait::RETRY_DEADLINE, &log, last_error.as_deref());
+    log::error!("wizard: assistant service failed to start: {reason}");
+    progress(app, state, "botserver", "failed", &reason, 0);
+    Err(reason)
 }
 
 #[cfg(test)]
