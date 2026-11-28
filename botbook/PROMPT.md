@@ -59,7 +59,7 @@ DELETE_HTTP        ' WRONG!
 
 ```
 botbook/
-├── book.toml          # mdBook configuration
+├── mkdocs.yml         # MkDocs Material configuration
 ├── src/
 │   ├── SUMMARY.md     # Table of contents
 │   ├── README.md      # Introduction
@@ -188,14 +188,15 @@ cargo run
 ## BUILDING DOCUMENTATION
 
 ```bash
-# Install mdBook
-cargo install mdbook
+# Install the docs toolchain (use a virtual environment)
+python3 -m venv /tmp/botbook-docs-venv
+/tmp/botbook-docs-venv/bin/pip install mkdocs-material mkdocs-literate-nav
 
 # Build documentation
-cd botbook && mdbook build
+cd botbook && mkdocs build
 
 # Serve locally with hot reload
-mdbook serve --open
+mkdocs serve
 ```
 
 ---

@@ -1,0 +1,62 @@
+site_name: General Bots Documentation
+site_description: Guides and generated reference for General Bots.
+site_url: https://docs.generalbots.org/
+repo_url: https://github.com/generalbots/generalbots
+edit_uri: edit/main/botbook/src/
+docs_dir: src
+site_dir: book
+# mdBook emitted page.html (not page/index.html); keep those URLs alive.
+use_directory_urls: false
+
+exclude_docs: |
+  /SUMMARY.md
+  /README.md
+
+validation:
+  links:
+    not_found: warn
+    anchors: warn
+  omitted_files: ignore
+  unrecognized_links: ignore
+
+theme:
+  name: material
+  custom_dir: overrides
+  palette:
+    - scheme: slate
+      primary: orange
+      accent: orange
+      toggle:
+        icon: material/brightness-7
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: orange
+      accent: orange
+      toggle:
+        icon: material/brightness-4
+        name: Switch to dark mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+  language: en
+
+plugins:
+  - search
+  - literate-nav:
+      nav_file: SUMMARY.md
+
+extra_css:
+  - assets/docs-theme.css
+  - whatsapp-chat.css
+  - designer-panel.css
+
+extra:
+  generator_note: Reference pages are generated from source. Do not edit them by hand.

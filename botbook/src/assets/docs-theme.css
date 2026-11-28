@@ -1,0 +1,50 @@
+/*
+ * Docs theme — maps Material UI variables onto the General Bots identity tokens.
+ * Reference values come from botui/ui/suite/css/identity-tokens.css (DESIGN-SYSTEM.md).
+ * Only the accent and surfaces are themed; typography and spacing stay Material's.
+ */
+:root {
+  --md-primary-fg-color: #2C2C2C;
+  --md-primary-fg-color--light: #B45309;
+  --md-primary-fg-color--dark: #B45309;
+  --md-accent-fg-color: #F28C28;
+  --md-accent-fg-color--transparent: rgb(242 140 40 / 10%);
+  --md-typeset-a-color: #B45309;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-default-bg-color: hsl(34 11% 12%);
+  --md-default-fg-color: hsl(240 12% 91%);
+  --md-code-bg-color: hsl(240 15% 17%);
+  --md-accent-fg-color: hsl(30 89% 55%);
+  --md-typeset-a-color: hsl(32 96% 72%);
+}
+
+[data-md-color-scheme="default"] {
+  --md-default-bg-color: #FFF8F2;
+  --md-default-fg-color: #2C2C2C;
+}
+
+/* Keep wide generated tables readable without horizontal page scroll. */
+.md-typeset__table {
+  width: 100%;
+  overflow-x: auto;
+  display: block;
+}
+.md-typeset table:not([class]) {
+  font-size: 0.72rem;
+  display: table;
+}
+
+/* The example-chat styles use mdBook theme classes; map Material's dark mode. */
+[data-md-color-scheme="slate"] .wa-chat,
+[data-md-color-scheme="slate"] .designer-panel {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+/* App screens stay legible on small viewports. */
+.md-typeset img,
+.md-typeset svg {
+  max-width: 100%;
+  height: auto;
+}

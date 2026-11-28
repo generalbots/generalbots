@@ -108,7 +108,9 @@ def read(path: Path) -> str:
 def slugify(heading: str) -> str:
     text = heading.strip().lower().replace("`", "")
     text = re.sub(r"[^\w\s-]", "", text)
-    return re.sub(r"\s+", "-", text)
+    text = re.sub(r"\s+", "-", text)
+    # MkDocs/Python-Markdown collapses runs of separators; match its anchors.
+    return re.sub(r"-+", "-", text)
 
 
 def pages(book: Path) -> list[Path]:

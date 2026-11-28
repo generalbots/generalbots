@@ -244,11 +244,11 @@ Generate Rust documentation with `cargo doc --open`, which builds and opens the 
 
 ### Documentation Serving
 
-Serve mdBook documentation locally during development:
+Serve the MkDocs documentation locally during development:
 
 ```bash
-cd docs
-mdbook serve
+cd botbook
+mkdocs serve
 ```
 
 ### Spell Checking

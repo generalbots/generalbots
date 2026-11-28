@@ -21,7 +21,7 @@ This document outlines the complete implementation plan to make General Bots the
 
 ## 📋 Table of Contents
 
-1. [BOT Keyword - Multi-Agent System](#1-bot-keyword---multi-agent-system)
+1. [BOT Keyword - Multi-Agent System](#1-bot-keyword-multi-agent-system)
 2. [Chat UI Enhancements](#2-chat-ui-enhancements)
 3. [Conversational Banking (bank.gbai)](#3-conversational-banking-bankgbai)
 4. [Sheets Editor (HTMX/Rust)](#4-sheets-editor-htmxrust)
@@ -31,8 +31,6 @@ This document outlines the complete implementation plan to make General Bots the
 8. [Copilot/Gemini Feature Parity](#8-copilotgemini-feature-parity)
 9. [Attachment System (Plus Button)](#9-attachment-system-plus-button)
 10. [Conversation Branching](#10-conversation-branching)
-11. [PLAY Keyword - Content Projector](#11-play-keyword---content-projector)
-12. [Implementation Priority](#12-implementation-priority)
 
 ---
 

@@ -69,7 +69,7 @@ Basic LLM settings in config.csv:
 - `llm-model` - Which model to use
 - `llm-key` - API key if using cloud services like Groq
 
-For detailed LLM configuration including GPU settings, cache, performance tuning, and hardware-specific recommendations, see [Configuration Management](./context-config.md#llm-configuration---overview).
+For detailed LLM configuration including GPU settings, cache, performance tuning, and hardware-specific recommendations, see [Configuration Management](./context-config.md#llm-configuration-overview).
 
 ## Where to Find Settings
 

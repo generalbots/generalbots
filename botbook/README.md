@@ -40,7 +40,7 @@ The published version is at **[docs.generalbots.org](https://docs.generalbots.or
 
 - **Rust** (latest stable) - [Install from rustup.rs](https://rustup.rs/)
 - **Git** - [Download from git-scm.com](https://git-scm.com/downloads)
-- **mdBook** - `cargo install mdbook`
+- **MkDocs Material** - `pip install mkdocs-material mkdocs-literate-nav`
 
 ### Run the Server
 
@@ -78,11 +78,11 @@ cargo tauri dev
 git clone https://github.com/GeneralBots/botbook
 cd botbook
 
-# Build documentation
-mdbook build
+# Build documentation (output: botbook/book/)
+mkdocs build
 
 # Serve locally with hot reload
-mdbook serve --open
+mkdocs serve
 ```
 
 ---
@@ -126,7 +126,7 @@ CLEAR TOOLS                ' Remove all tools from session
 
 ```
 botbook/
-├── book.toml          # mdBook configuration
+├── mkdocs.yml         # MkDocs Material configuration
 ├── src/
 │   ├── SUMMARY.md     # Table of contents
 │   ├── README.md      # Introduction

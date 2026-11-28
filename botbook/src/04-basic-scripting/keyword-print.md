@@ -104,4 +104,4 @@ PRINT "Welcome! How can I help you?"  ' Works but TALK is clearer
 ## See Also
 
 - [TALK](./keyword-talk.md) - Primary message output keyword
-- [TALK TO](./keyword-talk.md#talk-to---specific-recipients) - Send to specific recipients
+- [TALK TO](./keyword-talk.md#talk-to-specific-recipients) - Send to specific recipients
