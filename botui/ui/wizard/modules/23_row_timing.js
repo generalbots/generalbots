@@ -1,14 +1,17 @@
 /* First-run wizard — honest per-row durations on the install step.
    A row's clock starts the first time the provisioner reports it in
    progress and freezes the first time it ends (ready, skipped or failed);
-   repeats of the same state never move it again. One 1-second tick
-   refreshes only the rows still in progress and stops when none is left. */
+   repeats of the same state never move it again. A retry is a new run: a
+   finished row keeps its time unless that run reports it in progress again,
+   and then its clock restarts. One 1-second tick refreshes only the rows
+   still in progress and stops when none is left. */
 (function () {
   "use strict";
 
   var App = window.GBWizardApp;
   var rows = {};
   var tick = null;
+  var run = 1;
 
   /* "1,2s" on a Portuguese page, "1.2s" in English. */
   function seconds(value) {
@@ -63,14 +66,18 @@
     if (!tick) { tick = setInterval(refresh, 1000); }
   }
 
-  /* Records one progress event; only the first start and the first end
-     of a row count. */
+  /* Records one progress event; within a run only the first start and the
+     first end of a row count. */
   function note(id, stateName, elapsedMs) {
     var row = rows[id];
-    if (!row) { row = rows[id] = { start: 0, duration: null }; }
-    if (row.duration !== null) { return; }
+    if (!row) { row = rows[id] = { start: 0, duration: null, run: run }; }
+    if (row.duration !== null) {
+      if (stateName !== "starting" || row.run === run) { return; }
+      row.start = 0;
+      row.duration = null;
+    }
     if (stateName === "starting") {
-      if (!row.start) { row.start = Date.now(); ensureTick(); }
+      if (!row.start) { row.start = Date.now(); row.run = run; ensureTick(); }
     } else if (stateName === "ready" || stateName === "failed") {
       row.duration = row.start ? Date.now() - row.start : (elapsedMs || 0);
       if (!Object.keys(rows).some(inProgress)) { stopTick(); }
@@ -92,7 +99,15 @@
     stopTick();
   }
 
+  /* Starts a new run after a failure: the rows in `ids` (the ones that did
+     not finish) lose their clock; finished rows keep theirs. */
+  function retry(ids) {
+    run += 1;
+    (ids || []).forEach(function (id) { delete rows[id]; });
+    stopTick();
+  }
+
   function running() { return !!tick; }
 
-  App.rowTimer = { note: note, text: text, inProgress: inProgress, freezeOpen: freezeOpen, reset: reset, running: running };
+  App.rowTimer = { note: note, text: text, inProgress: inProgress, freezeOpen: freezeOpen, reset: reset, retry: retry, running: running };
 })();

@@ -25,7 +25,13 @@
     var start = document.getElementById("startSetupBtn");
     if (start) { start.addEventListener("click", startProvisioning); }
     var cancel = document.getElementById("cancelSetupBtn");
-    if (cancel) { cancel.addEventListener("click", function () { B.cancel(); }); }
+    if (cancel) {
+      cancel.addEventListener("click", function () {
+        state.provisioning.cancelledRun = state.provisioning.startedAt;
+        syncInstallActions();
+        B.cancel();
+      });
+    }
     var logs = document.getElementById("openLogsBtn");
     if (logs) { logs.addEventListener("click", function () { B.openFolder("logs"); }); }
     var reset = document.getElementById("resetStackBtn");
@@ -77,6 +83,21 @@
     } else if (!state.skipped) {
       if (state.host.checked || state.host.checking) { renderHostCheck(); }
       else { checkHost(true); }
+    }
+    syncInstallActions();
+  }
+
+  /* The footer offers only what applies now: Start before a run, Cancel
+     while one runs, nothing once it ended (success moves on; a failure has
+     its own Retry and log actions). */
+  function syncInstallActions() {
+    var p = state.provisioning;
+    var start = document.getElementById("startSetupBtn");
+    if (start) { start.style.display = p.running || p.ready || p.failed ? "none" : ""; }
+    var cancel = document.getElementById("cancelSetupBtn");
+    if (cancel) {
+      cancel.style.display = p.running ? "" : "none";
+      cancel.disabled = !p.running || p.cancelledRun === p.startedAt;
     }
   }
 
@@ -203,6 +224,11 @@
       entry = { id: event.id, state: "pending", message: "", elapsed_ms: 0 };
       state.provisioning.components.push(entry);
     }
+    /* A failed row keeps its cross until a retry starts a new run; a
+       finished row keeps its tick unless a run reports it running again. */
+    if (!state.provisioning.running && entry.state === "failed" &&
+        (event.state === "starting" || event.state === "pending")) { return; }
+    if (entry.state === "ready" && event.state === "pending") { return; }
     var changed = entry.state !== event.state;
     entry.state = event.state;
     entry.message = event.message || "";
@@ -259,8 +285,7 @@
   /* -- provisioning lifecycle ----------------------------------------- */
 
   function setProvisionUi(running) {
-    var cancel = document.getElementById("cancelSetupBtn");
-    if (cancel) { cancel.disabled = !running; }
+    syncInstallActions();
     var reset = document.getElementById("resetStackBtn");
     if (reset) { reset.hidden = running; }
     if (!running) { App.rowTimer.freezeOpen(); }
@@ -269,15 +294,25 @@
     renderHostCheck();
   }
 
-  /* A new run starts from empty rows and clocks; re-rendering the step
-     while a run is in progress keeps them. */
+  /* A first run starts from empty rows and clocks. A retry after a failure
+     keeps the rows that finished (time and tick) and sets the others back
+     to pending; re-rendering the step while a run is in progress keeps them. */
   function beginRun() {
+    var retry = !!state.provisioning.failed && announcedPlan.length > 0;
     state.provisioning.running = true;
     state.provisioning.failed = null;
     state.provisioning.startedAt = Date.now();
-    state.provisioning.components = [];
-    announcedPlan = [];
-    App.rowTimer.reset();
+    if (retry) {
+      var again = [];
+      state.provisioning.components.forEach(function (c) {
+        if (c.state !== "ready") { c.state = "pending"; c.message = ""; again.push(c.id); }
+      });
+      App.rowTimer.retry(again);
+    } else {
+      state.provisioning.components = [];
+      announcedPlan = [];
+      App.rowTimer.reset();
+    }
     setProvisionUi(true);
   }
 
@@ -290,8 +325,6 @@
     renderLog();
     markAllReady();
     setProvisionUi(false);
-    var start = document.getElementById("startSetupBtn");
-    if (start) { start.textContent = t("install.complete"); start.disabled = true; }
     updateInstallProgress();
     renderHostCheck();
     renderFooter();
@@ -361,7 +394,11 @@
           return B.resetStack(token);
         }).then(function () {
           state.provisioning.ready = false;
+          state.provisioning.failed = null;
+          state.provisioning.failedId = "";
           state.provisioning.components = [];
+          announcedPlan = [];
+          App.rowTimer.reset();
           render(); say(t("nav.reset-done"));
         }).catch(function (err) {
           say(String(err));
