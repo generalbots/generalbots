@@ -269,14 +269,30 @@
 
 /* == Upload progress toast =========================================== */
 .gb-drv-upload-toast {
-    position: fixed; bottom: 24px; right: 24px; z-index: var(--z-fixed);
+    position: fixed; bottom: 24px; right: 24px; z-index: var(--z-fixed, 300);
     background: var(--id-surface-solid); border: 1px solid var(--id-line);
     border-radius: var(--id-radius-card); box-shadow: var(--id-shadow-float);
     padding: var(--id-space-3) var(--id-space-4); min-width: 260px;
 }
 .gb-drv-upload-label {
     font-size: var(--id-text-sm); color: var(--id-ink); margin-bottom: var(--id-space-2);
+    max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+.gb-drv-upload-toast.is-error { max-width: min(420px, calc(100vw - 48px)); padding-right: 40px; }
+.gb-drv-upload-toast.is-error .gb-drv-upload-label { color: var(--id-danger-text); font-weight: 600; white-space: normal; }
+.gb-drv-upload-toast.is-error .gb-drv-upload-bar-bg { display: none; }
+.gb-drv-upload-reason {
+    font-size: var(--id-text-sm); color: var(--id-text); margin-bottom: var(--id-space-2);
+    white-space: normal; overflow-wrap: anywhere;
+}
+.gb-drv-upload-reason-name { display: block; font-weight: 600; color: var(--id-ink); }
+.gb-drv-upload-close {
+    position: absolute; top: 8px; right: 8px; width: 28px; height: 28px;
+    border: 0; border-radius: var(--id-radius-sm); background: transparent;
+    color: var(--id-muted); font-size: 18px; line-height: 1; cursor: pointer;
+}
+.gb-drv-upload-close:hover { background: var(--id-line); color: var(--id-ink); }
+.gb-drv-upload-close:focus-visible { outline: 2px solid var(--id-accent); outline-offset: 1px; }
 .gb-drv-upload-bar-bg {
     height: 4px; background: var(--id-line); border-radius: 2px; overflow: hidden;
 }

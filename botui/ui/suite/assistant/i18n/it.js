@@ -201,6 +201,8 @@ window.GBAssistantLocales["it"] = {
     "drive.replaced":          "Sostituito",
     "drive.file-too-big":      "File troppo grande per Drive (limite 75 MB per file): ",
     "drive.upload-failed":     "Fallito",
+    "drive.upload-failed-title": "Caricamento non completato",
+    "drive.close":             "Chiudi",
     "drive.search-empty":      "Nessun risultato trovato",
     "drive.folder-prompt":     "Nome della nuova cartella:",
     "drive.folder-error":      "Impossibile creare la cartella",

@@ -201,6 +201,8 @@ window.GBAssistantLocales["ru"] = {
     "drive.replaced":          "заменить",
     "drive.file-too-big":      "Файл слишком большой для Драйва (75 МБ на предел файла): ",
     "drive.upload-failed":     "Ошибка",
+    "drive.upload-failed-title": "Загрузка не завершена",
+    "drive.close":             "Закрыть",
     "drive.search-empty":      "Результаты отсутствуют",
     "drive.folder-prompt":     "Новое имя папки:",
     "drive.folder-error":      "Не удалось создать папку",

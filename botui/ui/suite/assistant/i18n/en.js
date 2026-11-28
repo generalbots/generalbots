@@ -208,6 +208,8 @@ window.GBAssistantLocales["en"] = {
     "drive.replaced":          "replaced",
     "drive.file-too-big":      "File too large for Drive (75 MB per file limit): ",
     "drive.upload-failed":     "failed",
+    "drive.upload-failed-title": "Upload not completed",
+    "drive.close":             "Close",
     "drive.search-empty":      "No results found",
     "drive.folder-prompt":     "New folder name:",
     "drive.folder-error":      "Failed to create folder",

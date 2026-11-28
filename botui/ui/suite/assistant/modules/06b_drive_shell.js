@@ -269,10 +269,7 @@
                     updateUploadToast(toast, files.length, files.length, doneMsg);
                     setTimeout(function () { removeToast(); }, replaced > 0 ? 4000 : 2000);
                 } else {
-                    var label = failures.slice(0, 2).join("; ");
-                    updateUploadToast(toast, done, files.length,
-                        failed + " " + A.t("drive.upload-failed", "falha(s)") + ": " + label);
-                    setTimeout(function () { removeToast(); }, 6000);
+                    showUploadFailures(toast, done, files.length, failures);
                 }
                 if (D.inboxMode) {
                     var filesTab = document.querySelector('#gbDrvTabs [data-tab="files"]');
@@ -298,7 +295,7 @@
                 next(i + 1);
             }).catch(function (e) {
                 failed++;
-                failures.push(files[i].name + " (" + (e.message || "error") + ")");
+                failures.push({ name: files[i].name, reason: (e && e.message) || A.t("drive.upload-failed", "falha(s)") });
                 next(i + 1);
             });
         })(0);
@@ -318,8 +315,31 @@
         var label = document.getElementById("gbDrvUploadLabel");
         var detail = document.getElementById("gbDrvUploadDetail");
         if (bar) bar.style.width = pct + "%";
-        if (label) label.textContent = text ? (text.length > 35 ? text.substring(0, 32) + "..." : text) : "";
+        if (label) label.textContent = text || "";
         if (detail) detail.textContent = current + " / " + total;
+    }
+    /* A failed upload keeps the server's whole reason (already in the page
+       language when the server localizes it), one line per file, wrapped. */
+    function showUploadFailures(toast, done, total, failures) {
+        if (!toast) return;
+        updateUploadToast(toast, done, total, A.t("drive.upload-failed-title", "Envio não concluído"));
+        toast.classList.add("is-error");
+        toast.setAttribute("role", "alert");
+        var shown = failures.slice(0, 3).map(function (f) {
+            return '<div class="gb-drv-upload-reason"><span class="gb-drv-upload-reason-name">' + esc(f.name) +
+                '</span>' + esc(f.reason) + '</div>';
+        }).join("");
+        if (failures.length > 3) {
+            shown += '<div class="gb-drv-upload-reason">+' + (failures.length - 3) + '</div>';
+        }
+        var label = document.getElementById("gbDrvUploadLabel");
+        if (label) label.insertAdjacentHTML("afterend", shown);
+        var close = document.createElement("button");
+        close.type = "button"; close.className = "gb-drv-upload-close";
+        close.setAttribute("aria-label", A.t("drive.close", "Fechar")); close.textContent = "×";
+        close.addEventListener("click", removeToast);
+        toast.appendChild(close);
+        setTimeout(function () { if (toast.isConnected) toast.remove(); }, 15000);
     }
     function removeToast() { var el = document.getElementById("gbDrvUploadToast"); if (el) el.remove(); }
 

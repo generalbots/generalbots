@@ -208,6 +208,8 @@ window.GBAssistantLocales["pt-BR"] = {
     "drive.replaced":          "substituído(s)",
     "drive.file-too-big":      "Arquivo grande demais para o Drive (limite de 75 MB por arquivo): ",
     "drive.upload-failed":     "falha(s)",
+    "drive.upload-failed-title": "Envio não concluído",
+    "drive.close":             "Fechar",
     "drive.search-empty":      "Nenhum resultado encontrado",
     "drive.folder-prompt":     "Nome da nova pasta:",
     "drive.folder-error":      "Erro ao criar pasta",
