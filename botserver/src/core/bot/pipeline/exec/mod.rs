@@ -247,7 +247,7 @@ pub async fn process_message_internal(
         .get("file")
         .and_then(|f| f.get("content_base64"))
         .and_then(|b| b.as_str())
-        .map(|b| b.len() * 3 / 4)
+        .map(|b| (b.len() * 3 / 4).saturating_sub(b.bytes().rev().take_while(|&c| c == b'=').count()))
         .unwrap_or(0);
     let attach_activity = if has_file {
         let summary = super::activity::attachment_summary(&file_name, "", file_size, 0, false, "");
