@@ -83,6 +83,12 @@ window.GBAssistant = window.GBAssistant || {};
         return dict[key] || fallback || key;
     };
 
+    /* Modules shared with the suite translate through window.gbT; on this page it reads the
+       assistant's own dictionaries, in the page language, with the caller's English fallback. */
+    if (typeof window.gbT !== "function") {
+        window.gbT = function (key, fallback) { return A.t(key, fallback); };
+    }
+
     /* ---- Helpers ---- */
 
     A.getToken = function () {
