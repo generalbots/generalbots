@@ -1,44 +1,35 @@
 #!/usr/bin/env bash
-# Rebuild the BotBook and verify it produces a usable search index.
+# Rebuild the BotBook with MkDocs and verify the published artifacts.
 #
-# botbook/book/ is generated (and git-ignored) on purpose: the published site
-# is built from botbook/src, not from a checked-in HTML tree. A source edit
-# that breaks a page or a SUMMARY link is therefore invisible until a build
-# runs, and the search index (searchindex-<hash>.js) is the part most likely to
-# go stale or missing.
-#
-# Usage: scripts/botbook_reindex.sh
-# Exit codes: 0 the book and search index were produced; 1 the build failed,
-# the index is missing/empty, or SUMMARY.md points at a page that does not
-# exist.
+# botbook/book/ is generated (and git-ignored) on purpose: the published site is
+# built from botbook/src, not from a checked-in HTML tree. This script proves
+# that the build works, the search index exists, the generated nav is current
+# and every SUMMARY.md link resolves to a real page.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-if ! command -v mdbook >/dev/null 2>&1; then
-    echo "botbook_reindex: mdbook is not installed (need 0.5.x)" >&2
+if ! command -v mkdocs >/dev/null 2>&1; then
+    echo "botbook_reindex: mkdocs is not installed (need MkDocs 1.6 + Material)" >&2
     exit 1
 fi
 
-mdbook build botbook
+python3 scripts/gen_source_catalogs.py --check
+(cd botbook && NO_MKDOCS_2_WARNING=1 DISABLE_MKDOCS_2_WARNING=true mkdocs build)
 
-index="$(find botbook/book -maxdepth 1 -name 'searchindex-*.js' -print -quit)"
-if [ -z "$index" ]; then
-    echo "botbook_reindex: mdbook produced no search index" >&2
+index="botbook/book/search/search_index.json"
+if [ ! -s "$index" ]; then
+    echo "botbook_reindex: MkDocs produced no search index" >&2
     exit 1
 fi
-
 size="$(wc -c < "$index" | tr -d ' ')"
 if [ "$size" -lt 1000 ]; then
     echo "botbook_reindex: search index is suspiciously small ($size bytes)" >&2
     exit 1
 fi
-
 echo "botbook_reindex: $index ($size bytes)"
 
-# SUMMARY.md is the only TOC mdBook renders; a link to a missing file drops the
-# page from the sidebar and 404s for readers.
 python3 - <<'PY'
 import re
 import sys
@@ -56,4 +47,4 @@ if missing:
 print(f"botbook_reindex: {len(links)} SUMMARY links resolve")
 PY
 
-echo "botbook_reindex: book and search index rebuilt"
+echo "botbook_reindex: $(find botbook/book -name '*.html' | wc -l) HTML pages built"

@@ -11,7 +11,7 @@ name: CI
 #   migrations    fresh PostgreSQL run of every embedded migration
 #   quality       structural adequacy baseline (AGENTS.md rules)
 #   boteval       guards, unit tests and the evaluation gate (CI-only)
-#   botbook       mdBook rebuild and SUMMARY.md link check
+#   botbook       MkDocs rebuild, generated references and SUMMARY.md link check
 #   product       always/preview/hidden classification and feature coverage
 #   readiness     one gate over every readiness check + the BotBook scoreboard (#2121)
 #   windows       Windows agent/VM adapter compile check
@@ -107,7 +107,7 @@ jobs:
           else
             echo "migrations=false" >> "$GITHUB_OUTPUT"
           fi
-          if printf '%s\n' "$CHANGED" | grep -qE '^(botbook/|scripts/(gen_catalogs|botbook_guards)\.py$|.*\.md$)'; then
+          if printf '%s\n' "$CHANGED" | grep -qE '^(botbook/|scripts/(gen_catalogs|gen_api_reference|gen_api_ws|gen_basic_reference|gen_schema_reference|gen_source_catalogs|botbook_guards|botbook_reindex|build_botbook_docs)\.(py|sh)$|.*\.md$)'; then
             echo "botbook=true" >> "$GITHUB_OUTPUT"
           else
             echo "botbook=false" >> "$GITHUB_OUTPUT"
@@ -896,20 +896,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - name: Install mdBook
-        # #2001 self-review: this was the only unverified download left in CI.
-        # Pin the digest so a compromised upstream asset (or a changed tag
-        # target) fails closed instead of installing as root.
+        with:
+          fetch-depth: 0 # gen_source_catalogs.py reads release tags for What shipped
+      - name: Install MkDocs
         run: |
           set -euo pipefail
-          curl -fsSL --retry 3 \
-            -o /tmp/mdbook.tar.gz \
-            https://github.com/rust-lang/mdBook/releases/download/v0.5.4/mdbook-v0.5.4-x86_64-unknown-linux-gnu.tar.gz
-          echo "3f28de05dafca9d0f2eab99c662116b0e37b89b1d96a08f8f430b9eeae958cd7  /tmp/mdbook.tar.gz" \
-            | sha256sum -c -
-          tar -xzf /tmp/mdbook.tar.gz -C /tmp
-          install -m 0755 /tmp/mdbook /usr/local/bin/mdbook
-          mdbook --version
+          python3 -m venv /tmp/botbook-docs-venv
+          /tmp/botbook-docs-venv/bin/pip install \
+            mkdocs==1.6.1 mkdocs-material==9.8.2 mkdocs-literate-nav==0.6.3
+          echo "/tmp/botbook-docs-venv/bin" >> "$GITHUB_PATH"
+          mkdocs --version
       - name: BotBook guards (#2082)
         # SUMMARY/link/version/port guards. Pre-existing debt is recorded in
         # botbook/guards-allowlist.txt, which may only shrink.
@@ -917,13 +913,15 @@ jobs:
           set -euo pipefail
           python3 scripts/botbook_guards.py --check
           python3 scripts/botbook_guards.py --self-test
-      - name: Generated catalogs (#2080)
-        # Connector and skills catalogs are derived from code; a stale page
-        # means someone edited the generated output instead of the source.
+      - name: Generated references (#2080, #2984)
+        # Every reference page is derived from code; a stale page means someone
+        # edited the generated output instead of the source.
         run: |
           set -euo pipefail
-          python3 scripts/gen_catalogs.py --report
-          python3 scripts/gen_catalogs.py --check
+          for gen in gen_api_reference gen_api_ws gen_basic_reference \
+                     gen_catalogs gen_schema_reference gen_source_catalogs; do
+            python3 "scripts/$gen.py" --check
+          done
       - name: Rebuild and compare
         run: |
           set -euo pipefail
