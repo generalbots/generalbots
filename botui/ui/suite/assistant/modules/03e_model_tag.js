@@ -87,6 +87,9 @@
         var used = model || A.turnModelNow();
         A.rememberAnswerModel(content, used);
         A.attachModelTag(el, used);
+        /* The engine not read yet: read it now, so the free-model reminder
+           and the status line follow the engine that just answered. */
+        if (!A.engineMode && !A._engineSync && typeof A.syncEngine === "function") { A.syncEngine(); }
     };
 
     /** Last direct assistant child of the live message list. */

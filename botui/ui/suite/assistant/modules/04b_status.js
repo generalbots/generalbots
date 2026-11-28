@@ -31,7 +31,14 @@
     }
 
     /* ---- Status line ---- */
+    /* The free-model reminder follows the engine, whatever the status line
+       can say about the destination. */
     A.renderStatus = function () {
+        renderStatusLine();
+        renderFreeReminder();
+    };
+
+    function renderStatusLine() {
         var textEl = document.getElementById("gbStatusText");
         if (!textEl) { return; }
 
@@ -67,6 +74,9 @@
             label = short + " \xb7 " + acctName;
         } else {
             var dest = A.destination;
+            if ((!dest || !dest.scope || dest.scope === "unknown") && A.engineMode === "free") {
+                dest = { scope: "external" };
+            }
             if (!dest || !dest.scope || dest.scope === "unknown") {
                 textEl.textContent = short;
                 textEl.className = "gb-status-text";
@@ -103,10 +113,7 @@
             textEl.textContent = label;
             textEl.className = "gb-status-text";
         }
-
-        /* Short free-model reminder near the composer when the free model is active. */
-        renderFreeReminder();
-    };
+    }
 
     function renderFreeReminder() {
         var D = A._freeDisclosure;

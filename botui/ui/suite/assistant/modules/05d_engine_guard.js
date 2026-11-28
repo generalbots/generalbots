@@ -37,7 +37,11 @@ if (typeof load === "function") {
 /* Reads the runtime's engine; `A._engineSync` is the read in flight, so an
    answer that ends meanwhile is named again once it lands (03e). */
 A.syncEngine = function () {
-    var run = reconcile().then(function () { if (A._engineSync === run) { A._engineSync = null; } });
+    var run = reconcile().then(function () {
+        if (A._engineSync === run) { A._engineSync = null; }
+        /* The engine decides the status line and the free-model reminder. */
+        if (typeof A.renderStatus === "function") { A.renderStatus(); }
+    });
     A._engineSync = run;
     return run;
 };
