@@ -287,13 +287,13 @@ impl PackageManager {
         // #2498 — only the scoped sidecar token is persisted, never the root
         // token from init.json. `.env` is rewritten with a VAULT_TOKEN_FILE
         // reference; no token value is written to the user-owned stack.
-        secrets::load_token_into_env()?;
-        let scoped_token = secrets::read(secrets::VAULT_TOKEN_SECRET);
+        // The stored token is checked, renewed, or re-issued when it lapsed.
+        let scoped_token =
+            secrets::recover_scoped_token(&vault_addr, &ca_cert, &vault_bin, &unseal_keys);
         secrets::write_env_file(&std::path::PathBuf::from(".env"), &vault_addr, Some(&ca_cert))?;
 
         match scoped_token {
             Ok(token) => {
-                secrets::renew_scoped_token(&vault_addr, &token, &ca_cert, &vault_bin);
                 self.ensure_kv_mount(&vault_addr, &token, &ca_cert, &vault_bin);
                 if self.vault_seeds_exist(&vault_addr, &token, &ca_cert, &vault_bin)? {
                     info!("Vault credentials already exist, skipping seed on recovery");
@@ -303,7 +303,7 @@ impl PackageManager {
                     }
                 }
             }
-            Err(_) => warn!("No scoped Vault token in the credential store — re-run first-run provisioning"),
+            Err(e) => log::debug!("Vault recovery continues without a scoped token: {e}"),
         }
 
         info!("Vault recovery complete");

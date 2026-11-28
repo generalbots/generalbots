@@ -8,7 +8,6 @@
 use super::secret_store;
 use anyhow::{Context, Result};
 use botlib::security::SafeCommand;
-use log::warn;
 use std::path::Path;
 
 pub const SIDECAR_POLICY: &str = "gb-sidecar";
@@ -33,39 +32,23 @@ path "sys/capabilities-self" {
 }
 "#;
 
-/// The root token is discarded after init, so the sidecar token can never be
-/// re-issued: it is periodic (no maximum lifetime) and renewed at each start.
-/// A plain TTL token would stop working for good at the system maximum TTL.
+/// The sidecar token is periodic: it has no maximum lifetime while it is
+/// renewed, and `token_recovery` re-issues it when it lapsed anyway.
 pub const SIDECAR_TOKEN_PERIOD: &str = "768h";
 
-/// Renew the scoped token with itself (`auth/token/renew-self`, granted by the
-/// default policy). A failure is only logged: the token may still be valid.
-pub fn renew_scoped_token(vault_addr: &str, token: &str, ca_cert: &Path, vault_bin: &Path) {
-    let output = vault_command(vault_bin)
-        .and_then(|command| Ok(command.env("VAULT_ADDR", vault_addr)?.env("VAULT_TOKEN", token)?))
-        .and_then(|command| with_tls(command, ca_cert))
-        .and_then(|command| Ok(command.args(&["token", "renew", "-format=json"])?.execute()?));
-    match output {
-        Ok(output) if output.status.success() => log::info!("Scoped Vault token renewed"),
-        Ok(output) => warn!(
-            "Scoped Vault token renewal failed: {}",
-            String::from_utf8_lossy(&output.stderr).trim()
-        ),
-        Err(e) => warn!("Scoped Vault token renewal could not run: {e}"),
-    }
-}
-
-fn vault_command(vault_bin: &Path) -> Result<SafeCommand> {
+pub(super) fn vault_command(vault_bin: &Path) -> Result<SafeCommand> {
     let vault_bin_str = vault_bin.to_string_lossy().to_string();
     SafeCommand::new(&vault_bin_str).context("Cannot run vault")
 }
 
-fn with_tls(mut command: SafeCommand, ca_cert: &Path) -> Result<SafeCommand> {
+/// TLS settings go into the environment: the CLI refuses flags placed before
+/// its subcommand, which is where a builder-added flag would land.
+pub(super) fn with_tls(mut command: SafeCommand, ca_cert: &Path) -> Result<SafeCommand> {
     if ca_cert.is_file() {
         command = command.env("VAULT_CACERT", &ca_cert.to_string_lossy())?;
     } else {
-        warn!("Vault CA certificate not found; TLS verification skipped");
-        command = command.trusted_arg("-tls-skip-verify")?;
+        log::debug!("Vault CA certificate not found; TLS verification skipped");
+        command = command.env("VAULT_SKIP_VERIFY", "true")?;
     }
     Ok(command)
 }
@@ -92,7 +75,8 @@ pub fn create_scoped_token(
         ca_cert,
     )?;
     let result = command
-        .args(&["policy", "write", SIDECAR_POLICY, &policy_arg])?
+        .args(&["policy", "write", SIDECAR_POLICY])?
+        .trusted_arg(&policy_arg)?
         .execute();
     if let Err(e) = std::fs::remove_file(&policy_path) {
         log::warn!("Failed to remove temporary policy file {}: {e}", policy_path.display());

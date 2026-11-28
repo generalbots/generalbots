@@ -17,9 +17,8 @@ use botlib::security::SafeCommand;
 use log::{info, warn};
 use std::path::{Path, PathBuf};
 
-pub use super::vault_policy::{
-    create_scoped_token, renew_scoped_token, SIDECAR_POLICY, SIDECAR_POLICY_TEXT,
-};
+pub use super::token_recovery::recover_scoped_token;
+pub use super::vault_policy::{create_scoped_token, SIDECAR_POLICY, SIDECAR_POLICY_TEXT};
 
 /// Credential directory created by `desktop/os` (root:gbsvc 0750).
 pub const CREDENTIAL_DIR: &str = "/etc/generalbots/credentials";

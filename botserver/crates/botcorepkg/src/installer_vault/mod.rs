@@ -14,6 +14,8 @@ mod initialize_local;
 mod kv_mount;
 mod seed_defaults;
 mod seeds_exist;
+mod token_recovery;
+mod token_recovery_cli;
 mod unseal;
 mod vault_policy;
 

@@ -96,10 +96,9 @@ pub fn recover_existing_vault(base_path: &std::path::Path) -> Result<()> {
     }
 
     // Only a scoped token is persisted. Never read `root_token` from init.json.
-    secrets::load_token_into_env()?;
-    match secrets::read(secrets::VAULT_TOKEN_SECRET) {
+    // The stored token is checked, renewed, or re-issued when it lapsed.
+    match secrets::recover_scoped_token(&vault_addr, &ca_cert, &vault_bin, &keys) {
         Ok(token) => {
-            secrets::renew_scoped_token(&vault_addr, &token, &ca_cert, &vault_bin);
             ensure_kv_mount(&vault_addr, &token, &ca_cert, &vault_bin)?;
             if vault_seeds_exist(&vault_addr, &token, &ca_cert, &vault_bin)? {
                 info!("Vault credentials already exist, skipping seed on recovery");
@@ -108,7 +107,7 @@ pub fn recover_existing_vault(base_path: &std::path::Path) -> Result<()> {
                 log::error!("Vault seeding during recovery failed: {error}");
             }
         }
-        Err(_) => warn!("No scoped Vault token found — re-run first-run provisioning"),
+        Err(e) => log::debug!("Vault recovery continues without a scoped token: {e}"),
     }
 
     secrets::write_env_file(&PathBuf::from(".env"), &vault_addr, Some(&ca_cert))?;
