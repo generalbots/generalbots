@@ -17,8 +17,9 @@ use tauri::{Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 /// on the computer, so there it is an ordinary window.
 const TOPMOST: bool = !cfg!(feature = "gblite");
 
-/// Splash dimensions: the edition uses a wide animated hero (776x443);
-/// the standard build keeps the square logo (420x420).
+/// Splash dimensions: the edition shows the wide prism picture behind a top
+/// strip and a legal footer (776x443); the standard build keeps the square
+/// logo (420x420).
 const SPLASH_WIDTH: f64 = if cfg!(feature = "gblite") { 776.0 } else { 420.0 };
 const SPLASH_HEIGHT: f64 = if cfg!(feature = "gblite") { 443.0 } else { 420.0 };
 

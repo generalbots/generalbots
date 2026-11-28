@@ -5,109 +5,158 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="color-scheme" content="dark"/>
 <title>General Bots</title>
+<link rel="stylesheet" href="suite/identity/lockup.css"/>
 <style>
-/* Splash is a deliberate dark identity exception (DESIGN-SYSTEM.md §3):
-   the #0a0a0e ground, white-alpha overlays and rainbow progress gradient
-   are intentionally kept. Typography, radii and motion use identity tokens. */
-@import url("suite/identity/tokens.css");
-@font-face{font-family:'Fira Sans';font-weight:500;font-style:normal;font-display:swap;
+/* Splash is a deliberate dark identity exception (DESIGN-SYSTEM.md §3).
+   One static picture behind the window, a top strip and a legal footer with
+   hairline strokes, and the brand and progress over the picture's lower part.
+   Text uses Fira Sans; section labels use Geist Mono. */
+@import url("suite/css/identity-tokens.css");
+@font-face{font-family:'Fira Sans';font-weight:400;font-style:normal;font-display:block;
+  src:url("suite/identity/fonts/fira-sans-latin-400-normal.woff2") format("woff2")}
+@font-face{font-family:'Fira Sans';font-weight:500;font-style:normal;font-display:block;
   src:url("suite/identity/fonts/fira-sans-latin-500-normal.woff2") format("woff2")}
+@font-face{font-family:'Geist Mono';font-style:normal;font-weight:100 900;font-display:block;
+  src:url("suite/identity/fonts/geist-mono-latin-wght-normal.woff2") format("woff2")}
+
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0e;
+/* The window is transparent and frameless: only the rounded card paints. */
+html,body{width:100%;height:100%;overflow:hidden;background:transparent;
+  -webkit-font-smoothing:antialiased;user-select:none;-webkit-user-select:none}
+/* Preview in a browser: the splash at the window's real size (776x443),
+   centred on whole pixels so the text stays crisp. */
+html.preview{display:block;background:#3a3a40}
+html.preview body{width:776px;height:443px;
+  margin:max(0px,round(down,(100vh - 443px) / 2,1px)) 0 0 max(0px,round(down,(100vw - 776px) / 2,1px))}
+
+.card{position:relative;width:100%;height:100%;
+  background:#0a0a0a;border-radius:10px;overflow:hidden;color:#ededed;
   font-family:var(--id-font-heading,'Fira Sans','Segoe UI',system-ui,sans-serif)}
-body{display:flex;flex-direction:column;user-select:none;-webkit-user-select:none;
-  border-radius:var(--id-radius-card,20px);overflow:hidden;position:relative}
-.bg{position:absolute;inset:0;z-index:0;
-  background:url("splash/splash-bg.jpg") center/cover no-repeat}
-/* Gradient overlays only where text sits — top-left corner and bottom strip */
-.grad-top{position:absolute;top:0;left:0;right:50%;height:120px;z-index:1;pointer-events:none;
-  background:linear-gradient(160deg,rgb(0 0 0/.52) 0%,rgb(0 0 0/.28) 50%,transparent 100%)}
-.grad-bottom{position:absolute;bottom:0;left:0;right:0;height:140px;z-index:1;pointer-events:none;
-  background:linear-gradient(to top,rgb(0 0 0/.62) 0%,rgb(0 0 0/.36) 55%,transparent 100%)}
-/* Legal footnotes — top-left */
-.legal{position:absolute;top:16px;left:20px;z-index:10;
-  font-size:9.5px;line-height:1.55;color:rgb(255 255 255/.45);letter-spacing:.01em}
-/* Bottom layout: stacked rows — info row, progress row, bar */
-.bottom{position:absolute;bottom:0;left:0;right:0;z-index:10;
-  padding:0 24px;display:flex;flex-direction:column;gap:0}
-/* Row 1: wordmark / version / slogan (left) + site (right) */
-.bottom-info{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;
-  padding-bottom:6px}
-.bottom-left{display:flex;flex-direction:column;gap:2px;max-width:60%}
-.wordmark{font-family:var(--id-font-heading,'Fira Sans',sans-serif);font-weight:500;font-size:var(--id-text-2xl,20px);
-  color:rgb(255 255 255/.72);letter-spacing:-.02em;line-height:1.3}
-.version{font-size:var(--id-text-xs,11px);color:rgb(255 255 255/.38);min-height:1em}
-.slogan{font-size:var(--id-text-xs,11px);font-style:italic;color:rgb(255 255 255/.42);line-height:1.4}
-.bottom-right{font-size:var(--id-text-xs,10px);color:rgb(255 255 255/.35);text-align:right;white-space:nowrap}
-/* Row 2: spinner + status (left) + site (right) */
-.progress-row{display:flex;align-items:center;gap:8px;padding-bottom:8px}
-.spinner{width:14px;height:14px;border:2px solid rgb(255 255 255/.18);
-  border-top-color:rgb(255 255 255/.7);border-radius:50%;flex-shrink:0;
-  animation:spin .8s linear infinite;
-  filter:drop-shadow(0 0 3px rgb(255 255 255/.25))}
-@keyframes spin{to{transform:rotate(360deg)}}
-.status{font-size:var(--id-text-xs,11px);color:rgb(255 255 255/.50);flex:1;overflow:hidden;
-  text-overflow:ellipsis;white-space:nowrap}
-/* Row 3: rainbow progress bar. The fill and its glow share one gradient laid
-   out over the full track width, so the colours are revealed as the bar
-   grows instead of being squeezed. The glow is a blurred copy of the fill;
-   the page clips it (body overflow), so it never leaves the splash card. */
-.bar-wrap{position:relative;height:9px;margin-bottom:16px;border-radius:var(--id-radius-pill,999px);
-  background:rgb(255 255 255/.13);box-shadow:inset 0 0 0 1px rgb(255 255 255/.07);
-  --track:calc(100vw - 48px);
-  --rainbow:linear-gradient(90deg,#ff3b6b 0%,#ff8a1f 16%,#ffd60a 33%,#3ddc68 50%,#22c8f0 66%,#5a6bff 83%,#c04dff 100%)}
-.bar,.bar-glow{position:absolute;left:0;top:0;height:100%;width:0%;border-radius:var(--id-radius-pill,999px);
-  background-image:var(--rainbow);background-size:var(--track) 100%;background-repeat:no-repeat;
-  transition:width 600ms var(--id-ease,cubic-bezier(.22,1,.36,1))}
-.bar-glow{filter:blur(9px) saturate(1.6);opacity:.95;transform:scaleY(1.9);pointer-events:none}
-.bar{overflow:hidden;box-shadow:inset 0 1px 0 rgb(255 255 255/.35)}
-/* Moving highlight along the filled part */
-.bar::after{content:"";position:absolute;inset:0;
-  background:linear-gradient(100deg,transparent 0%,transparent 38%,rgb(255 255 255/.6) 50%,transparent 62%,transparent 100%);
-  background-size:var(--track) 100%;background-repeat:no-repeat;
-  animation:shine 2.2s linear infinite}
-@keyframes shine{from{background-position:calc(var(--track) * -1) 0}to{background-position:var(--track) 0}}
+.mono{font-family:'Geist Mono',ui-monospace,Consolas,monospace;font-weight:600}
+.label{flex:none;white-space:nowrap;font-size:10.5px;letter-spacing:.06em;color:#8a8a8a}
+.grow{flex:1;min-width:0}
+
+/* The picture: full bleed, its centre 24px below the window's centre. It is
+   48px taller than the window so its top edge stays at the window's top and
+   the rainbow reaches the top corner. */
+.bg{position:absolute;inset:0;z-index:0;overflow:hidden;background:#090909}
+.bg img{position:absolute;top:0;left:50%;height:calc(100% + 48px);width:auto;
+  transform:translateX(-50%);display:block}
+
+/* Top-left corner: licence label, legal text and credit, in a column
+   narrow enough to stay clear of the gear. */
+.corner{position:absolute;z-index:1;top:17px;left:17px;display:flex;flex-direction:column;
+  align-items:flex-start;gap:6px}
+.legal{width:262px;font-size:10px;line-height:1.45;color:#8a8a8a;text-wrap:pretty}
+
+/* Bottom row over a soft dark gradient: brand at the left (lockup line,
+   tagline), status in a 200px right column (step line; bar, counter,
+   percentage). Bottom margin equals the 17px side margin. */
+.info{position:absolute;z-index:1;left:0;right:0;bottom:0;
+  display:grid;grid-template-columns:minmax(0,1fr) 200px;column-gap:24px;
+  padding:28px 17px 17px;
+  background:linear-gradient(to bottom,rgb(10 10 10/0) 0%,rgb(10 10 10/.55) 38%,rgb(10 10 10/.84) 100%)}
+.rows{display:grid;grid-template-rows:24px 16px;row-gap:8px;align-items:center;min-width:0}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.brand .id-lockup{--lockup-h:20px}
+.divider{width:1px;height:16px;flex:none;background:rgb(255 255 255/.3)}
+.version{color:#cfcfcf}
+.slogan{font-size:13px;line-height:16px;font-weight:500;color:#ededed;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;min-width:0}
+
+.status-area{position:relative;min-width:0}
+.bar-row{display:flex;align-items:center;gap:10px;min-width:0}
+.bar-row .track{flex:1;min-width:0}
+.progress .current{align-self:end;margin-bottom:-9px}
+.current{flex:1;min-width:0;font-size:12.5px;line-height:16px;color:#dcdcdc;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.count{flex:none;font-size:11px;color:#a1a1a1}
+.pct{flex:none;min-width:30px;text-align:right;font-size:11px;color:#ededed}
+.track{height:4px;background:rgb(255 255 255/.16);border-radius:2px;overflow:hidden}
+.fill{width:0%;height:100%;background:#ffffff;border-radius:2px;transition:width .12s linear}
+
+/* Failure state: replaces the step line and bar, widened leftward to 304px;
+   anchored to the bar's row and free to grow upward into the gradient. */
+.fail{display:none;position:absolute;right:0;bottom:0;width:304px;flex-direction:column;gap:6px}
+body.failed .fail{display:flex}
+body.failed .progress{visibility:hidden}
+.fail-msg{font-size:12.5px;line-height:15px;color:#ededed;text-wrap:pretty;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.fail-row{display:flex;align-items:center;gap:10px;min-width:0}
+.fail-log{flex:1;display:flex;gap:6px;font-size:10px;line-height:12px;color:#a1a1a1;min-width:0}
+.fail-log-label{flex:none;color:#7a7a7a}
+.fail-path{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  user-select:text;-webkit-user-select:text}
+.fail-actions{flex:none;display:flex;gap:8px}
+
+.btn{height:26px;padding:0 12px;border:1px solid rgb(255 255 255/.3);border-radius:4px;background:rgb(10 10 10/.5);
+  color:#ededed;font-family:inherit;font-size:12px;cursor:pointer}
+.btn.primary{background:#ededed;border-color:#ededed;color:#0a0a0a}
+.btn:focus-visible{outline:1px solid #ededed;outline-offset:2px}
+.btn:disabled{opacity:.4;cursor:default}
+
 @media(prefers-reduced-motion:reduce){
-  .spinner{animation:none;border-top-color:rgb(255 255 255/.35)}
-  .bar,.bar-glow{transition:none}
-  .bar::after{animation:none;display:none}
+  .fill{transition:none}
 }
 </style>
 </head>
 <body>
-<div class="bg" aria-hidden="true"></div>
-<div class="grad-top" aria-hidden="true"></div>
-<div class="grad-bottom" aria-hidden="true"></div>
+<div class="card">
+  <div class="bg" aria-hidden="true">
+    <img id="bgImage" src="suite/identity/splash/splash-gear-v3.jpg" alt=""/>
+  </div>
+  <div class="corner">
+    <span class="label mono" id="license"></span>
+    <span class="legal" id="legalText"></span>
+  </div>
 
-<div class="legal" id="legalText"></div>
-
-<div class="bottom">
-  <div class="bottom-info">
-    <div class="bottom-left">
-      <div class="wordmark">General Bots</div>
-      <div class="version" id="splashVersion"></div>
-      <div class="slogan" id="sloganText"></div>
+   <div class="info">
+    <div class="rows">
+      <div class="brand">
+        <span class="id-lockup id-lockup--on-dark" role="img" aria-label="General Bots Lite">
+          <span class="id-lockup-mark" aria-hidden="true"></span>
+          <span class="id-lockup-tag" aria-hidden="true">LITE</span>
+        </span>
+        <span class="divider" aria-hidden="true"></span>
+        <span class="label mono version" id="splashVersion"></span>
+      </div>
+      <span class="slogan" id="sloganText"></span>
     </div>
-    <div class="bottom-right">www.pragmatismo.com.br</div>
-  </div>
-  <div class="progress-row">
-    <div class="spinner" id="splashSpinner" aria-hidden="true"></div>
-    <div class="status" id="splashStatus" role="status" aria-live="polite" aria-atomic="true"></div>
-  </div>
-  <div class="bar-wrap" role="progressbar" id="splashProgress"
-       aria-label="Startup progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-    <div class="bar-glow" id="splashBarGlow" aria-hidden="true"></div>
-    <div class="bar" id="splashBar"></div>
-  </div>
+    <div class="status-area">
+      <div class="progress rows">
+        <span class="current" id="splashStatus" role="status" aria-live="polite"
+              aria-atomic="true"></span>
+        <div class="bar-row">
+          <div class="track" role="progressbar" id="splashProgress" aria-label="Startup progress"
+               aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <div class="fill" id="splashBar"></div>
+          </div>
+          <span class="count mono" id="stepCount"></span>
+          <span class="pct mono" id="splashPct"></span>
+        </div>
+      </div>
+      <div class="fail">
+        <span class="fail-msg" id="failMsg" role="alert"></span>
+        <div class="fail-row">
+          <span class="fail-log mono">
+            <span class="fail-log-label" id="failLogLabel"></span>
+            <span class="fail-path" id="failLog"></span>
+          </span>
+          <div class="fail-actions">
+            <button type="button" class="btn primary" id="retryBtn"></button>
+            <button type="button" class="btn" id="closeBtn"></button>
+          </div>
+        </div>
+      </div>
+    </div>
+   </div>
 </div>
 
 <script>
 (function(){
 "use strict";
-/* Signal the Rust shell that the page has painted its first frame.
-   The shell polls the URL fragment to start the minimum-duration timer
-   from the moment the user can actually see the splash, not from when
-   the WebView object was created. */
+/* Signal the Rust shell that the page has painted its first frame: the shell
+   polls the URL fragment and counts the minimum display time from here. */
 requestAnimationFrame(function(){
   requestAnimationFrame(function(){
     try{history.replaceState(null,"","#splash-painted")}catch(e){}
@@ -116,130 +165,208 @@ requestAnimationFrame(function(){
 if("serviceWorker"in navigator){navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(reg){reg.unregister()})}).catch(function(){})}
 document.addEventListener("contextmenu",function(e){e.preventDefault()});
 
-var pt=navigator.language&&navigator.language.toLowerCase().startsWith("pt");
+/* Language: query parameter overrides navigator, for preview. */
+var params;
+try{params=new URLSearchParams(location.search)}catch(e){params=null}
+var langParam=params&&params.get("lang");
+var pt=langParam?langParam.toLowerCase().startsWith("pt")
+  :!!(navigator.language&&navigator.language.toLowerCase().startsWith("pt"));
 
-/* Legal footnotes */
-var legalEl=document.getElementById("legalText");
-if(legalEl){
-  if(pt){
-    legalEl.innerHTML="Software de código aberto · Licença MIT<br>"
-      +"© General Bots · Pragmatismo<br>"
-      +"Inclui componentes de terceiros sob suas próprias licenças.<br>"
-      +"Fornecido no estado em que se encontra, sem garantias.<br>"
-      +"Mantis Design System © Sentient LTDA. Feito no Brasil com carinho desmedido.";
-  }else{
-    legalEl.innerHTML="Open source software · MIT License<br>"
-      +"© General Bots · Pragmatismo<br>"
-      +"Includes third-party components under their own licenses.<br>"
-      +"Provided as is, without warranties.<br>"
-      +"Mantis Design System © Sentient LTDA. Made in Brazil with boundless care.";
-  }
-}
+var T=pt?{
+  lang:"pt-BR",
+  license:"C\u00d3DIGO ABERTO \xb7 LICEN\u00c7A MIT",
+  legal:"Copyright General Bots \xb7 Pragmatismo. Inclui componentes de terceiros sob suas pr\u00f3prias licen\u00e7as. "
+    +"Fornecido no estado em que se encontra, sem garantias. "
+    +"Mantis Design System \xb7 Copyright Sentient LTDA. Feito no Brasil com carinho desmedido.",
+  slogan:"Errar \u00e9 humano. Assinado, General Bots.",
+  steps:["Iniciando servi\u00e7os","Abrindo cofre de seguran\u00e7a",
+    "Conectando banco de dados","Montando armazenamento",
+    "Carregando assistente","Preparando \u00e1rea de trabalho"],
+  ready:"Pronto.",
+  of:" de ",
+  progress:"Progresso da inicializa\u00e7\u00e3o",
+  failExited:function(c){return "O servidor do assistente foi encerrado durante a inicializa\u00e7\u00e3o"+(c==null?"":" (c\u00f3digo "+c+")")+"."},
+  failDeadline:function(s){return "O servidor do assistente n\u00e3o respondeu em "+s+" segundos."},
+  failPort:function(p,n){return "A porta "+p+" j\u00e1 est\u00e1 em uso por outro programa"+(n?" ("+n+")":"")+"; feche-o e tente de novo."},
+  failStart:"N\u00e3o foi poss\u00edvel iniciar o servidor do assistente.",
+  failLog:"REGISTRO",retry:"Tentar de novo",close:"Fechar"
+}:{
+  lang:"en",
+  license:"OPEN SOURCE \xb7 MIT LICENSE",
+  legal:"Copyright General Bots \xb7 Pragmatismo. Includes third-party components under their own licenses. "
+    +"Provided as is, without warranties. "
+    +"Mantis Design System \xb7 Copyright Sentient LTDA. Made in Brazil with boundless care.",
+  slogan:"To err is human. Signed, General Bots.",
+  steps:["Starting services","Opening the security vault",
+    "Connecting the database","Mounting storage",
+    "Loading the assistant","Preparing the workspace"],
+  ready:"Ready.",
+  of:" of ",
+  progress:"Startup progress",
+  failExited:function(c){return "The assistant\u2019s server stopped while starting"+(c==null?"":" (exit code "+c+")")+"."},
+  failDeadline:function(s){return "The assistant\u2019s server did not answer within "+s+" seconds."},
+  failPort:function(p,n){return "Port "+p+" is already in use by another program"+(n?" ("+n+")":"")+"; close it and try again."},
+  failStart:"The assistant\u2019s server could not be started.",
+  failLog:"LOG",retry:"Try again",close:"Close"
+};
 
-/* Slogan */
-var sloganEl=document.getElementById("sloganText");
-if(sloganEl) sloganEl.textContent="Errar é humano. Assinado, General Bots";
+var N=T.steps.length;
+/* Timed fallback, used until the shell reports a real step. */
+var STEP_SECONDS=2.5;
+/* Inside the running step the bar creeps from i/N toward (i+1)/N and stops
+   short of the boundary; CREEP_TAU sets how fast it gets there. */
+var CREEP_SPAN=0.96, CREEP_TAU=1.5;
 
-/* Status labels */
-var labels=pt
-  ?["Iniciando serviços...","Abrindo cofre de segurança...","Conectando banco de dados...",
-    "Montando armazenamento...","Carregando assistente...","Preparando área de trabalho..."]
-  :["Starting services...","Opening security vault...","Connecting database...",
-    "Mounting storage...","Loading assistant...","Preparing workspace..."];
-var readyLabel=pt?"Pronto.":"Ready.";
+function $(id){return document.getElementById(id)}
+document.documentElement.lang=T.lang;
 
-/* Progress state */
-var barEl=document.getElementById("splashBar");
-var glowEl=document.getElementById("splashBarGlow");
-var progressEl=document.getElementById("splashProgress");
-var statusEl=document.getElementById("splashStatus");
-var spinnerEl=document.getElementById("splashSpinner");
-var currentValue=0;   /* the displayed value */
-var pushedValue=0;    /* highest value pushed externally */
-var fakeValue=0;      /* the fake curve value */
-var done=false;
-var labelIdx=0;
+$("license").textContent=T.license;
+$("legalText").textContent=T.legal;
+$("sloganText").textContent=T.slogan;
+/* Version: "V" + semver; V1.0.0 until the shell reports the real one. */
+var VERSION_PLACEHOLDER="1.0.0";
+$("splashVersion").textContent="V"+VERSION_PLACEHOLDER;
+$("splashProgress").setAttribute("aria-label",T.progress);
+$("failLogLabel").textContent=T.failLog;
+$("retryBtn").textContent=T.retry;
+$("closeBtn").textContent=T.close;
 
-function setBar(value,text){
-  var next=Math.max(currentValue,Math.min(100,Math.round(value)));
-  currentValue=next;
-  if(barEl)barEl.style.width=next+"%";
-  if(glowEl)glowEl.style.width=next+"%";
-  if(progressEl){progressEl.setAttribute("aria-valuenow",String(next));
-    progressEl.setAttribute("aria-valuetext",next+"%")}
-  if(text&&statusEl)statusEl.textContent=text;
-  if(next>=100){
-    done=true;
-    if(spinnerEl)spinnerEl.style.display="none";
-  }
-}
-
-/* Public API: take max of fake and pushed */
-/* Wording for the keys the shell pushes, in the language of this page. */
+/* Shell labels for progress keys */
 var shellLabels={
-  "splash-starting-services":pt?"Iniciando serviços...":"Starting services...",
-  "splash-loading-interface":pt?"Carregando a interface...":"Loading interface...",
-  "splash-opening-workspace":pt?"Abrindo a área de trabalho...":"Opening workspace...",
-  "splash-ready":readyLabel
-};
-window.gbSplashProgress=function(value,text,key){
-  pushedValue=Math.max(pushedValue,value);
-  var effective=Math.max(fakeValue,pushedValue);
-  setBar(effective,(key&&shellLabels[key])||text||undefined);
+  "splash-starting-services":T.steps[0]+"\u2026",
+  "splash-loading-interface":T.steps[4]+"\u2026",
+  "splash-opening-workspace":T.steps[5]+"\u2026",
+  "splash-ready":T.ready
 };
 
-/* Version API */
-window.gbSplashVersion=function(text){
-  var el=document.getElementById("splashVersion");
-  if(el)el.textContent=text||"";
-};
+/* State */
+var bootAt=performance.now(), active=0, stepAt=bootAt, realSteps=false;
+var ready=false, readyAt=0, floor=0, pct=0, failed=null;
 
-/* Fake progress curve */
-var startTime=Date.now();
-var isPreview=false;
-try{isPreview=new URLSearchParams(location.search).get("preview")==="1"}catch(e){}
+function reset(){
+  bootAt=performance.now();active=0;stepAt=bootAt;realSteps=false;
+  ready=false;readyAt=0;floor=0;pct=0;
+}
 
-function fakeProgress(){
-  if(done)return;
-  var elapsed=(Date.now()-startTime)/1000;
-  /* Fast to ~60% in first 6s, then slow asymptote toward 92% */
-  var f;
-  if(elapsed<6){
-    f=elapsed/6*60; /* linear 0->60 in 6s */
-  }else{
-    /* Logarithmic slowdown: 60 + 32*(1 - e^(-(t-6)/20)) */
-    f=60+32*(1-Math.exp(-(elapsed-6)/20));
+var previewMode=params&&params.get("preview");
+var isPreview=previewMode==="1";
+var isPreviewFail=previewMode==="fail";
+if(isPreview||isPreviewFail)document.documentElement.classList.add("preview");
+
+function ceiling(){return (active+CREEP_SPAN)/N*100}
+
+function tick(){
+  if(failed)return;
+  var now=performance.now();
+  if(!ready&&!realSteps){
+    var next=Math.min(N-1,Math.floor((now-bootAt)/1000/STEP_SECONDS));
+    if(next>active){active=next;stepAt=now}
   }
-  fakeValue=Math.round(f);
-  var effective=Math.max(fakeValue,pushedValue);
-  /* Pick a label */
-  var li=Math.min(Math.floor(elapsed/2.5),labels.length-1);
-  var label=effective>=100?readyLabel:labels[li];
-  setBar(effective,label);
+  if(isPreview){
+    if(!ready&&!realSteps&&active===N-1&&now-stepAt>STEP_SECONDS*1000){
+      ready=true;readyAt=now;
+    }
+    if(ready&&now-readyAt>2400)reset();
+  }
+  if(ready){pct=100}else{
+    var creep=(active+CREEP_SPAN*(1-Math.exp(-(now-stepAt)/1000/CREEP_TAU)))/N*100;
+    pct=Math.max(pct,creep,Math.min(floor,ceiling()));
+  }
+  render();
 }
 
-/* Preview mode: loop through, then reset */
-if(isPreview){
-  setBar(1,labels[0]);
-  var previewTimer=setInterval(function(){
-    if(done){
-      /* Reset after a pause */
-      setTimeout(function(){
-        currentValue=0;fakeValue=0;pushedValue=0;done=false;startTime=Date.now();
-        if(spinnerEl)spinnerEl.style.display="";
-        setBar(0,labels[0]);
-      },2000);
-      return;
-    }
-    fakeProgress();
-  },400);
-}else{
-  setBar(1,labels[0]);
-  var fakeTimer=setInterval(function(){
-    if(done){clearInterval(fakeTimer);return}
-    fakeProgress();
-  },400);
+var shown={};
+function set(key,value,apply){if(shown[key]!==value){shown[key]=value;apply(value)}}
+function render(){
+  var label=ready?T.ready:T.steps[active]+"\u2026";
+  set("status",label,function(v){$("splashStatus").textContent=v});
+  set("count",(ready?N:active+1)+T.of+N,function(v){$("stepCount").textContent=v});
+  set("bar",pct.toFixed(1)+"%",function(v){$("splashBar").style.width=v});
+  set("pct",Math.min(100,Math.floor(pct)),function(v){
+    $("splashPct").textContent=v+"%";
+    $("splashProgress").setAttribute("aria-valuenow",String(v));
+    $("splashProgress").setAttribute("aria-valuetext",v+"%");
+  });
 }
+
+/* Shell API ----------------------------------------------------------- */
+
+/* gbSplashStep(i): step i has just started; earlier steps are done. */
+window.gbSplashStep=function(index){
+  var i=Math.floor(Number(index));
+  if(ready||failed||!isFinite(i))return;
+  realSteps=true;
+  var clamped=Math.max(0,Math.min(N-1,i));
+  if(clamped>active){active=clamped;stepAt=performance.now()}
+  tick();
+};
+
+/* gbSplashProgress(value,text,key): ready keys at 100 finish; others floor. */
+var READY_KEYS={"splash-ready":1,"splash-opening-workspace":1};
+window.gbSplashProgress=function(value,text,key){
+  var v=Number(value);
+  if(failed||!isFinite(v))return;
+  if(v>=100&&READY_KEYS[key]){ready=true;readyAt=performance.now()}
+  else floor=Math.max(floor,Math.min(100,v));
+  if(key&&shellLabels[key])$("splashStatus").textContent=shellLabels[key];
+  else if(text)$("splashStatus").textContent=text;
+  tick();
+};
+
+/* gbSplashVersion("Versão 7.0.37" | "Version 7.0.37") */
+window.gbSplashVersion=function(text){
+  var m=/\d+(?:\.\d+)+[^\s]*/.exec(String(text||""));
+  if(m)$("splashVersion").textContent="V"+m[0];
+};
+
+/* gbSplashFail({kind,code,seconds,port,program,log}): boot failed. */
+function failText(f){
+  if(f.kind==="exited")return T.failExited(f.code);
+  if(f.kind==="deadline")return T.failDeadline(f.seconds);
+  if(f.kind==="port")return T.failPort(f.port,f.program);
+  return T.failStart;
+}
+function buttons(enabled){$("retryBtn").disabled=!enabled;$("closeBtn").disabled=!enabled}
+window.gbSplashFail=function(info){
+  failed=info||{};
+  document.body.classList.add("failed");
+  $("failMsg").textContent=failText(failed);
+  $("failMsg").title=failText(failed);
+  $("failLog").textContent=String(failed.log||"");
+  $("failLog").title=String(failed.log||"");
+  buttons(true);
+  render();
+  $("retryBtn").focus();
+};
+
+/* gbSplashRestart(): back to progress state for another boot. */
+window.gbSplashRestart=function(){
+  failed=null;
+  document.body.classList.remove("failed");
+  try{history.replaceState(null,"","#splash-painted")}catch(e){}
+  reset();tick();
+};
+
+/* Failure choice: stamped into the URL fragment for the shell to poll. */
+function act(action){
+  buttons(false);
+  try{history.replaceState(null,"","#splash-action="+action)}catch(e){}
+}
+$("retryBtn").addEventListener("click",function(){act("retry")});
+$("closeBtn").addEventListener("click",function(){act("close")});
+
+/* Preview: ?preview=fail triggers the failure state (brief delay so the
+   progress state renders first; short enough for headless screenshots). */
+if(isPreviewFail){
+  setTimeout(function(){
+    window.gbSplashFail({kind:"deadline",seconds:180,
+      log:"C:\\Users\\demo\\AppData\\Local\\generalbots\\stack\\logs\\botserver-sidecar.log"});
+  },800);
+}
+
+/* Tick loop */
+tick();
+setInterval(tick,60);
 })();
 </script>
 </body>
