@@ -17,12 +17,7 @@ use std::time::Duration;
 /// How long a boot-time read may block before the caller falls back.
 const READ_TIMEOUT: Duration = Duration::from_secs(5);
 
-/// Whether the process environment names a Vault and a token for it.
-fn vault_env_configured() -> bool {
-    ["VAULT_ADDR", "VAULT_TOKEN"]
-        .iter()
-        .all(|key| std::env::var(key).is_ok_and(|value| !value.trim().is_empty()))
-}
+use crate::token_source::vault_env_configured;
 
 /// The secrets manager for one boot-time Vault call.
 ///

@@ -358,12 +358,10 @@ impl AuthConfig {
     pub fn from_env() -> Self {
         let mut config = Self::default();
 
-        if let Ok(secret) = std::env::var("VAULT_TOKEN") {
-            if !secret.is_empty() {
-                if let Some(provider) = botsecurity_core::get_vault_provider() {
-                    if let Ok(jwt_secret) = provider.get_jwt_secret() {
-                        config.jwt_secret = Some(jwt_secret);
-                    }
+        if botcoresecrets::vault_token().is_some() {
+            if let Some(provider) = botsecurity_core::get_vault_provider() {
+                if let Ok(jwt_secret) = provider.get_jwt_secret() {
+                    config.jwt_secret = Some(jwt_secret);
                 }
             }
         }

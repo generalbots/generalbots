@@ -30,7 +30,7 @@ pub struct ServiceConfigResult;
 impl SecretsManager {
     pub fn get_drive_config(&self) -> Result<(String, String, String)> {
         if let Ok(vault_addr) = std::env::var("VAULT_ADDR") {
-            if let Ok(vault_token) = std::env::var("VAULT_TOKEN") {
+            if let Some(vault_token) = crate::token_source::vault_token() {
                 let ca_cert = std::env::var("VAULT_CACERT").unwrap_or_else(|e| {
                     log::warn!("VAULT_CACERT unavailable ({e}); Vault TLS uses -k fallback");
                     String::new()
@@ -72,7 +72,7 @@ impl SecretsManager {
 
     pub fn get_cache_config(&self) -> Result<(String, u16, Option<String>)> {
         if let Ok(vault_addr) = std::env::var("VAULT_ADDR") {
-            if let Ok(vault_token) = std::env::var("VAULT_TOKEN") {
+            if let Some(vault_token) = crate::token_source::vault_token() {
                 let ca_cert = std::env::var("VAULT_CACERT").unwrap_or_else(|e| {
                     log::warn!("VAULT_CACERT unavailable ({e}); Vault TLS uses -k fallback");
                     String::new()
@@ -111,7 +111,7 @@ impl SecretsManager {
 
     pub fn get_qdrant_config(&self) -> Result<(String, Option<String>)> {
         if let Ok(vault_addr) = std::env::var("VAULT_ADDR") {
-            if let Ok(vault_token) = std::env::var("VAULT_TOKEN") {
+            if let Some(vault_token) = crate::token_source::vault_token() {
                 let ca_cert = std::env::var("VAULT_CACERT").unwrap_or_else(|e| {
                     log::warn!("VAULT_CACERT unavailable ({e}); Vault TLS uses -k fallback");
                     String::new()

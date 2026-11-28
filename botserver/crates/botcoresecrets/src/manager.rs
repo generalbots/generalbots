@@ -41,8 +41,8 @@ impl SecretsManager {
             warn!("VAULT_ADDR unavailable ({e}); Vault stays disabled");
             String::new()
         });
-        let token = env::var("VAULT_TOKEN").unwrap_or_else(|e| {
-            warn!("VAULT_TOKEN unavailable ({e}); Vault stays disabled");
+        let token = crate::token_source::vault_token().unwrap_or_else(|| {
+            warn!("Neither VAULT_TOKEN nor VAULT_TOKEN_FILE gives a token; Vault stays disabled");
             String::new()
         });
         let skip_verify =

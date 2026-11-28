@@ -48,6 +48,11 @@ pub(super) async fn main() -> std::io::Result<()> {
     // of VAULT_TOKEN runs (it is no longer kept in `.env`).
     #[cfg(windows)]
     botcore::package_manager::server_token::load_early(std::path::Path::new(&botcore::shared::utils::get_stack_path()));
+    // The scoped token the first-run provisioner stored (#2498); a token
+    // already in the environment wins.
+    if let Err(e) = botcorepkg::installer_vault::secret_store::load_token_into_env() {
+        warn!("Could not load the scoped Vault token: {e}");
+    }
 
     let env_path_early = std::path::Path::new("./.env");
     let stack = botcore::shared::utils::get_stack_path();
@@ -61,7 +66,7 @@ pub(super) async fn main() -> std::io::Result<()> {
         std::fs::read_to_string(env_path_early)
             .map(|content| content.contains("VAULT_TOKEN="))
             .unwrap_or(false)
-            || (cfg!(windows) && std::env::var("VAULT_TOKEN").is_ok_and(|t| !t.is_empty()))
+            || (cfg!(windows) && botcoresecrets::vault_token().is_some())
     });
 
     if bootstrap_ready {

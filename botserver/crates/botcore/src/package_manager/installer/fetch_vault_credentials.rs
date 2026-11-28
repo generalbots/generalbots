@@ -32,17 +32,7 @@ impl PackageManager {
             Ok(addr) => addr,
             Err(_) => String::new(),
         };
-        let vault_token = match std::env::var("VAULT_TOKEN")
-            .ok()
-            .filter(|v| !v.is_empty())
-            .or_else(|| {
-                std::env::var("VAULT_TOKEN_FILE")
-                    .ok()
-                    .filter(|p| !p.is_empty())
-                    .and_then(|p| std::fs::read_to_string(p).ok())
-                    .map(|s| s.trim().to_string())
-                    .filter(|s| !s.is_empty())
-            }) {
+        let vault_token = match botcoresecrets::vault_token() {
             Some(token) => token,
             // Not configured yet during first boot; the empty check below
             // reports this through the normal bootstrap-defaults path.
