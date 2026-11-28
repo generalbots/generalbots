@@ -55,6 +55,10 @@
     if (el.back) { el.back.textContent = t("wizard.back"); }
     if (el.skip) { el.skip.textContent = t("wizard.skip"); }
     if (el.modalCancel) { el.modalCancel.textContent = t("wizard.cancel"); }
+    if (el.modal && el.modal.hidden) {
+      el.modalTitle.textContent = t("wizard.confirm");
+      el.modalConfirm.textContent = t("wizard.confirm");
+    }
   }
 
   function render() {
