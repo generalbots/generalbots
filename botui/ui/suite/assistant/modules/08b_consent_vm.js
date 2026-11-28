@@ -53,13 +53,15 @@
     }
 
     var VM_WANTS_KEYS = {
-        command: "assistant-vm-wants-command", shell: "assistant-vm-wants-command",
-        read_file: "assistant-vm-wants", write_file: "assistant-vm-wants",
-        network: "assistant-vm-wants", drive_save: "assistant-vm-wants"
+        command: "assistant.vm-wants-command", shell: "assistant.vm-wants-command",
+        file_read: "assistant.vm-wants-file_read", file_write: "assistant.vm-wants-file_write",
+        file_delete: "assistant.vm-wants-file_delete", browser: "assistant.vm-wants-browser",
+        network: "assistant.vm-wants-network", drive_save: "assistant.vm-wants-drive_save",
+        external_save: "assistant.vm-wants-external_save"
     };
 
     function title(d) {
-        var t = A.t(VM_WANTS_KEYS[d.kind] || "assistant-vm-wants", A.t("assistant-vm-wants-command", "{agent} quer executar um comando na Máquina Virtual"));
+        var t = A.t(VM_WANTS_KEYS[d.kind] || "assistant.vm-wants-command", "{agent} wants to run a command in the Virtual Machine");
         return t.replace("{agent}", subject(d.agent)).replace("{provider}", d.provider || "");
     }
 
