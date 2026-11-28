@@ -48,11 +48,8 @@
             '</div>' +
             '<div class="gb-drv-panel">' +
             '<div class="gb-drv-toolbar" id="gbDrvToolbar">' +
-                '<button class="gb-drv-btn gb-drv-btn-accent" id="gbDrvUploadBtn">' +
-                    I("plus", 14) + ' <span>' + esc(t("drive.upload", "Upload")) + '</span></button>' +
-                '<input type="file" id="gbDrvFileInput" style="display:none" multiple />' +
-                '<button class="gb-drv-btn" id="gbDrvNewFolder">' +
-                    I("folder", 14) + ' <span>' + esc(t("drive.new-folder", "Nova pasta")) + '</span></button>' +
+                '<div class="gb-drv-location">' + D.svg(P.folder, 15, 1.7) +
+                    '<div class="gb-drv-breadcrumb" id="gbDrvBreadcrumb"></div></div>' +
                 '<div class="gb-drv-search-wrap">' +
                     D.svg('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>', 14, 1.7) +
                     '<input type="search" class="gb-drv-search-input" id="gbDrvSearchInput" aria-label="' + esc(t("drive.search-placeholder", "Search")) +
