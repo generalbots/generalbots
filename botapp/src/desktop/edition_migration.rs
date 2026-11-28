@@ -134,6 +134,12 @@ pub fn migrate(compiled_identifier: &str) {
 
 fn migrate_profile(root: &Path, owner: StackOwner) {
     let new = root.join(IDENTIFIER);
+    // An empty folder is not a profile: the runtime creates it on a run that
+    // keeps its profile elsewhere. `remove_dir` only removes an empty folder,
+    // so anything a person has there stays, and the check below still holds.
+    if new.is_dir() && std::fs::remove_dir(&new).is_ok() {
+        log::info!("empty app data folder {} removed before the move", new.display());
+    }
     if new.exists() {
         return;
     }
@@ -315,6 +321,35 @@ mod tests {
             assert!(!edition.exists());
             let _ = std::fs::remove_dir_all(&root);
         }
+    }
+
+    #[test]
+    fn an_empty_target_folder_does_not_block_the_move() {
+        let root = temp_root("profile-empty-target");
+        let old = root.join(PREV_IDENTIFIER).join("EBWebView");
+        std::fs::create_dir_all(&old).expect("profile");
+        std::fs::write(old.join("Local State"), "old").expect("state");
+        std::fs::create_dir_all(root.join(IDENTIFIER)).expect("empty target");
+        migrate_profile(&root, StackOwner::Lite);
+        assert!(!root.join(PREV_IDENTIFIER).exists());
+        let moved = root.join(IDENTIFIER).join("EBWebView").join("Local State");
+        assert_eq!(std::fs::read_to_string(&moved).expect("moved"), "old");
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn a_target_folder_with_content_is_never_replaced() {
+        let root = temp_root("profile-used-target");
+        let old = root.join(PREV_IDENTIFIER).join("EBWebView");
+        std::fs::create_dir_all(&old).expect("profile");
+        std::fs::write(old.join("Local State"), "old").expect("state");
+        let kept = root.join(IDENTIFIER).join("EBWebView");
+        std::fs::create_dir_all(&kept).expect("target");
+        std::fs::write(kept.join("Local State"), "current").expect("state");
+        migrate_profile(&root, StackOwner::Lite);
+        assert_eq!(std::fs::read_to_string(kept.join("Local State")).expect("kept"), "current");
+        assert_eq!(std::fs::read_to_string(old.join("Local State")).expect("old stays"), "old");
+        let _ = std::fs::remove_dir_all(&root);
     }
 
     #[test]
