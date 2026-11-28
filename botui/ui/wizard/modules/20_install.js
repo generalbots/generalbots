@@ -21,10 +21,17 @@
      ones really run, in the order they were announced. */
   var announcedPlan = [];
 
+  /* "1,2s" on a Portuguese page, "1.2s" in English. */
+  function seconds(value) {
+    var locale = window.WizardI18n ? window.WizardI18n.getLocale() : undefined;
+    try { return new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value); }
+    catch (e) { return value.toFixed(1); }
+  }
+
   function formatDuration(ms) {
     if (ms == null || ms <= 0) { return ""; }
     if (ms < 1000) { return ms + "ms"; }
-    if (ms < 60000) { return (ms / 1000).toFixed(1) + "s"; }
+    if (ms < 60000) { return seconds(ms / 1000) + "s"; }
     var m = Math.floor(ms / 60000);
     var s = Math.round((ms % 60000) / 1000);
     return m + "m " + s + "s";
@@ -81,6 +88,10 @@
       updateInstallProgress();
       if (state.host.checked && !state.host.checking) { renderHostCheck(); }
       else { checkHost(false); }
+    } else if (state.provisioning.failed) {
+      renderComponents();
+      renderHostCheck();
+      App.paintFailure();
     } else if (!state.skipped) {
       if (state.host.checked || state.host.checking) { renderHostCheck(); }
       else { checkHost(true); }
@@ -129,32 +140,11 @@
 
   /* -- component template and rendering ------------------------------- */
 
-  /* #2441 — only claim "from this medium" when the bridge actually reports
-     a bundled/offline source. With no source flag the install may still hit
-     the network, so the safe label is "downloading" (never a false offline
-     claim). A per-component hint wins over the global context flag. */
-  function componentFromMedium(component) {
-    if (component && typeof component === "object") {
-      if (component.from_medium === true || component.bundled === true ||
-          component.source === "medium" || component.source === "cache" ||
-          component.source === "installers") { return true; }
-      if (component.from_medium === false || component.bundled === false ||
-          component.source === "download" || component.source === "network") { return false; }
-    }
-    var ctx = state.context || {};
-    return ctx.installers_bundled === true || ctx.offline_payload === true ||
-      ctx.payload_staged === true || ctx.desktop_offline === true ||
-      ctx.offline === true;
-  }
-
   function componentTemplate(component) {
-    var source = componentFromMedium(component)
-      ? t("install.from-medium", { name: component.label })
-      : t("install.downloading", { name: component.label });
     return '<div class="install-step-item" data-comp="' + esc(component.id) + '">' +
       '<span class="install-step-icon" aria-hidden="true"></span>' +
-      '<span class="install-step-name">' + esc(component.label) + "</span>" +
-      '<span class="install-step-source">' + esc(source) + "</span>" +
+      '<span class="install-step-name">' + esc(App.componentName(component)) + "</span>" +
+      '<span class="install-step-source">' + esc(App.rowState(null)) + "</span>" +
       '<span class="install-step-dur"></span></div>';
   }
 
@@ -208,7 +198,7 @@
     if (stepCount) { stepCount.textContent = t("install.steps-of", { ready: ready, total: planned.length }); }
     if (status) {
       if (state.provisioning.failed || failed) {
-        status.textContent = t("install.stopped", { reason: state.provisioning.failed || t("nav.unknown") });
+        status.textContent = t("install.failed-title");
       } else if (state.provisioning.ready) {
         status.textContent = t("install.all-ready", { count: planned.length });
       } else if (state.provisioning.running) {
@@ -255,6 +245,7 @@
     }
     var node = document.querySelector('[data-comp="' + event.id + '"]');
     if (!node) { return; }
+    App.setRowState(node, entry);
     var icon = node.querySelector(".install-step-icon");
     var dur = node.querySelector(".install-step-dur");
     if (event.state === "starting") {
@@ -327,7 +318,7 @@
         if (state.provisioning.running) { setTimeout(pollStatus, 700); }
         return;
       }
-      if (s.failed && !s.ready) { showProvisionError(s.failed); return; }
+      if (s.failed && !s.ready) { App.showProvisionError(s.failed, App.failedComponentId(s.components)); return; }
       (s.components || []).forEach(function (ev) {
         if (ev.id !== "__done__") { updateComponent(ev); }
       });
@@ -347,6 +338,7 @@
       } else { say(t("host.blocked-say")); }
       return;
     }
+    App.clearProvisionError();
     setProvisionUi(true);
     renderComponents();
     pollStatus();
@@ -355,24 +347,8 @@
       services: App.W.sentServices(draft.services), display_name: draft.display_name,
       skip_all_agentic_work: draft.skip_all_agentic_work === true
     }).then(function () { handleDone(); }).catch(function (e) {
-      state.provisioning.running = false;
-      state.provisioning.failed = String(e && e.message ? e.message : e);
-      showProvisionError(state.provisioning.failed);
+      App.showProvisionError(String(e && e.message ? e.message : e));
     });
-  }
-
-  function showProvisionError(message) {
-    var box = document.getElementById("provisionError");
-    if (box) {
-      box.innerHTML = esc(message) +
-        ' <button type="button" class="btn btn-secondary btn-sm" id="retryComponentBtn">' +
-        esc(t("install.retry")) + "</button>";
-      var retry = document.getElementById("retryComponentBtn");
-      if (retry) { retry.addEventListener("click", startProvisioning); }
-    }
-    /* Reveal the log on failure so the user can see what went wrong. */
-    setDetailsOpen(true);
-    setProvisionUi(false);
   }
 
   function markAllReady() {
@@ -411,7 +387,7 @@
   App.renderHostCheck = renderHostCheck;
   App.checkHost = checkHost;
   App.componentTemplate = componentTemplate;
-  App.componentFromMedium = componentFromMedium;
+  App.setDetailsOpen = setDetailsOpen;
   App.renderComponents = renderComponents;
   App.plannedComponents = plannedComponents;
   App.updateInstallProgress = updateInstallProgress;
@@ -421,7 +397,6 @@
   App.handleDone = handleDone;
   App.pollStatus = pollStatus;
   App.startProvisioning = startProvisioning;
-  App.showProvisionError = showProvisionError;
   App.markAllReady = markAllReady;
   App.confirmReset = confirmReset;
 })();

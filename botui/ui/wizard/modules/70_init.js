@@ -4,7 +4,7 @@
 
   var App = window.GBWizardApp;
   var W = App.W, B = App.B, I = App.I, esc = App.esc, t = App.t;
-  var el = App.el, state = App.state, draft = App.draft, logLines = App.logLines;
+  var el = App.el, state = App.state, draft = App.draft;
 
   function resumeBanner() {
     if (!state.context.resume_step || state.context.resume_step <= 1) { return; }
@@ -54,10 +54,9 @@
       return;
     }
     if (event.state === "failed") {
-      state.provisioning.running = false;
-      state.provisioning.failed = event.message;
-      logLines.push("[" + event.id + "] failed: " + event.message);
-      App.showProvisionError(event.message);
+      App.updateComponent(event);
+      App.renderLog();
+      App.showProvisionError(event.message, event.id);
       return;
     }
     App.updateComponent(event);

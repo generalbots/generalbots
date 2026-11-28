@@ -85,6 +85,8 @@
   flex: 1;
   min-height: 0;
 }
+/* A failure notice below must not squeeze the step list under it. */
+.install-columns:has(~ .install-failure:not(:empty)) { flex: 1 0 auto; }
 .install-col-steps {
   display: flex;
   flex-direction: column;
@@ -181,6 +183,27 @@ pre.log {
   color: var(--id-muted);
   font-size: 13px;
 }
+.install-step-item .install-step-source {
+  font-size: var(--id-text-sm);
+  font-weight: 400;
+  color: var(--id-muted);
+}
+
+/* Failure notice: what stopped, why, where the log is, what to do. */
+.install-failure:not(:empty) {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: var(--id-space-3);
+  padding: var(--id-space-3) var(--id-space-4);
+  border: 1px solid var(--id-danger-line);
+  border-radius: var(--id-radius-sm);
+  background: var(--id-danger-soft);
+  color: var(--id-ink);
+}
+.install-failure .install-failure-title { color: var(--id-danger-text); }
+.install-failure .install-failure-log { color: var(--id-muted); word-break: break-all; }
+.install-failure .install-failure-actions { margin-top: 6px; gap: 8px; }
 
 /* Spinner for current step */
 .install-spinner {
