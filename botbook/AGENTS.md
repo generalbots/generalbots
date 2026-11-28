@@ -161,9 +161,11 @@ loses real labels has regressed, even if it still parses.
 python3 -m venv /tmp/botbook-docs-venv
 /tmp/botbook-docs-venv/bin/pip install mkdocs-material mkdocs-literate-nav
 cd botbook && NO_MKDOCS_2_WARNING=1 /tmp/botbook-docs-venv/bin/mkdocs build   # output in botbook/book/ (git-ignored)
-cd .. && python3 scripts/build_botbook_redirects.py     # old mdBook chapter URLs
 find botbook/book -name '*.html' | wc -l
 ```
+
+Or run `./scripts/build_botbook_docs.sh` from the repository root to regenerate
+every reference page, verify all guards and build in one step.
 
 `mkdocs.yml` uses MkDocs Material, `use_directory_urls: false` (so page URLs
 match mdBook's `page.html`), and `SUMMARY.md` as the navigation file. The
@@ -181,8 +183,7 @@ build is produced locally and swapped in.
 
 ```bash
 # 1. build
-cd botbook && /tmp/botbook-docs-venv/bin/mkdocs build
-cd .. && python3 scripts/build_botbook_redirects.py
+./scripts/build_botbook_docs.sh
 tar -czf /tmp/docs-book.tar.gz -C botbook/book .
 
 # 2. upload and swap (SRV1_HOST/SRV1_PASS from ~/.prod)
@@ -213,8 +214,7 @@ home page, or compare checksums.
 Keeping these in mind is cheaper than rediscovering them.
 
 1. **Pages written but never published** — 209 of them, because `SUMMARY.md` was
-   never extended. Old build: 441 HTML files. Current: 794 (MkDocs, including 20
-   mdBook-compatible redirects).
+   never extended. Old build: 441 HTML files. Current: 794+ (MkDocs).
 2. **A link check that measured the filesystem** instead of the published book,
    so the breakage above looked like success.
 3. **Fabricated implementation detail** — BGE embeddings, 500-token chunks, HNSW

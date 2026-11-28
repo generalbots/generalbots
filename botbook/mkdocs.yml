@@ -5,11 +5,13 @@ repo_url: https://github.com/generalbots/generalbots
 edit_uri: edit/main/botbook/src/
 docs_dir: src
 site_dir: book
-# mdBook emitted page.html (not page/index.html); keep those URLs alive.
+# mdBook emitted page.html for regular pages and index.html for README.md
+# chapters; MkDocs with use_directory_urls=false produces the same paths.
 use_directory_urls: false
 
 exclude_docs: |
   /SUMMARY.md
+  /NAV.md
   /README.md
 
 validation:
@@ -51,7 +53,7 @@ theme:
 plugins:
   - search
   - literate-nav:
-      nav_file: SUMMARY.md
+      nav_file: NAV.md
 
 extra_css:
   - assets/docs-theme.css
