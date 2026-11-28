@@ -175,6 +175,9 @@ jobs:
 
       # Proves the release server starts with the gblite feature set and serves
       # the Chat + Drive product profile, with no network egress in the smoke.
+      # Isolated on purpose: no Vault, a CSRF secret set by the script, sign-in
+      # off, a pre-seeded stack (scripts/gblite-smoke.ps1). It is NOT the gate
+      # for a real first install; the first-run steps below are.
       - name: Smoke test the release server (isolated stack, local mock model)
         shell: pwsh
         env:
@@ -233,22 +236,24 @@ jobs:
           python scripts/stage_windows_installers.py --check
           if ($LASTEXITCODE -ne 0) { throw "offline payload check failed with exit code $LASTEXITCODE" }
 
-      # First run of a brand-new install, without the desktop shell: the
+      # THE GATE FOR A REAL FIRST INSTALL. Without the desktop shell, the
       # release server provisions an EMPTY stack from the payload staged above,
-      # asked the way the first-run wizard asks, with downloads forbidden, and
-      # then starts once on it (scripts/gblite-first-run.ps1). The smoke test
-      # above never runs the provisioner, so only this step sees a payload or a
-      # product file that a new install cannot use.
-      #
-      # NOT BLOCKING YET: the check has never run on a runner, and a wrong
-      # assumption in it must not stop a release build. Remove
-      # `continue-on-error` from this step once it has passed twice here.
+      # asked the way the first-run wizard asks, with downloads forbidden and
+      # no secret, token, development switch or pre-made folder handed over;
+      # the Vault is the one of the payload. It then starts the server, stops
+      # it with Ctrl+C, stops the whole stack as a restart would and starts the
+      # server again (scripts/gblite-first-run.ps1). It fails unless the first
+      # start generates and persists the CSRF secret and stores the unseal keys
+      # and token in conf\vault\credentials, and the second start reads the
+      # CSRF secret from Vault, unseals it, renews the token and never refuses
+      # to start. The smoke test above runs Vault-less with a secret it sets
+      # itself, so it cannot see any of this. Blocking: a failure stops the
+      # release; the logs are uploaded by the evidence step either way.
       #
       # The runner's own PostgreSQL (the smoke database) holds port 5432, the
       # port of the stack's database: it is stopped for the check and started
       # again afterwards.
-      - name: First run on an empty stack, offline (not blocking yet)
-        continue-on-error: true
+      - name: First run on an empty stack, offline, two starts
         timeout-minutes: 30
         shell: pwsh
         run: |
@@ -268,10 +273,8 @@ jobs:
       # The installers install for the whole machine (`installMode` in
       # botapp/tauri.gblite.conf.json), so the person who runs the app cannot
       # write to, or move files out of, the app folder. The same check with
-      # that folder locked. Not blocking, for the same reason as above; make it
-      # blocking once it has passed twice.
-      - name: First run on an empty stack, app folder read-only (not blocking yet)
-        continue-on-error: true
+      # that folder locked. Blocking, as above.
+      - name: First run on an empty stack, app folder read-only, two starts
         timeout-minutes: 30
         shell: pwsh
         run: |
