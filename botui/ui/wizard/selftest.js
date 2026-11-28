@@ -159,9 +159,9 @@
     }, 4000);
     assert(hostChecked, "host readiness reports a result");
     var summary = text("#hostSummaryLine");
-    assert(summary.indexOf("This machine is ready") !== -1 &&
-      document.getElementById("hostSummaryLine").getAttribute("data-kind") === "ok",
-      "host summary reads ready with the success state", summary);
+    var summaryKind = document.getElementById("hostSummaryLine").getAttribute("data-kind");
+    assert(summary.indexOf("This machine is ready") === -1 && (summaryKind === "ok" || summaryKind === "run"),
+      "host summary does not say ready before setup finishes", summary);
     assert(!/not checked/i.test(text("#hostReadiness")), "host panel never says not checked when ready");
     var lit = await waitFor(function () {
       var dots = document.querySelectorAll("#componentList .dot.ok");

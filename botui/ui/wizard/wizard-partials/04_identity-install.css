@@ -203,6 +203,7 @@ pre.log {
 }
 .install-failure .install-failure-title { color: var(--id-danger-text); }
 .install-failure .install-failure-log { color: var(--id-muted); word-break: break-all; }
+.install-failure .install-failure-tech { color: var(--id-muted); font-size: 12px; word-break: break-word; }
 .install-failure .install-failure-actions { margin-top: 6px; gap: 8px; }
 
 /* Spinner for current step */

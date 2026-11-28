@@ -48,12 +48,17 @@
     return !!result && (result.status === "ready" || skippedAgentOnlyGap(result));
   }
 
-  /* One sentence for the summary row: running, ready, or the problem. */
+  /* One sentence for the summary row: the setup run when there is one
+     (running, stopped, ready), otherwise the host check. "Ready" is said
+     only once every component the provisioner announced is done. */
   function summaryState(state) {
     var host = state.host;
     var result = host.result;
     if (host.checking) { return { text: t("host.checking"), kind: "run" }; }
-    if (state.provisioning.ready || hostReady(result)) { return { text: t("host.summary-ready"), kind: "ok" }; }
+    if (state.provisioning.failed) { return { text: t("host.summary-failed"), kind: "err" }; }
+    if (state.provisioning.ready) { return { text: t("host.summary-ready"), kind: "ok" }; }
+    if (state.provisioning.running) { return { text: t("host.summary-running"), kind: "run" }; }
+    if (hostReady(result)) { return { text: t("host.summary-ok"), kind: "ok" }; }
     if (!host.checked) { return { text: t("host.checking"), kind: "run" }; }
     if (!result) { return { text: t("host.summary-no-check"), kind: "warn" }; }
     if (result.status === "desktop-blocked") {
@@ -85,7 +90,8 @@
     }
     if (details) {
       var limited = !!state.host.result && state.host.result.status === "limited";
-      if (info.kind === "err" || (info.kind === "warn" && limited)) {
+      var hostProblem = info.kind === "err" && !state.provisioning.failed;
+      if (hostProblem || (info.kind === "warn" && limited)) {
         details.setAttribute("open", "");
       } else if (info.kind === "ok") {
         details.removeAttribute("open");

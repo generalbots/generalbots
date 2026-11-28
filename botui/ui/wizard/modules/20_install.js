@@ -13,29 +13,11 @@
   function say(text) { return App.say(text); }
   function persistDraft() { return App.persistDraft(); }
 
-  /* -- per-component timing ------------------------------------------- */
-  var compStartTimes = {};
   /* Components the provisioner has actually announced via progress events.
      The static context.components list includes every component the shell
      knows about, but the provisioner only runs a subset; this tracks which
      ones really run, in the order they were announced. */
   var announcedPlan = [];
-
-  /* "1,2s" on a Portuguese page, "1.2s" in English. */
-  function seconds(value) {
-    var locale = window.WizardI18n ? window.WizardI18n.getLocale() : undefined;
-    try { return new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value); }
-    catch (e) { return value.toFixed(1); }
-  }
-
-  function formatDuration(ms) {
-    if (ms == null || ms <= 0) { return ""; }
-    if (ms < 1000) { return ms + "ms"; }
-    if (ms < 60000) { return seconds(ms / 1000) + "s"; }
-    var m = Math.floor(ms / 60000);
-    var s = Math.round((ms % 60000) / 1000);
-    return m + "m " + s + "s";
-  }
 
   /* -- install step binding ------------------------------------------- */
 
@@ -195,7 +177,10 @@
     if (label) { label.textContent = percent + "%"; }
     if (fill) { fill.style.width = percent + "%"; }
     var stepCount = document.getElementById("installStepCount");
-    if (stepCount) { stepCount.textContent = t("install.steps-of", { ready: ready, total: planned.length }); }
+    if (stepCount) {
+      /* Nothing announced yet: no "0 of 0" while the provisioner starts. */
+      stepCount.textContent = planned.length ? t("install.steps-of", { ready: ready, total: planned.length }) : t("install.waiting");
+    }
     if (status) {
       if (state.provisioning.failed || failed) {
         status.textContent = t("install.failed-title");
@@ -226,10 +211,7 @@
       logLines.push("[" + event.id + "] " + event.state + " — " + (event.message || event.state));
       if (logLines.length > 200) { logLines.splice(0, logLines.length - 200); }
     }
-    /* Track per-component start time for accurate durations. */
-    if (event.state === "starting" && !compStartTimes[event.id]) {
-      compStartTimes[event.id] = Date.now();
-    }
+    App.rowTimer.note(event.id, event.state, event.elapsed_ms);
     /* Add newly announced components to the plan and DOM dynamically. */
     if (event.id !== "__done__" && !announcedPlan.some(function (c) { return c.id === event.id; })) {
       var spec = null;
@@ -248,20 +230,21 @@
     App.setRowState(node, entry);
     var icon = node.querySelector(".install-step-icon");
     var dur = node.querySelector(".install-step-dur");
+    var time = App.rowTimer.text(event.id);
     if (event.state === "starting") {
-      icon.innerHTML = '<span class="install-spinner"></span>';
+      if (!icon.querySelector(".install-spinner")) { icon.innerHTML = '<span class="install-spinner"></span>'; }
       node.className = "install-step-item current";
-      if (dur) { dur.textContent = "0s"; }
+      if (dur) { dur.textContent = time; }
     } else if (event.state === "ready") {
-      var elapsed = compStartTimes[event.id] ? Date.now() - compStartTimes[event.id] : event.elapsed_ms;
       node.className = "install-step-item done";
-      if (dur) { dur.innerHTML = formatDuration(elapsed) + ' <span class="install-step-check">✓</span>'; }
+      if (dur) { dur.innerHTML = esc(time) + ' <span class="install-step-check">✓</span>'; }
       icon.textContent = "";
+      icon.style.color = "";
     } else if (event.state === "failed") {
-      node.className = "install-step-item done";
+      node.className = "install-step-item done failed";
       icon.textContent = "✗";
       icon.style.color = "var(--id-danger-text)";
-      if (dur) { dur.textContent = ""; }
+      if (dur) { dur.textContent = time; }
     }
     updateInstallProgress();
   }
@@ -280,16 +263,22 @@
     if (cancel) { cancel.disabled = !running; }
     var reset = document.getElementById("resetStackBtn");
     if (reset) { reset.hidden = running; }
-    if (running) {
-      state.provisioning.running = true;
-      state.provisioning.failed = null;
-      state.provisioning.startedAt = Date.now();
-      state.provisioning.components = [];
-      compStartTimes = {};
-      announcedPlan = [];
-    }
+    if (!running) { App.rowTimer.freezeOpen(); }
     syncStartButton();
     renderFooter();
+    renderHostCheck();
+  }
+
+  /* A new run starts from empty rows and clocks; re-rendering the step
+     while a run is in progress keeps them. */
+  function beginRun() {
+    state.provisioning.running = true;
+    state.provisioning.failed = null;
+    state.provisioning.startedAt = Date.now();
+    state.provisioning.components = [];
+    announcedPlan = [];
+    App.rowTimer.reset();
+    setProvisionUi(true);
   }
 
   function handleDone() {
@@ -339,7 +328,7 @@
       return;
     }
     App.clearProvisionError();
-    setProvisionUi(true);
+    beginRun();
     renderComponents();
     pollStatus();
     B.provision({
