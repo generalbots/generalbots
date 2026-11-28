@@ -37,7 +37,7 @@ function chevron() { return I("caret-right", 14, "gb-block-chevron"); }
 function block(opts) {
     var status = opts.status || "done";
     var openByDefault = status === "running" || status === "needs-you";
-    var cls = "gb-block gb-block--" + status + (openByDefault ? " open" : "");
+    var cls = "gb-block gb-block--" + status + (opts.kind ? " gb-block-kind--" + opts.kind : "") + (openByDefault ? " open" : "");
     var el = document.createElement("div");
     el.className = cls;
     if (opts.activityId) el.dataset.activityId = opts.activityId;
@@ -100,9 +100,9 @@ A.blockThinking = function (evOrElapsed, reasoning) {
         var d = evOrElapsed.summary || evOrElapsed.data || evOrElapsed;
         elapsed = d.elapsed || 0; reason = d.reasoning || "";
     }
-    return block({ icon: "brain", title: t("Pensando","Thinking"),
-        summary: elapsed ? elapsed + " s" : "", status: reason ? "done" : "running",
-        bodyHtml: reason ? '<div class="gb-block-row" style="white-space:pre-wrap;max-height:200px;overflow-y:auto">' + esc(reason) + '</div>' : '' });
+    return block({ kind: "thinking", icon: "brain", title: t("Raciocínio", "Reasoning"),
+        summary: elapsed ? t("Pensou por ", "Thought for ") + elapsed + " s" : "", status: reason ? "done" : "running",
+        bodyHtml: reason ? '<div class="gb-block-prose">' + esc(reason) + '</div>' : "" });
 };
 
 A.blockAttachmentRead = function (ev) {
